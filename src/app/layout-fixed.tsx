@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 import './globals.css';
 import { NavigationSpinnerProvider } from '@/components/ui/NavigationSpinnerProvider';
 import NavigationEvents from '@/components/ui/NavigationEvents';
-import { ToastProvider } from "@/components/ui/ToastProvider";
 
 const APP_NAME = "HomeBake";
 const APP_DESCRIPTION = "Manage your bakery with ease.";
@@ -63,13 +62,11 @@ export default function RootLayout({
         )}
         suppressHydrationWarning
       >
-        <ToastProvider>
-          <NavigationSpinnerProvider>
-            <NavigationEvents />
-            {children}
-          </NavigationSpinnerProvider>
-        </ToastProvider>
+        <NavigationSpinnerProvider>
+          <NavigationEvents />
+          {children}
+        </NavigationSpinnerProvider>
       </body>
     </html>
   );
-}
+} 
