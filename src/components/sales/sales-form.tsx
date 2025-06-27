@@ -103,7 +103,7 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
                       id={`quantity-${bread.id}`}
                       type="number"
                       min="0"
-                      placeholder=""
+                      placeholder="0"
                       className="w-full"
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
@@ -133,7 +133,7 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
                       type="number"
                       min="0"
                       max="100"
-                      placeholder=""
+                      placeholder="0"
                       className="w-full"
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}

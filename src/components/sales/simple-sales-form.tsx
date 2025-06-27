@@ -140,7 +140,7 @@ export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: Sales
                   id={`quantity-${bread.id}`}
                   type="number"
                   min="0"
-                  placeholder=""
+                  placeholder="0"
                   className="w-full"
                   value={formData[bread.id]?.quantity || ''}
                   onChange={(e) => handleInputChange(bread.id, 'quantity', e.target.value)}
@@ -158,7 +158,7 @@ export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: Sales
                   type="number"
                   min="0"
                   max="100"
-                  placeholder=""
+                  placeholder="0"
                   className="w-full"
                   value={formData[bread.id]?.discount || ''}
                   onChange={(e) => handleInputChange(bread.id, 'discount', e.target.value)}
