@@ -3,7 +3,7 @@ import React, { useState, useCallback } from 'react';
 import { BreadTypeTable } from '@/components/bread-type-table';
 import { useToast } from '@/components/ui/ToastProvider';
 import { deleteBreadTypeAction, refetchBreadTypesAction } from './actions';
-import Link from 'next/link';
+
 import { useRouter } from 'next/navigation';
 
 interface BreadType {
