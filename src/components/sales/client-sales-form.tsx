@@ -68,7 +68,7 @@ export default function ClientSalesForm() {
         return sum + (entry.quantity_sold * unitPrice * discountMultiplier);
       }, 0);
 
-      alert(`Sales logged successfully!\n\nTotal Items: ${totalQuantity}\nTotal Revenue: $${totalRevenue.toFixed(2)}\nShift: ${shift}`);
+      alert(`Sales logged successfully!\n\nTotal Items: ${totalQuantity}\nTotal Revenue: ₦${totalRevenue.toFixed(2)}\nShift: ${shift}`);
       
       // Reset form
       setFormData({});
@@ -111,7 +111,7 @@ export default function ClientSalesForm() {
             <div className="flex items-center justify-between">
               <Label className="text-base font-medium">{bread.name}</Label>
               <span className="text-sm text-muted-foreground">
-                ${bread.unit_price.toFixed(2)} each
+                ₦{bread.unit_price.toFixed(2)} each
               </span>
             </div>
             
@@ -124,7 +124,7 @@ export default function ClientSalesForm() {
                   id={`quantity-${bread.id}`}
                   type="number"
                   min="0"
-                  placeholder="0"
+                  placeholder=""
                   className="w-full"
                   value={formData[bread.id]?.quantity || ''}
                   onChange={(e) => handleInputChange(bread.id, 'quantity', e.target.value)}
@@ -142,7 +142,7 @@ export default function ClientSalesForm() {
                   type="number"
                   min="0"
                   max="100"
-                  placeholder="0"
+                  placeholder=""
                   className="w-full"
                   value={formData[bread.id]?.discount || ''}
                   onChange={(e) => handleInputChange(bread.id, 'discount', e.target.value)}

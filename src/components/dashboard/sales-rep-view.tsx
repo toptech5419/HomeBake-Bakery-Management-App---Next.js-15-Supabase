@@ -8,10 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { ShiftToggle } from '@/components/shift-toggle';
 import { 
   ShoppingCart, 
-  DollarSign, 
+  TrendingUp, 
   Package, 
   Plus,
-  TrendingUp,
   RefreshCw
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -89,7 +88,7 @@ export function SalesRepDashboard() {
         <MetricsCard
           title="Today&apos;s Revenue"
           value={formatCurrencyNGN(metrics.todayRevenue)}
-          icon={DollarSign}
+          icon={TrendingUp}
           subtitle="Daily earnings"
         />
         <MetricsCard

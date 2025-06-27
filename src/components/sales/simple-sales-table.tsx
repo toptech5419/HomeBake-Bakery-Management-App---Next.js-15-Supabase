@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, DollarSign, Package } from 'lucide-react';
+import { Clock, Package } from 'lucide-react';
 
 interface SalesLog {
   id: string;
@@ -58,9 +58,9 @@ export default function SimpleSalesTable({ logs, title = "Sales Entries" }: Simp
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-medium text-lg">${totalPrice.toFixed(2)}</div>
+                <div className="font-medium text-lg">₦{totalPrice.toFixed(2)}</div>
                 <div className="text-sm text-muted-foreground">
-                  {log.quantity_sold} × ${unitPrice.toFixed(2)}
+                  {log.quantity_sold} × ₦{unitPrice.toFixed(2)}
                   {log.discount_percentage > 0 && (
                     <span className="text-green-600 ml-1">
                       (-{log.discount_percentage}%)

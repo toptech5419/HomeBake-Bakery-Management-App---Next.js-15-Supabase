@@ -125,7 +125,7 @@ export default function SalesPageClient({
             <BarChart3 className="h-8 w-8 text-green-500" />
             <div className="ml-4">
               <p className="text-sm font-medium text-muted-foreground">Today's Revenue</p>
-              <p className="text-2xl font-bold">${todayStats.totalRevenue.toFixed(2)}</p>
+              <p className="text-2xl font-bold">₦{todayStats.totalRevenue.toFixed(2)}</p>
             </div>
           </div>
         </Card>

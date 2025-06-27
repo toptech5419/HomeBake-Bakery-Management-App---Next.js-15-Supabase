@@ -127,7 +127,7 @@ export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: Sales
             <div className="flex items-center justify-between">
               <Label className="text-base font-medium">{bread.name}</Label>
               <span className="text-sm text-muted-foreground">
-                ${bread.unit_price.toFixed(2)} each
+                ₦{bread.unit_price.toFixed(2)} each
               </span>
             </div>
             
@@ -140,7 +140,7 @@ export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: Sales
                   id={`quantity-${bread.id}`}
                   type="number"
                   min="0"
-                  placeholder="0"
+                  placeholder=""
                   className="w-full"
                   value={formData[bread.id]?.quantity || ''}
                   onChange={(e) => handleInputChange(bread.id, 'quantity', e.target.value)}
@@ -158,7 +158,7 @@ export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: Sales
                   type="number"
                   min="0"
                   max="100"
-                  placeholder="0"
+                  placeholder=""
                   className="w-full"
                   value={formData[bread.id]?.discount || ''}
                   onChange={(e) => handleInputChange(bread.id, 'discount', e.target.value)}

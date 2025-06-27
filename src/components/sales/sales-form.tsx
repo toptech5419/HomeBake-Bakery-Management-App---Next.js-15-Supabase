@@ -32,14 +32,6 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
   
   const { control, handleSubmit, reset, formState: { errors } } = useForm<SalesFormData>({
     resolver: zodResolver(salesFormSchema),
-    defaultValues: { 
-      entries: breadTypes.map(b => ({ 
-        bread_type_id: b.id, 
-        quantity_sold: 0, 
-        discount_percentage: 0, 
-        shift 
-      })) 
-    },
   });
 
   const onSubmit = async (data: SalesFormData) => {
@@ -94,7 +86,7 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
             <div className="flex items-center justify-between">
               <Label className="text-base font-medium">{bread.name}</Label>
               <span className="text-sm text-muted-foreground">
-                ${bread.unit_price.toFixed(2)} each
+                ₦{bread.unit_price.toFixed(2)} each
               </span>
             </div>
             
@@ -111,7 +103,7 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
                       id={`quantity-${bread.id}`}
                       type="number"
                       min="0"
-                      placeholder="0"
+                      placeholder=""
                       className="w-full"
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
@@ -141,7 +133,7 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
                       type="number"
                       min="0"
                       max="100"
-                      placeholder="0"
+                      placeholder=""
                       className="w-full"
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}

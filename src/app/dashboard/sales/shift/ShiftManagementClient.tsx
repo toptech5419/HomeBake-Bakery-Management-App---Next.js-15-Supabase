@@ -158,7 +158,7 @@ export default function ShiftManagementClient({
             <DollarSign className="h-8 w-8 text-green-500 mr-3" />
             <div>
               <p className="text-sm text-muted-foreground">Revenue</p>
-              <p className="text-2xl font-bold">${currentShiftStats.totalRevenue.toFixed(2)}</p>
+                             <p className="text-2xl font-bold">₦{currentShiftStats.totalRevenue.toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -190,7 +190,7 @@ export default function ShiftManagementClient({
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Revenue:</span>
-                <span className="font-medium">${morningStats.totalRevenue.toFixed(2)}</span>
+                <span className="font-medium">₦{morningStats.totalRevenue.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -208,7 +208,7 @@ export default function ShiftManagementClient({
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Revenue:</span>
-                <span className="font-medium">${nightStats.totalRevenue.toFixed(2)}</span>
+                <span className="font-medium">₦{nightStats.totalRevenue.toFixed(2)}</span>
               </div>
             </div>
           </div>

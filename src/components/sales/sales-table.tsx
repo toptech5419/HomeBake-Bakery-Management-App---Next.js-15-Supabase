@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShoppingCart, Clock, Calendar, DollarSign } from 'lucide-react';
+import { ShoppingCart, Clock, Calendar } from 'lucide-react';
 
 interface SalesLog {
   id: string;
@@ -128,8 +128,7 @@ function SalesLogCard({
         </div>
         <div className="text-xs text-muted-foreground">units sold</div>
         <div className="flex items-center justify-end text-sm font-medium text-green-600">
-          <DollarSign className="h-3 w-3 mr-1" />
-          {revenue.toFixed(2)}
+          ₦{revenue.toFixed(2)}
         </div>
       </div>
     </Card>

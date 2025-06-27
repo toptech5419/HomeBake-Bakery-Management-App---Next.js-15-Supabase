@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Users, 
   Package, 
-  DollarSign, 
   TrendingUp, 
   UserPlus, 
   Settings,
@@ -124,7 +123,7 @@ export function OwnerDashboard() {
         <MetricsCard
           title="Total Revenue"
           value={formatCurrencyNGN(metrics.totalRevenue)}
-          icon={DollarSign}
+          icon={TrendingUp}
           subtitle="All-time earnings"
           trend={{
             value: 12,
