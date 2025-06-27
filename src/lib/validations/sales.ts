@@ -10,6 +10,15 @@ export const salesEntrySchema = z.object({
   }),
 });
 
+// Schema for database operations (matches actual DB columns)
+export const salesDbSchema = z.object({
+  bread_type_id: z.string().min(1, 'Bread type is required'),
+  quantity: z.number().positive('Quantity must be a positive number'),
+  discount: z.number().min(0).max(100).optional().default(0),
+  shift: z.enum(['morning', 'night']),
+  recorded_by: z.string().uuid('Invalid user ID'),
+});
+
 export const salesFormSchema = z.object({
   entries: z.array(salesEntrySchema).min(1, 'At least one sale entry is required'),
 });

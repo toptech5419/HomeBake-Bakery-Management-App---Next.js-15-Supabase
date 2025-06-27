@@ -29,12 +29,13 @@ export async function insertSalesLog({
     return { error: parsed.error.errors[0].message };
   }
 
+  // Fix: Map to correct database column names
   const { error } = await supabase.from('sales_logs').insert({
     bread_type_id,
-    quantity_sold,
-    discount_percentage,
+    quantity: quantity_sold,           // Database uses 'quantity'
+    discount: discount_percentage,     // Database uses 'discount'
     shift,
-    user_id,
+    recorded_by: user_id,             // Database uses 'recorded_by'
     created_at: new Date().toISOString(),
   });
 
@@ -54,13 +55,13 @@ export async function fetchTodaySalesLogs(user_id: string) {
     .select(`
       id, 
       bread_type_id, 
-      quantity_sold, 
-      discount_percentage, 
+      quantity, 
+      discount, 
       shift, 
       created_at, 
       bread_types(name, unit_price)
     `)
-    .eq('user_id', user_id)
+    .eq('recorded_by', user_id)
     .gte('created_at', today.toISOString())
     .order('created_at', { ascending: false });
     
@@ -78,13 +79,13 @@ export async function fetchShiftSalesLogs(user_id: string, shift: 'morning' | 'n
     .select(`
       id, 
       bread_type_id, 
-      quantity_sold, 
-      discount_percentage, 
+      quantity, 
+      discount, 
       shift, 
       created_at, 
       bread_types(name, unit_price)
     `)
-    .eq('user_id', user_id)
+    .eq('recorded_by', user_id)
     .eq('shift', shift)
     .gte('created_at', today.toISOString())
     .order('created_at', { ascending: false });
