@@ -8,7 +8,8 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getBreadTypes } from '@/lib/bread-types/actions';
 import LoadingSpinner from '@/components/ui/loading';
-import { Package, TrendingUp, Clock } from 'lucide-react';
+import ShiftToggle from '@/components/shift/shift-toggle';
+import { Package, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function ProductionPage() {
@@ -49,10 +50,6 @@ export default async function ProductionPage() {
 
   const totalToday = logs.reduce((sum, log) => sum + log.quantity, 0);
   
-  // Determine current shift (morning: 6 AM - 6 PM, night: 6 PM - 6 AM)
-  const currentHour = new Date().getHours();
-  const currentShift = currentHour >= 6 && currentHour < 18 ? 'morning' : 'night';
-  
   // Get shift-specific metrics
   const morningLogs = logs.filter(log => log.shift === 'morning');
   const nightLogs = logs.filter(log => log.shift === 'night');
@@ -66,13 +63,7 @@ export default async function ProductionPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Production Log</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <p className="text-gray-600">Log today&apos;s bread production</p>
-              <Badge className={`flex items-center gap-1 ${currentShift === 'morning' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
-                <Clock className="h-3 w-3" />
-                {currentShift.charAt(0).toUpperCase() + currentShift.slice(1)} Shift
-              </Badge>
-            </div>
+            <p className="text-gray-600 mt-1">Log today&apos;s bread production</p>
           </div>
           <div className="flex gap-2">
             <Link href="/dashboard/production/history">
@@ -83,6 +74,9 @@ export default async function ProductionPage() {
             </Link>
           </div>
         </div>
+
+        {/* Shift Control */}
+        <ShiftToggle />
 
         {/* Today's Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

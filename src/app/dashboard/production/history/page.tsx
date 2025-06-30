@@ -1,7 +1,7 @@
 import { createServer } from '@/lib/supabase/server';
 import { fetchProductionHistory } from '@/lib/production/actions';
 import { getBreadTypes } from '@/lib/bread-types/actions';
-import ProductionHistoryFilters from '@/components/production/production-history-filters';
+import ImprovedHistoryFilters from '@/components/production/improved-history-filters';
 import ProductionTable from '@/components/production/production-table';
 import CSVExport from '@/components/production/csv-export';
 import { Card } from '@/components/ui/card';
@@ -65,7 +65,7 @@ export default async function ProductionHistoryPage({ searchParams }: { searchPa
             <p className="text-gray-600 mt-1">View and filter past bread production logs</p>
           </div>
         </div>
-        <ProductionHistoryFilters breadTypes={breadTypes} />
+        <ImprovedHistoryFilters breadTypes={breadTypes} />
         <Card className="flex flex-col gap-4 p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div className="text-lg font-semibold">Entries: {logs.length}</div>

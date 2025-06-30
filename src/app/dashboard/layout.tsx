@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { UserRole } from '@/types';
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
+import { ShiftProvider } from '@/contexts/ShiftContext';
 
 export default async function DashboardLayout({
   children,
@@ -41,19 +42,21 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <Header user={user} displayName={displayName} role={role} />
-      
-      <div className="flex">
-        {/* Sidebar */}
-        <Sidebar role={role} />
+    <ShiftProvider>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <Header user={user} displayName={displayName} role={role} />
         
-        {/* Main Content */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8">
-          {children}
-        </main>
+        <div className="flex">
+          {/* Sidebar */}
+          <Sidebar role={role} />
+          
+          {/* Main Content */}
+          <main className="flex-1 p-4 md:p-6 lg:p-8">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </ShiftProvider>
   );
 } 

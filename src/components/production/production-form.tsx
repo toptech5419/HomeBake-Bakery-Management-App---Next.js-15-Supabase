@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-import { useShift } from '@/hooks/use-shift';
+import { useShift } from '@/contexts/ShiftContext';
 import { Package, Save } from 'lucide-react';
 
 interface BreadType {
@@ -26,7 +26,7 @@ interface ProductionFormProps {
 }
 
 export default function ProductionForm({ breadTypes, managerId, onSuccess }: ProductionFormProps) {
-  const { shift } = useShift();
+  const { currentShift } = useShift();
   const [loading, setLoading] = useState(false);
   const toast = useToast();
   
@@ -36,7 +36,7 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
       entries: breadTypes.map(b => ({ 
         bread_type_id: b.id, 
         quantity: undefined, 
-        shift
+        shift: currentShift
       })) 
     },
   });
@@ -79,8 +79,8 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
     <Card className="w-full">
       <div className="flex items-center justify-between mb-4">
         <span className="text-lg font-semibold">Log Production</span>
-        <Badge variant={shift === 'morning' ? 'default' : 'secondary'}>
-          {shift.charAt(0).toUpperCase() + shift.slice(1)} Shift
+        <Badge className={`${currentShift === 'morning' ? 'bg-orange-100 text-orange-800' : 'bg-indigo-100 text-indigo-800'}`}>
+          {currentShift.charAt(0).toUpperCase() + currentShift.slice(1)} Shift
         </Badge>
       </div>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
