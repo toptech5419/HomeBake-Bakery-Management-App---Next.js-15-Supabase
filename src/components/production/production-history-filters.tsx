@@ -17,7 +17,7 @@ export default function ProductionHistoryFilters({ breadTypes }: { breadTypes: B
 
   const handleFilterChange = useCallback((key: string, value: string) => {
     const newParams = new URLSearchParams(params.toString());
-    if (value) {
+    if (value && value !== 'all') {
       newParams.set(key, value);
     } else {
       newParams.delete(key);
@@ -30,12 +30,12 @@ export default function ProductionHistoryFilters({ breadTypes }: { breadTypes: B
       <div className="flex flex-col sm:flex-row gap-4 items-center">
         <div className="flex-1 w-full">
           <Label htmlFor="bread-type">Bread Type</Label>
-          <Select defaultValue={params.get('bread_type_id') || ''} onValueChange={v => handleFilterChange('bread_type_id', v)}>
+          <Select defaultValue={params.get('bread_type_id') || 'all'} onValueChange={v => handleFilterChange('bread_type_id', v)}>
             <SelectTrigger>
               <SelectValue placeholder="All bread types" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All bread types</SelectItem>
+              <SelectItem value="all">All bread types</SelectItem>
               {breadTypes.map((bread) => (
                 <SelectItem key={bread.id} value={bread.id}>
                   {bread.name}
@@ -46,12 +46,12 @@ export default function ProductionHistoryFilters({ breadTypes }: { breadTypes: B
         </div>
         <div className="flex-1 w-full">
           <Label htmlFor="shift">Shift</Label>
-          <Select defaultValue={params.get('shift') || ''} onValueChange={v => handleFilterChange('shift', v)}>
+          <Select defaultValue={params.get('shift') || 'all'} onValueChange={v => handleFilterChange('shift', v)}>
             <SelectTrigger>
               <SelectValue placeholder="All shifts" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All shifts</SelectItem>
+              <SelectItem value="all">All shifts</SelectItem>
               <SelectItem value="morning">Morning</SelectItem>
               <SelectItem value="night">Night</SelectItem>
             </SelectContent>

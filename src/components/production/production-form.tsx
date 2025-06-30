@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
+
 import { useShift } from '@/hooks/use-shift';
 import { Package, Save } from 'lucide-react';
 
@@ -35,9 +35,8 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
     defaultValues: { 
       entries: breadTypes.map(b => ({ 
         bread_type_id: b.id, 
-        quantity: 0, 
-        shift,
-        feedback: ''
+        quantity: undefined, 
+        shift
       })) 
     },
   });
@@ -53,7 +52,7 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
       }
 
       for (const entry of validEntries) {
-        const result = await insertProductionLog({ ...entry, manager_id: managerId });
+        const result = await insertProductionLog({ ...entry, recorded_by: managerId });
         if (result.error) throw new Error(result.error);
       }
       
@@ -98,10 +97,11 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
                   id={`quantity-${bread.id}`}
                   type="number"
                   min="0"
-                  placeholder="0"
+                  placeholder="Enter quantity produced"
                   className="w-full"
                   {...field}
-                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                  value={field.value || ''}
+                  onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) || 0 : undefined)}
                   disabled={loading}
                   aria-invalid={!!errors.entries?.[idx]?.quantity}
                 />
@@ -114,27 +114,7 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
             )}
           </div>
         ))}
-        
-        {/* Feedback field for optional notes */}
-        <div className="space-y-2">
-          <Label htmlFor="feedback" className="text-sm font-medium">
-            Notes (Optional)
-          </Label>
-          <Controller
-            name="entries.0.feedback"
-            control={control}
-            render={({ field }) => (
-              <Textarea
-                id="feedback"
-                placeholder="Any notes about today's production..."
-                className="w-full"
-                rows={3}
-                {...field}
-                disabled={loading}
-              />
-            )}
-          />
-        </div>
+
 
         <Button 
           type="submit" 

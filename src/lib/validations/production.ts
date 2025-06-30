@@ -7,7 +7,6 @@ export const productionEntrySchema = z.object({
     required_error: 'Shift is required',
     invalid_type_error: 'Shift must be morning or night',
   }),
-  feedback: z.string().optional(),
 });
 
 export const productionFormSchema = z.object({

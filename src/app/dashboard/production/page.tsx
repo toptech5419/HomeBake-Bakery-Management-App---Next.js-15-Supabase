@@ -5,9 +5,10 @@ import ProductionForm from '@/components/production/production-form';
 import { Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { getBreadTypes } from '@/lib/bread-types/actions';
 import LoadingSpinner from '@/components/ui/loading';
-import { Package, TrendingUp } from 'lucide-react';
+import { Package, TrendingUp, Clock } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function ProductionPage() {
@@ -47,6 +48,16 @@ export default async function ProductionPage() {
   const breadTypes = await getBreadTypes();
 
   const totalToday = logs.reduce((sum, log) => sum + log.quantity, 0);
+  
+  // Determine current shift (morning: 6 AM - 6 PM, night: 6 PM - 6 AM)
+  const currentHour = new Date().getHours();
+  const currentShift = currentHour >= 6 && currentHour < 18 ? 'morning' : 'night';
+  
+  // Get shift-specific metrics
+  const morningLogs = logs.filter(log => log.shift === 'morning');
+  const nightLogs = logs.filter(log => log.shift === 'night');
+  const morningTotal = morningLogs.reduce((sum, log) => sum + log.quantity, 0);
+  const nightTotal = nightLogs.reduce((sum, log) => sum + log.quantity, 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -55,7 +66,13 @@ export default async function ProductionPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Production Log</h1>
-            <p className="text-gray-600 mt-1">Log today's bread production</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-gray-600">Log today&apos;s bread production</p>
+              <Badge className={`flex items-center gap-1 ${currentShift === 'morning' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                <Clock className="h-3 w-3" />
+                {currentShift.charAt(0).toUpperCase() + currentShift.slice(1)} Shift
+              </Badge>
+            </div>
           </div>
           <div className="flex gap-2">
             <Link href="/dashboard/production/history">
@@ -68,16 +85,24 @@ export default async function ProductionPage() {
         </div>
 
         {/* Today's Summary */}
-        <Card className="flex flex-row items-center justify-between gap-4">
-          <div className="text-center flex-1">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="p-4 text-center">
             <div className="text-2xl font-bold text-primary">{logs.length}</div>
-            <div className="text-sm text-muted-foreground">Entries</div>
-          </div>
-          <div className="text-center flex-1">
+            <div className="text-sm text-muted-foreground">Total Entries</div>
+          </Card>
+          <Card className="p-4 text-center">
             <div className="text-2xl font-bold text-green-600">{totalToday}</div>
             <div className="text-sm text-muted-foreground">Total Units</div>
-          </div>
-        </Card>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{morningTotal}</div>
+            <div className="text-sm text-muted-foreground">Morning Shift</div>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-2xl font-bold text-purple-600">{nightTotal}</div>
+            <div className="text-sm text-muted-foreground">Night Shift</div>
+          </Card>
+        </div>
 
         {/* Production Form */}
         <Suspense fallback={<LoadingSpinner message="Loading production form..." />}>
@@ -86,7 +111,7 @@ export default async function ProductionPage() {
 
         {/* Today's Entries */}
         <Card>
-          <div className="mb-4 text-lg font-semibold">Today's Production Entries</div>
+          <div className="mb-4 text-lg font-semibold">Today&apos;s Production Entries</div>
           <Suspense fallback={<LoadingSpinner message="Loading production logs..." />}>
             <ProductionTable logs={logs} />
           </Suspense>

@@ -4,15 +4,14 @@ import { createServer } from '@/lib/supabase/server';
 import { productionEntrySchema } from '@/lib/validations/production';
 import { revalidatePath } from 'next/cache';
 
-export async function insertProductionLog({ bread_type_id, quantity, shift, manager_id, feedback }: {
+export async function insertProductionLog({ bread_type_id, quantity, shift, recorded_by }: {
   bread_type_id: string;
   quantity: number;
   shift: 'morning' | 'night';
-  manager_id: string;
-  feedback?: string;
+  recorded_by: string;
 }) {
   const supabase = await createServer();
-  const parsed = productionEntrySchema.safeParse({ bread_type_id, quantity, shift, feedback });
+  const parsed = productionEntrySchema.safeParse({ bread_type_id, quantity, shift });
   if (!parsed.success) {
     return { error: parsed.error.errors[0].message };
   }
@@ -24,9 +23,7 @@ export async function insertProductionLog({ bread_type_id, quantity, shift, mana
       bread_type_id,
       quantity,
       shift,
-      manager_id,
-      feedback: feedback || null,
-      created_at: new Date().toISOString(),
+      recorded_by,
     });
     
     if (productionError) return { error: productionError.message };
@@ -71,22 +68,22 @@ export async function insertProductionLog({ bread_type_id, quantity, shift, mana
   }
 }
 
-export async function fetchTodayProductionLogs(manager_id: string) {
+export async function fetchTodayProductionLogs(recorded_by: string) {
   const supabase = await createServer();
   const today = new Date();
   today.setHours(0,0,0,0);
   const { data, error } = await supabase
     .from('production_logs')
-    .select('id, bread_type_id, quantity, shift, created_at, feedback, bread_types(name)')
-    .eq('manager_id', manager_id)
+    .select('id, bread_type_id, quantity, shift, created_at, bread_types(name)')
+    .eq('recorded_by', recorded_by)
     .gte('created_at', today.toISOString())
     .order('created_at', { ascending: false });
   if (error) return [];
   return data || [];
 }
 
-export async function fetchProductionHistory({ manager_id, bread_type_id, shift, date }: {
-  manager_id?: string;
+export async function fetchProductionHistory({ recorded_by, bread_type_id, shift, date }: {
+  recorded_by?: string;
   bread_type_id?: string;
   shift?: 'morning' | 'night';
   date?: string; // ISO date string (YYYY-MM-DD)
@@ -94,9 +91,9 @@ export async function fetchProductionHistory({ manager_id, bread_type_id, shift,
   const supabase = await createServer();
   let query = supabase
     .from('production_logs')
-    .select('id, bread_type_id, quantity, shift, created_at, feedback, bread_types(name), manager_id')
+    .select('id, bread_type_id, quantity, shift, created_at, bread_types(name), recorded_by')
     .order('created_at', { ascending: false });
-  if (manager_id) query = query.eq('manager_id', manager_id);
+  if (recorded_by) query = query.eq('recorded_by', recorded_by);
   if (bread_type_id) query = query.eq('bread_type_id', bread_type_id);
   if (shift) query = query.eq('shift', shift);
   if (date) {

@@ -9,7 +9,7 @@ import { Suspense } from 'react';
 import LoadingSpinner from '@/components/ui/loading';
 import { Package } from 'lucide-react';
 
-export default async function ProductionHistoryPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
+export default async function ProductionHistoryPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const supabase = await createServer();
   const { data } = await supabase.auth.getUser();
   let user = data?.user ? {
@@ -43,12 +43,13 @@ export default async function ProductionHistoryPage({ searchParams }: { searchPa
   }
 
   // Parse filters from searchParams
-  const bread_type_id = typeof searchParams?.bread_type_id === 'string' ? searchParams.bread_type_id : undefined;
-  const shift = typeof searchParams?.shift === 'string' ? searchParams.shift as 'morning' | 'night' : undefined;
-  const date = typeof searchParams?.date === 'string' ? searchParams.date : undefined;
+  const params = await searchParams;
+  const bread_type_id = typeof params?.bread_type_id === 'string' ? params.bread_type_id : undefined;
+  const shift = typeof params?.shift === 'string' ? params.shift as 'morning' | 'night' : undefined;
+  const date = typeof params?.date === 'string' ? params.date : undefined;
 
   const logs = await fetchProductionHistory({
-    manager_id: user.id,
+    recorded_by: user.id,
     bread_type_id,
     shift,
     date,
