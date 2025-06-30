@@ -33,19 +33,26 @@ export default async function ProductionPage() {
     }
   }
 
-  if (!user || user.role !== 'manager') {
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md flex flex-col items-center py-12">
           <Package className="h-12 w-12 mb-4 text-destructive" />
           <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-          <p className="text-muted-foreground">Only managers can access production logging.</p>
+          <p className="text-muted-foreground">Please log in to access production data.</p>
         </Card>
       </div>
     );
   }
 
-  const logs = await fetchTodayProductionLogs(user.id);
+  // Fetch all today's production logs for viewing
+  const { data: allLogsData } = await supabase
+    .from('production_logs')
+    .select('id, bread_type_id, quantity, shift, created_at, bread_types(name), recorded_by')
+    .gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString())
+    .order('created_at', { ascending: false });
+    
+  const logs = allLogsData || [];
   const breadTypes = await getBreadTypes();
 
   const totalToday = logs.reduce((sum, log) => sum + log.quantity, 0);
@@ -98,10 +105,25 @@ export default async function ProductionPage() {
           </Card>
         </div>
 
-        {/* Production Form */}
-        <Suspense fallback={<LoadingSpinner message="Loading production form..." />}>
-          <ProductionForm breadTypes={breadTypes} managerId={user.id} />
-        </Suspense>
+        {/* Production Form - Only for managers */}
+        {user.role === 'manager' && (
+          <Suspense fallback={<LoadingSpinner message="Loading production form..." />}>
+            <ProductionForm breadTypes={breadTypes} managerId={user.id} />
+          </Suspense>
+        )}
+        
+        {user.role !== 'manager' && (
+          <Card className="p-6 text-center">
+            <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">Production Logging</h3>
+            <p className="text-muted-foreground mb-4">
+              Only managers can log new production entries. You can view all production data below.
+            </p>
+            <Badge className="bg-blue-100 text-blue-800">
+              {user.role === 'owner' ? 'Owner' : 'Sales Rep'} - View Only Access
+            </Badge>
+          </Card>
+        )}
 
         {/* Today's Entries */}
         <Card>

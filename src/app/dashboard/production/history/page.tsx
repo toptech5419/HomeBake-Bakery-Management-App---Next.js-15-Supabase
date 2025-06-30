@@ -30,13 +30,14 @@ export default async function ProductionHistoryPage({ searchParams }: { searchPa
     }
   }
 
-  if (!user || user.role !== 'manager') {
+  // Allow all authenticated users to view production history
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md flex flex-col items-center py-12">
           <Package className="h-12 w-12 mb-4 text-destructive" />
           <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-          <p className="text-muted-foreground">Only managers can access production history.</p>
+          <p className="text-muted-foreground">Please log in to access production history.</p>
         </Card>
       </div>
     );
@@ -49,7 +50,6 @@ export default async function ProductionHistoryPage({ searchParams }: { searchPa
   const date = typeof params?.date === 'string' ? params.date : undefined;
 
   const logs = await fetchProductionHistory({
-    recorded_by: user.id,
     bread_type_id,
     shift,
     date,
