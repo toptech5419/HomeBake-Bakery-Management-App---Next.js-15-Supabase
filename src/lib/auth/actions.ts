@@ -32,10 +32,4 @@ export async function logoutWithoutRedirect() {
   return { error }
 }
 
-export async function getUsers(currentUser: User) {
-  if (!canViewUsers(currentUser)) throw new Error('Unauthorized')
-  const supabase = await createServer()
-  const { data, error } = await supabase.from('users').select('*')
-  if (error) throw error
-  return data
-} 
+// getUsers function moved to user-actions.ts to avoid duplication 

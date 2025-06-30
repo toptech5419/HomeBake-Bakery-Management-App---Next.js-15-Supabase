@@ -66,18 +66,15 @@ export async function validateQRInvite(token: string) {
 }
 
 export async function markQRInviteAsUsed(token: string) {
-  // Use the service role key to bypass RLS for this update
-  const supabaseAdmin = createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  const { error } = await supabaseAdmin
+  const supabase = await createServer();
+  
+  const { error } = await supabase
     .from('qr_invites')
     .update({ is_used: true })
     .eq('token', token);
 
   if (error) {
+    console.error('QR invite update error:', error);
     throw new Error('Failed to mark QR invite as used');
   }
 } 

@@ -41,18 +41,30 @@ export async function getBreadTypes(): Promise<BreadType[]> {
 }
 
 export async function createBreadType(currentUser: User, input: BreadTypeInput) {
-  if (!isOwner(currentUser) && !isManager(currentUser)) throw new Error('Unauthorized');
+  if (!isOwner(currentUser) && !isManager(currentUser)) {
+    throw new Error('Unauthorized: Only owners and managers can create bread types');
+  }
+  
   const parsed = breadTypeSchema.safeParse(input);
-  if (!parsed.success) throw parsed.error;
+  if (!parsed.success) {
+    console.error('Bread type validation error:', parsed.error);
+    throw new Error('Invalid bread type data');
+  }
   
   const supabase = await createServer();
+  
   const { error } = await supabase.from('bread_types').insert([{
     name: parsed.data.name,
     size: parsed.data.size,
     unit_price: parsed.data.unit_price,
     created_by: currentUser.id
   }]);
-  if (error) throw error;
+  
+  if (error) {
+    console.error('Bread type creation error:', error);
+    throw new Error(`Failed to create bread type: ${error.message}`);
+  }
+  
   return true;
 }
 

@@ -12,10 +12,17 @@ export function useAuth() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          // Fetch role from users table for consistency with RLS policies
+          const { data: userProfile } = await supabase
+            .from('users')
+            .select('role, name')
+            .eq('id', user.id)
+            .single();
+          
           setUser({
             id: user.id,
-            email: user.email,
-            role: user.user_metadata?.role || 'sales_rep',
+            email: user.email || '',
+            role: userProfile?.role || 'sales_rep',
           });
         }
       } catch {
@@ -30,10 +37,17 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
+          // Fetch role from users table for consistency with RLS policies
+          const { data: userProfile } = await supabase
+            .from('users')
+            .select('role, name')
+            .eq('id', session.user.id)
+            .single();
+          
           setUser({
             id: session.user.id,
-            email: session.user.email,
-            role: session.user.user_metadata?.role || 'sales_rep',
+            email: session.user.email || '',
+            role: userProfile?.role || 'sales_rep',
           });
         } else {
           setUser(null);
