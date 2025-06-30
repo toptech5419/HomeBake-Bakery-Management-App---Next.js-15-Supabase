@@ -1,7 +1,7 @@
 import { createServer } from '@/lib/supabase/server';
 import { fetchProductionHistory } from '@/lib/production/actions';
 import { getBreadTypes } from '@/lib/bread-types/actions';
-import ImprovedHistoryFilters from '@/components/production/improved-history-filters';
+import ProfessionalHistoryFilters from '@/components/production/professional-history-filters';
 import ProductionTable from '@/components/production/production-table';
 import CSVExport from '@/components/production/csv-export';
 import { Card } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Package } from 'lucide-react';
 export default async function ProductionHistoryPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const supabase = await createServer();
   const { data } = await supabase.auth.getUser();
-  let user = data?.user ? {
+  const user = data?.user ? {
     id: data.user.id,
     email: data.user.email,
     role: data.user.user_metadata?.role || null,
@@ -65,7 +65,7 @@ export default async function ProductionHistoryPage({ searchParams }: { searchPa
             <p className="text-gray-600 mt-1">View and filter past bread production logs</p>
           </div>
         </div>
-        <ImprovedHistoryFilters breadTypes={breadTypes} />
+        <ProfessionalHistoryFilters breadTypes={breadTypes} />
         <Card className="flex flex-col gap-4 p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div className="text-lg font-semibold">Entries: {logs.length}</div>

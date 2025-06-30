@@ -4,6 +4,26 @@ import { createServer } from '@/lib/supabase/server';
 import { productionEntrySchema } from '@/lib/validations/production';
 import { revalidatePath } from 'next/cache';
 
+export async function saveFeedback({ user_id, shift, note }: {
+  user_id: string;
+  shift: 'morning' | 'night';
+  note: string;
+}) {
+  const supabase = await createServer();
+  try {
+    const { error } = await supabase.from('shift_feedback').insert({
+      user_id,
+      shift,
+      note: note.trim(),
+    });
+    
+    if (error) return { error: error.message };
+    return { success: true };
+  } catch (error) {
+    return { error: `Failed to save feedback: ${(error as Error).message}` };
+  }
+}
+
 export async function insertProductionLog({ bread_type_id, quantity, shift, recorded_by }: {
   bread_type_id: string;
   quantity: number;
@@ -40,8 +60,7 @@ export async function insertProductionLog({ bread_type_id, quantity, shift, reco
       const { error: inventoryError } = await supabase
         .from('inventory')
         .update({ 
-          quantity: existingInventory.quantity + quantity,
-          updated_at: new Date().toISOString()
+          quantity: existingInventory.quantity + quantity
         })
         .eq('bread_type_id', bread_type_id);
       
@@ -52,9 +71,7 @@ export async function insertProductionLog({ bread_type_id, quantity, shift, reco
         .from('inventory')
         .insert({
           bread_type_id,
-          quantity,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          quantity
         });
       
       if (inventoryError) return { error: `Production logged but inventory creation failed: ${inventoryError.message}` };

@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { productionFormSchema, ProductionFormData } from '@/lib/validations/production';
-import { insertProductionLog } from '@/lib/production/actions';
+import { insertProductionLog, saveFeedback } from '@/lib/production/actions';
 import { useToast } from '@/components/ui/ToastProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 
 import { useShift } from '@/contexts/ShiftContext';
 import { Package, Save } from 'lucide-react';
@@ -28,6 +29,7 @@ interface ProductionFormProps {
 export default function ProductionForm({ breadTypes, managerId, onSuccess }: ProductionFormProps) {
   const { currentShift } = useShift();
   const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState('');
   const toast = useToast();
   
   const { control, handleSubmit, reset, formState: { errors } } = useForm<ProductionFormData>({
@@ -51,13 +53,31 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
         return;
       }
 
+      // Save feedback once for the shift (if provided)
+      if (feedback.trim()) {
+        const feedbackResult = await saveFeedback({
+          user_id: managerId,
+          shift: currentShift,
+          note: feedback.trim()
+        });
+        if (feedbackResult.error) {
+          console.warn('Failed to save feedback:', feedbackResult.error);
+          // Don't fail the entire operation for feedback errors
+        }
+      }
+
+      // Save each production entry
       for (const entry of validEntries) {
-        const result = await insertProductionLog({ ...entry, recorded_by: managerId });
+        const result = await insertProductionLog({ 
+          ...entry, 
+          recorded_by: managerId
+        });
         if (result.error) throw new Error(result.error);
       }
       
       toast.success(`Production log saved for ${validEntries.length} bread type(s)!`);
       reset();
+      setFeedback('');
       onSuccess?.();
     } catch (err) {
       toast.error((err as Error).message || 'Failed to save production log.');
@@ -115,6 +135,24 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
           </div>
         ))}
 
+        {/* Feedback Section */}
+        <div className="space-y-2 pt-4 border-t">
+          <Label htmlFor="feedback" className="text-sm font-medium">
+            Notes & Feedback (Optional)
+          </Label>
+          <Textarea
+            id="feedback"
+            placeholder="Any notes about today's production, issues, or suggestions..."
+            className="w-full"
+            rows={3}
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            disabled={loading}
+          />
+          <p className="text-xs text-muted-foreground">
+            This feedback will be saved with your shift notes for management review.
+          </p>
+        </div>
 
         <Button 
           type="submit" 
