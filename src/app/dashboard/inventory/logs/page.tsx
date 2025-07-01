@@ -31,7 +31,7 @@ export default async function InventoryLogsPage() {
   }
 
   // Fetch recent production and sales logs for audit trail
-  const { data: productionLogs = [] } = await supabase
+  const { data: productionLogsData } = await supabase
     .from('production_logs')
     .select(`
       *,
@@ -44,7 +44,7 @@ export default async function InventoryLogsPage() {
     .order('created_at', { ascending: false })
     .limit(100);
 
-  const { data: salesLogs = [] } = await supabase
+  const { data: salesLogsData } = await supabase
     .from('sales_logs')
     .select(`
       *,
@@ -56,6 +56,9 @@ export default async function InventoryLogsPage() {
     `)
     .order('created_at', { ascending: false })
     .limit(100);
+
+  const productionLogs = productionLogsData || [];
+  const salesLogs = salesLogsData || [];
 
   return (
     <InventoryLogsClient 

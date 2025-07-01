@@ -3,8 +3,7 @@ import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { salesFormSchema, SalesFormData } from '@/lib/validations/sales';
-import { insertSalesLog } from '@/lib/sales/actions';
-import { useInventoryMutations } from '@/hooks/use-inventory';
+
 import { useOfflineSalesMutation } from '@/hooks/use-offline-mutations';
 import { useOfflineStatus } from '@/hooks/use-offline';
 import { toast } from 'sonner';

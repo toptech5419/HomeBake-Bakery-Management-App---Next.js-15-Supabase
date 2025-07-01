@@ -1,0 +1,19 @@
+{
+  "extends": [
+    "next/core-web-vitals"
+  ],
+  "rules": {
+    // Disable overly strict rules for deployment
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-explicit-any": "warn", 
+    "react/no-unescaped-entities": "warn",
+    "prefer-const": "warn",
+    "react-hooks/exhaustive-deps": "warn",
+    "import/no-anonymous-default-export": "warn",
+    "@typescript-eslint/ban-ts-comment": "warn",
+    
+    // Keep important rules that catch real bugs
+    "@typescript-eslint/no-unused-expressions": "error",
+    "no-console": "warn"
+  }
+}

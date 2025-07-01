@@ -3,7 +3,6 @@ import React, { useState, useCallback } from 'react';
 import { BreadTypeTable } from '@/components/bread-type-table';
 import { useToast } from '@/components/ui/ToastProvider';
 import { deleteBreadTypeAction, refetchBreadTypesAction } from './actions';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 interface BreadType {
@@ -31,7 +30,7 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       setLoadingId('refetch');
       const updated = await refetchBreadTypesAction();
       setBreadTypes(updated);
-    } catch (err) {
+    } catch {
       toast.error('Failed to refresh bread types');
     } finally {
       setLoadingId(null);

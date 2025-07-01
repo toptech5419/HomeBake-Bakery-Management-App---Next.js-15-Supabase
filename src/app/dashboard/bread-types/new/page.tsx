@@ -1,7 +1,7 @@
 import { createServer } from '@/lib/supabase/server';
 import { getBreadTypes } from '@/lib/bread-types/actions';
 import BreadTypeNewClient from './BreadTypeNewClient';
-import { redirect } from 'next/navigation';
+
 import { Suspense } from 'react';
 
 type PageProps = {
@@ -11,11 +11,13 @@ type PageProps = {
 export default async function BreadTypeNewPage({ searchParams }: PageProps) {
   const supabase = await createServer();
   const { data } = await supabase.auth.getUser();
-  let user = data?.user ? {
+  const userData = data?.user ? {
     id: data.user.id,
     email: data.user.email,
     role: data.user.user_metadata?.role || null,
   } : null;
+
+  let user = userData;
 
   // If role is not 'owner', fetch from business users table
   if (user && user.role !== 'owner') {

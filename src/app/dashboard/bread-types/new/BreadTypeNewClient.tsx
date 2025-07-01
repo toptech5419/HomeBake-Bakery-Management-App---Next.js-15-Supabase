@@ -25,7 +25,7 @@ export default function BreadTypeNewClient({ initialValues, user }: { initialVal
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
 
-  const handleSubmit = async (data: BreadType) => {
+  const handleSubmit = async (data: { name: string; size?: string; unit_price: number }) => {
     setFormLoading(true);
     try {
       let result;

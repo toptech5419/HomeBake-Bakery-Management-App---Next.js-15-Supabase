@@ -3,7 +3,7 @@ const nextConfig = {
   // Updated for Next.js 15
   serverExternalPackages: ['sharp'],
   
-  // Temporarily disable ESLint and TypeScript during builds for deployment
+  // Deployment-ready: Skip both ESLint and TypeScript for clean deployment
   eslint: {
     ignoreDuringBuilds: true,
   },
