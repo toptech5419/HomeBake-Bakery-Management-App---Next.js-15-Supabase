@@ -1,0 +1,21 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" rx="102.4" fill="url(#bg)"/>
+  
+  <!-- Simple bread icon -->
+  <ellipse cx="256" cy="332.8" rx="153.6" ry="76.8" fill="#8B4513"/>
+  <ellipse cx="256" cy="307.2" rx="153.6" ry="66.56" fill="#D2691E"/>
+  <ellipse cx="256" cy="281.6" rx="143.36" ry="56.32" fill="#F4A460"/>
+  
+  <!-- Simple H for HomeBake -->
+  <text x="256" y="204.8" font-family="Arial, sans-serif" font-size="102.4" font-weight="bold" 
+        text-anchor="middle" fill="white">H</text>
+</svg>
