@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { productionFormSchema, ProductionFormData } from '@/lib/validations/production';
 import { insertProductionLog, saveFeedback } from '@/lib/production/actions';
 import { useInventoryMutations } from '@/hooks/use-inventory';
+import { useOfflineProductionMutation } from '@/hooks/use-offline-mutations';
+import { useOfflineStatus } from '@/hooks/use-offline';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +33,8 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
   const { currentShift } = useShift();
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState('');
-  const { addProduction } = useInventoryMutations();
+  const { isOnline } = useOfflineStatus();
+  const offlineProductionMutation = useOfflineProductionMutation(managerId);
   
   const { control, handleSubmit, reset, formState: { errors } } = useForm<ProductionFormData>({
     resolver: zodResolver(productionFormSchema),
@@ -67,9 +70,9 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
         }
       }
 
-      // Save each production entry using React Query mutation
+      // Save each production entry using offline-aware mutation
       for (const entry of validEntries) {
-        await addProduction.mutateAsync({ 
+        await offlineProductionMutation.mutateAsync({ 
           bread_type_id: entry.bread_type_id,
           quantity: entry.quantity,
           shift: entry.shift,
@@ -77,7 +80,10 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
         });
       }
       
-      toast.success(`Production log saved for ${validEntries.length} bread type(s)! Inventory will update automatically.`);
+      const syncMessage = isOnline 
+        ? 'Inventory will update automatically.' 
+        : 'Data will sync when connection is restored.';
+      toast.success(`Production log saved for ${validEntries.length} bread type(s)! ${syncMessage}`);
       reset();
       setFeedback('');
       onSuccess?.();
@@ -97,7 +103,7 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
     );
   }
 
-  const isSubmitting = loading || addProduction.isPending;
+  const isSubmitting = loading || offlineProductionMutation.isPending;
 
   return (
     <Card className="w-full">
@@ -177,9 +183,11 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
           )}
         </Button>
         
-        {addProduction.isPending && (
+        {offlineProductionMutation.isPending && (
           <p className="text-sm text-muted-foreground text-center">
-            Inventory will be updated automatically after saving...
+            {isOnline 
+              ? 'Inventory will be updated automatically after saving...' 
+              : 'Saving offline. Will sync when connection is restored...'}
           </p>
         )}
       </form>

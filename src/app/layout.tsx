@@ -7,6 +7,7 @@ import { NavigationSpinnerProvider } from '@/components/ui/NavigationSpinnerProv
 import NavigationEvents from '@/components/ui/NavigationEvents';
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import { QueryProvider } from "@/providers/query-provider";
+import { OfflineIndicator } from "@/components/offline-indicator";
 
 const APP_NAME = "HomeBake";
 const APP_DESCRIPTION = "Manage your bakery with ease.";
@@ -69,6 +70,7 @@ export default function RootLayout({
             <NavigationSpinnerProvider>
               <NavigationEvents />
               {children}
+              <OfflineIndicator showDetails={true} />
             </NavigationSpinnerProvider>
           </QueryProvider>
         </ToastProvider>

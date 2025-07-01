@@ -23,6 +23,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dexie": "^4.0.11",
     "geist": "^1.4.2",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
@@ -39,6 +40,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
+    "workbox-webpack-plugin": "^7.3.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

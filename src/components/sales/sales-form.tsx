@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { salesFormSchema, SalesFormData } from '@/lib/validations/sales';
 import { insertSalesLog } from '@/lib/sales/actions';
 import { useInventoryMutations } from '@/hooks/use-inventory';
+import { useOfflineSalesMutation } from '@/hooks/use-offline-mutations';
+import { useOfflineStatus } from '@/hooks/use-offline';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +31,8 @@ interface SalesFormProps {
 export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormProps) {
   const { shift } = useShift();
   const [loading, setLoading] = useState(false);
-  const { addSale } = useInventoryMutations();
+  const { isOnline } = useOfflineStatus();
+  const offlineSalesMutation = useOfflineSalesMutation(userId);
   
   const { control, handleSubmit, reset, formState: { errors } } = useForm<SalesFormData>({
     resolver: zodResolver(salesFormSchema),
@@ -53,14 +56,14 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
         return;
       }
 
-      // Save each sales entry using React Query mutation
+      // Save each sales entry using offline-aware mutation
       for (const entry of validEntries) {
         const breadType = breadTypes.find(b => b.id === entry.bread_type_id);
         const unitPrice = breadType?.unit_price || 0;
         const discountAmount = (unitPrice * entry.discount_percentage) / 100;
         const finalPrice = unitPrice - discountAmount;
 
-        await addSale.mutateAsync({ 
+        await offlineSalesMutation.mutateAsync({ 
           bread_type_id: entry.bread_type_id,
           quantity: entry.quantity_sold,
           unit_price: finalPrice,
@@ -70,7 +73,10 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
         });
       }
       
-      toast.success(`Sales log saved for ${validEntries.length} bread type(s)! Inventory will update automatically.`);
+      const syncMessage = isOnline 
+        ? 'Inventory will update automatically.' 
+        : 'Data will sync when connection is restored.';
+      toast.success(`Sales log saved for ${validEntries.length} bread type(s)! ${syncMessage}`);
       reset();
       onSuccess?.();
     } catch (err) {
@@ -89,7 +95,7 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
     );
   }
 
-  const isSubmitting = loading || addSale.isPending;
+  const isSubmitting = loading || offlineSalesMutation.isPending;
 
   return (
     <Card className="w-full">
@@ -191,9 +197,11 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
           )}
         </Button>
         
-        {addSale.isPending && (
+        {offlineSalesMutation.isPending && (
           <p className="text-sm text-muted-foreground text-center">
-            Inventory will be updated automatically after saving...
+            {isOnline 
+              ? 'Inventory will be updated automatically after saving...' 
+              : 'Saving offline. Will sync when connection is restored...'}
           </p>
         )}
       </form>
