@@ -1,5 +1,5 @@
-const CACHE_NAME = 'homebake-v1';
-const STATIC_CACHE = 'homebake-static-v1';
+const CACHE_NAME = 'homebake-v1.0.0';
+const STATIC_CACHE = 'homebake-static-v1.0.0';
 
 // Assets to cache on install
 const STATIC_ASSETS = [

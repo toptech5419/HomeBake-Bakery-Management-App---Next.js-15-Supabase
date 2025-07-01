@@ -125,29 +125,32 @@ export default function InventoryDashboardClient({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
           <Button 
             variant="outline" 
             size="sm"
             onClick={() => window.history.back()}
+            className="self-start"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Inventory Dashboard</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Inventory Dashboard</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Real-time stock levels and inventory movement
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        
+        {/* Mobile-first actions */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
           <div className="flex items-center gap-2 px-3 py-2 text-sm border rounded-md">
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                <span className="text-blue-600">Updating...</span>
+                <span className="text-blue-600 text-xs sm:text-sm">Updating...</span>
               </>
             ) : (
               <>
@@ -158,20 +161,27 @@ export default function InventoryDashboardClient({
               </>
             )}
           </div>
-          <Button 
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={refreshing || isLoading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${(refreshing || isLoading) ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={() => window.location.href = '/dashboard/inventory/logs'}
-          >
-            View Logs
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing || isLoading}
+              className="flex-1 sm:flex-none"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${(refreshing || isLoading) ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.href = '/dashboard/inventory/logs'}
+              className="flex-1 sm:flex-none"
+            >
+              <span className="sm:hidden">Logs</span>
+              <span className="hidden sm:inline">View Logs</span>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -257,78 +267,146 @@ export default function InventoryDashboardClient({
             <span>Loading inventory data...</span>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Bread Type</th>
-                  <th className="text-left p-2">Size</th>
-                  <th className="text-left p-2">Produced</th>
-                  <th className="text-left p-2">Sold</th>
-                  <th className="text-left p-2">Leftover</th>
-                  <th className="text-left p-2">Current Stock</th>
-                  <th className="text-left p-2">Revenue</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Last Updated</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inventoryItems.map((item) => (
-                  <tr key={item.bread_type_id} className="border-b">
-                    <td className="p-2 font-medium">{item.bread_type_name}</td>
-                    <td className="p-2 text-muted-foreground">{item.bread_type_size || 'Standard'}</td>
-                    <td className="p-2">{item.total_produced}</td>
-                    <td className="p-2">{item.total_sold}</td>
-                    <td className="p-2">{item.total_leftover}</td>
-                    <td className="p-2 font-medium text-lg">{item.current_stock}</td>
-                    <td className="p-2">{formatCurrencyNGN(item.total_sold * item.unit_price)}</td>
-                    <td className="p-2">
-                      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(item.current_stock, item.total_produced)}`}>
-                        {getStatusIcon(item.current_stock, item.total_produced)}
-                        {getStatusText(item.current_stock, item.total_produced)}
-                      </div>
-                    </td>
-                    <td className="p-2 text-xs text-muted-foreground">
-                      {item.last_production && (
-                        <div>
-                          Prod: {new Date(item.last_production).toLocaleTimeString()}
+          <>
+            {/* Desktop table view */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">Bread Type</th>
+                    <th className="text-left p-2">Size</th>
+                    <th className="text-left p-2">Produced</th>
+                    <th className="text-left p-2">Sold</th>
+                    <th className="text-left p-2">Leftover</th>
+                    <th className="text-left p-2">Current Stock</th>
+                    <th className="text-left p-2">Revenue</th>
+                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Last Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inventoryItems.map((item) => (
+                    <tr key={item.bread_type_id} className="border-b">
+                      <td className="p-2 font-medium">{item.bread_type_name}</td>
+                      <td className="p-2 text-muted-foreground">{item.bread_type_size || 'Standard'}</td>
+                      <td className="p-2">{item.total_produced}</td>
+                      <td className="p-2">{item.total_sold}</td>
+                      <td className="p-2">{item.total_leftover}</td>
+                      <td className="p-2 font-medium text-lg">{item.current_stock}</td>
+                      <td className="p-2">{formatCurrencyNGN(item.total_sold * item.unit_price)}</td>
+                      <td className="p-2">
+                        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(item.current_stock, item.total_produced)}`}>
+                          {getStatusIcon(item.current_stock, item.total_produced)}
+                          {getStatusText(item.current_stock, item.total_produced)}
                         </div>
+                      </td>
+                      <td className="p-2 text-xs text-muted-foreground">
+                        {item.last_production && (
+                          <div>
+                            Prod: {new Date(item.last_production).toLocaleTimeString()}
+                          </div>
+                        )}
+                        {item.last_sale && (
+                          <div>
+                            Sale: {new Date(item.last_sale).toLocaleTimeString()}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card view */}
+            <div className="lg:hidden space-y-4">
+              {inventoryItems.map((item) => (
+                <Card key={item.bread_type_id} className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="font-semibold text-lg">{item.bread_type_name}</h3>
+                      <p className="text-sm text-muted-foreground">{item.bread_type_size || 'Standard'}</p>
+                    </div>
+                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(item.current_stock, item.total_produced)}`}>
+                      {getStatusIcon(item.current_stock, item.total_produced)}
+                      {getStatusText(item.current_stock, item.total_produced)}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Current Stock</p>
+                      <p className="text-xl font-bold">{item.current_stock}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Revenue</p>
+                      <p className="text-lg font-medium">{formatCurrencyNGN(item.total_sold * item.unit_price)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div className="text-center p-2 bg-gray-50 rounded">
+                      <p className="text-xs text-muted-foreground">Produced</p>
+                      <p className="font-medium">{item.total_produced}</p>
+                    </div>
+                    <div className="text-center p-2 bg-gray-50 rounded">
+                      <p className="text-xs text-muted-foreground">Sold</p>
+                      <p className="font-medium">{item.total_sold}</p>
+                    </div>
+                    <div className="text-center p-2 bg-gray-50 rounded">
+                      <p className="text-xs text-muted-foreground">Leftover</p>
+                      <p className="font-medium">{item.total_leftover}</p>
+                    </div>
+                  </div>
+                  
+                  {(item.last_production || item.last_sale) && (
+                    <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
+                      {item.last_production && (
+                        <div>Last Production: {new Date(item.last_production).toLocaleTimeString()}</div>
                       )}
                       {item.last_sale && (
-                        <div>
-                          Sale: {new Date(item.last_sale).toLocaleTimeString()}
-                        </div>
+                        <div>Last Sale: {new Date(item.last_sale).toLocaleTimeString()}</div>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
             
             {inventoryItems.length === 0 && !isLoading && (
               <div className="text-center py-8 text-muted-foreground">
                 No bread types configured yet
               </div>
             )}
-          </div>
+          </>
         )}
       </Card>
 
-      {/* Quick Actions */}
-      <div className="flex gap-4">
+      {/* Quick Actions - Mobile optimized */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
         {(userRole === 'manager' || userRole === 'owner') && (
-          <Button onClick={() => window.location.href = '/dashboard/production'}>
+          <Button 
+            onClick={() => window.location.href = '/dashboard/production'}
+            size="lg"
+            className="w-full sm:w-auto min-h-[48px]"
+          >
             Log Production
           </Button>
         )}
         {userRole === 'sales_rep' && (
-          <Button onClick={() => window.location.href = '/dashboard/sales'}>
+          <Button 
+            onClick={() => window.location.href = '/dashboard/sales'}
+            size="lg"
+            className="w-full sm:w-auto min-h-[48px]"
+          >
             Record Sale
           </Button>
         )}
         <Button 
           variant="outline"
           onClick={() => window.location.href = '/dashboard/reports'}
+          size="lg"
+          className="w-full sm:w-auto min-h-[48px]"
         >
           View Reports
         </Button>
