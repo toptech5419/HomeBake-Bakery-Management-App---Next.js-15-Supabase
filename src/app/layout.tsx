@@ -6,7 +6,7 @@ import './globals.css';
 import { NavigationSpinnerProvider } from '@/components/ui/NavigationSpinnerProvider';
 import NavigationEvents from '@/components/ui/NavigationEvents';
 import { ToastProvider } from "@/components/ui/ToastProvider";
-import { RealtimeProvider } from "@/components/realtime-provider";
+import { QueryProvider } from "@/providers/query-provider";
 
 const APP_NAME = "HomeBake";
 const APP_DESCRIPTION = "Manage your bakery with ease.";
@@ -65,12 +65,12 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <ToastProvider>
-          <RealtimeProvider showConnectionStatus={false} autoReconnect={true}>
+          <QueryProvider>
             <NavigationSpinnerProvider>
               <NavigationEvents />
               {children}
             </NavigationSpinnerProvider>
-          </RealtimeProvider>
+          </QueryProvider>
         </ToastProvider>
       </body>
     </html>

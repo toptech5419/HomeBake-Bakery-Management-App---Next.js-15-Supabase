@@ -4,7 +4,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { productionFormSchema, ProductionFormData } from '@/lib/validations/production';
 import { insertProductionLog, saveFeedback } from '@/lib/production/actions';
-import { useToast } from '@/components/ui/ToastProvider';
+import { useInventoryMutations } from '@/hooks/use-inventory';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 
 import { useShift } from '@/contexts/ShiftContext';
-import { Package, Save } from 'lucide-react';
+import { Package, Save, Loader2 } from 'lucide-react';
 
 interface BreadType {
   id: string;
@@ -30,7 +31,7 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
   const { currentShift } = useShift();
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState('');
-  const toast = useToast();
+  const { addProduction } = useInventoryMutations();
   
   const { control, handleSubmit, reset, formState: { errors } } = useForm<ProductionFormData>({
     resolver: zodResolver(productionFormSchema),
@@ -66,16 +67,17 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
         }
       }
 
-      // Save each production entry
+      // Save each production entry using React Query mutation
       for (const entry of validEntries) {
-        const result = await insertProductionLog({ 
-          ...entry, 
-          recorded_by: managerId
+        await addProduction.mutateAsync({ 
+          bread_type_id: entry.bread_type_id,
+          quantity: entry.quantity,
+          shift: entry.shift,
+          recorded_by: managerId,
         });
-        if (result.error) throw new Error(result.error);
       }
       
-      toast.success(`Production log saved for ${validEntries.length} bread type(s)!`);
+      toast.success(`Production log saved for ${validEntries.length} bread type(s)! Inventory will update automatically.`);
       reset();
       setFeedback('');
       onSuccess?.();
@@ -94,6 +96,8 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
       </Card>
     );
   }
+
+  const isSubmitting = loading || addProduction.isPending;
 
   return (
     <Card className="w-full">
@@ -122,7 +126,7 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
                   {...field}
                   value={field.value || ''}
                   onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) || 0 : undefined)}
-                  disabled={loading}
+                  disabled={isSubmitting}
                   aria-invalid={!!errors.entries?.[idx]?.quantity}
                 />
               )}
@@ -147,7 +151,7 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
             rows={3}
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
-            disabled={loading}
+            disabled={isSubmitting}
           />
           <p className="text-xs text-muted-foreground">
             This feedback will be saved with your shift notes for management review.
@@ -156,14 +160,28 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
 
         <Button 
           type="submit" 
-          loading={loading} 
-          disabled={loading}
+          disabled={isSubmitting}
           className="w-full mt-6"
           size="lg"
         >
-          <Save className="h-4 w-4 mr-2" />
-          {loading ? 'Saving Production Log...' : 'Save Production Log'}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving Production Log...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save Production Log
+            </>
+          )}
         </Button>
+        
+        {addProduction.isPending && (
+          <p className="text-sm text-muted-foreground text-center">
+            Inventory will be updated automatically after saving...
+          </p>
+        )}
       </form>
     </Card>
   );

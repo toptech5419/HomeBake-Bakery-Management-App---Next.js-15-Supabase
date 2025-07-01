@@ -4,14 +4,15 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { salesFormSchema, SalesFormData } from '@/lib/validations/sales';
 import { insertSalesLog } from '@/lib/sales/actions';
-import { useToast } from '@/components/ui/ToastProvider';
+import { useInventoryMutations } from '@/hooks/use-inventory';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useShift } from '@/hooks/use-shift';
-import { ShoppingCart, Save, Percent } from 'lucide-react';
+import { ShoppingCart, Save, Percent, Loader2 } from 'lucide-react';
 
 interface BreadType {
   id: string;
@@ -28,7 +29,7 @@ interface SalesFormProps {
 export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormProps) {
   const { shift } = useShift();
   const [loading, setLoading] = useState(false);
-  const toast = useToast();
+  const { addSale } = useInventoryMutations();
   
   const { control, handleSubmit, reset, formState: { errors } } = useForm<SalesFormData>({
     resolver: zodResolver(salesFormSchema),
@@ -52,15 +53,24 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
         return;
       }
 
+      // Save each sales entry using React Query mutation
       for (const entry of validEntries) {
-        const result = await insertSalesLog({ 
-          ...entry, 
-          user_id: userId 
+        const breadType = breadTypes.find(b => b.id === entry.bread_type_id);
+        const unitPrice = breadType?.unit_price || 0;
+        const discountAmount = (unitPrice * entry.discount_percentage) / 100;
+        const finalPrice = unitPrice - discountAmount;
+
+        await addSale.mutateAsync({ 
+          bread_type_id: entry.bread_type_id,
+          quantity: entry.quantity_sold,
+          unit_price: finalPrice,
+          discount: discountAmount,
+          shift: entry.shift,
+          recorded_by: userId,
         });
-        if (result.error) throw new Error(result.error);
       }
       
-      toast.success(`Sales log saved for ${validEntries.length} bread type(s)!`);
+      toast.success(`Sales log saved for ${validEntries.length} bread type(s)! Inventory will update automatically.`);
       reset();
       onSuccess?.();
     } catch (err) {
@@ -78,6 +88,8 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
       </Card>
     );
   }
+
+  const isSubmitting = loading || addSale.isPending;
 
   return (
     <Card className="w-full">
@@ -115,7 +127,7 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
                       className="w-full"
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      disabled={loading}
+                      disabled={isSubmitting}
                       aria-invalid={!!errors.entries?.[idx]?.quantity_sold}
                     />
                   )}
@@ -145,7 +157,7 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
                       className="w-full"
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      disabled={loading}
+                      disabled={isSubmitting}
                       aria-invalid={!!errors.entries?.[idx]?.discount_percentage}
                     />
                   )}
@@ -162,14 +174,28 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
         
         <Button 
           type="submit" 
-          loading={loading} 
-          disabled={loading}
+          disabled={isSubmitting}
           className="w-full"
           size="lg"
         >
-          <Save className="h-4 w-4 mr-2" />
-          {loading ? 'Saving Sales Log...' : 'Save Sales Log'}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving Sales Log...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save Sales Log
+            </>
+          )}
         </Button>
+        
+        {addSale.isPending && (
+          <p className="text-sm text-muted-foreground text-center">
+            Inventory will be updated automatically after saving...
+          </p>
+        )}
       </form>
     </Card>
   );

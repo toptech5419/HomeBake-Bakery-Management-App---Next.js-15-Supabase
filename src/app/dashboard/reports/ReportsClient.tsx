@@ -2,14 +2,13 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMultiTableRealtime } from '@/hooks/use-realtime';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BreadType, UserRole } from '@/types';
 import { ReportSummary, ReportFilters } from '@/lib/reports/queries';
 import { fetchReportData } from '@/lib/reports/actions';
-import { useToast } from '@/components/ui/ToastProvider';
+import { toast } from 'sonner';
 
 import ReportFiltersComponent from '@/components/reports/report-filters';
 import SummaryCards from '@/components/reports/summary-cards';
@@ -22,9 +21,7 @@ import {
   Clock, 
   BarChart3,
   Eye,
-  ExternalLink,
-  Wifi,
-  WifiOff
+  ExternalLink
 } from 'lucide-react';
 
 interface ReportsClientProps {
@@ -46,32 +43,6 @@ export default function ReportsClient({
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const toast = useToast();
-
-    // Handle real-time data changes for reports
-  const handleReportsDataChange = useCallback(async () => {
-    console.log('Reports data changed, refreshing...');
-    try {
-      const result = await fetchReportData(filters);
-      if (result.success && result.data) {
-        setReportData(result.data);
-      }
-    } catch (error) {
-      console.error('Error refreshing reports data:', error);
-    }
-  }, [filters]);
-
-  // Subscribe to real-time updates for sales and production logs
-  const { isAllConnected } = useMultiTableRealtime([
-    {
-      table: 'sales_logs',
-      onUpdate: handleReportsDataChange
-    },
-    {
-      table: 'production_logs', 
-      onUpdate: handleReportsDataChange
-    }
-  ], true);
 
   const updateFilters = useCallback(async (newFilters: ReportFilters) => {
     setLoading(true);
@@ -156,19 +127,6 @@ export default function ReportsClient({
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-2 text-sm border rounded-md">
-              {isAllConnected ? (
-                <>
-                  <Wifi className="h-4 w-4 text-green-600" />
-                  <span className="text-green-600">Live</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-500">Offline</span>
-                </>
-              )}
-            </div>
             <Badge className="bg-blue-100 text-blue-800 border border-blue-200">
               {userRole.charAt(0).toUpperCase() + userRole.slice(1)} Access
             </Badge>
