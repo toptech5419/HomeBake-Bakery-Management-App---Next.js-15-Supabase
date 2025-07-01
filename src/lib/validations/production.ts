@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const productionEntrySchema = z.object({
   bread_type_id: z.string().min(1, 'Bread type is required'),
-  quantity: z.number().positive('Quantity must be a positive number'),
+  quantity: z.number().min(0, 'Quantity must be a non-negative number'),
   shift: z.enum(['morning', 'night'], {
     required_error: 'Shift is required',
     invalid_type_error: 'Shift must be morning or night',

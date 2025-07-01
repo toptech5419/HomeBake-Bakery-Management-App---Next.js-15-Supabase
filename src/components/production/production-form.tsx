@@ -41,7 +41,7 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
     defaultValues: { 
       entries: breadTypes.map(b => ({ 
         bread_type_id: b.id, 
-        quantity: undefined, 
+        quantity: 0, 
         shift: currentShift
       })) 
     },
@@ -130,8 +130,8 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
                   placeholder="Enter quantity produced"
                   className="w-full"
                   {...field}
-                  value={field.value || ''}
-                  onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) || 0 : undefined)}
+                  value={field.value || 0}
+                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                   disabled={isSubmitting}
                   aria-invalid={!!errors.entries?.[idx]?.quantity}
                 />

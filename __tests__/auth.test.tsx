@@ -28,21 +28,23 @@ jest.mock('sonner', () => ({
 }))
 
 // Mock Supabase client with proper typing
-const mockSignInWithPassword = jest.fn()
-const mockGetUser = jest.fn()
-const mockGetSession = jest.fn()
-const mockSignOut = jest.fn()
-
 jest.mock('@/lib/supabase/client', () => ({
   supabase: {
     auth: {
-      signInWithPassword: mockSignInWithPassword,
-      getUser: mockGetUser,
-      getSession: mockGetSession,
-      signOut: mockSignOut,
+      signInWithPassword: jest.fn(),
+      getUser: jest.fn(),
+      getSession: jest.fn(),
+      signOut: jest.fn(),
     },
   },
 }))
+
+// Get the mocked functions after the mock is set up
+const { supabase } = require('@/lib/supabase/client')
+const mockSignInWithPassword = supabase.auth.signInWithPassword as jest.MockedFunction<any>
+const mockGetUser = supabase.auth.getUser as jest.MockedFunction<any>
+const mockGetSession = supabase.auth.getSession as jest.MockedFunction<any>
+const mockSignOut = supabase.auth.signOut as jest.MockedFunction<any>
 
 describe('Authentication System', () => {
   beforeEach(() => {
@@ -174,7 +176,6 @@ describe('Authentication System', () => {
         error: null,
       })
       
-      const { supabase } = require('@/lib/supabase/client')
       const result = await supabase.auth.getUser()
       
       expect(result.data.user).toEqual(userData)
@@ -187,7 +188,6 @@ describe('Authentication System', () => {
         error: { message: 'User not authenticated' },
       })
       
-      const { supabase } = require('@/lib/supabase/client')
       const result = await supabase.auth.getUser()
       
       expect(result.data.user).toBeNull()
@@ -205,7 +205,6 @@ describe('Authentication System', () => {
         error: null,
       })
       
-      const { supabase } = require('@/lib/supabase/client')
       const result = await supabase.auth.getSession()
       
       expect(result.data.session).toEqual(sessionData)
@@ -217,7 +216,6 @@ describe('Authentication System', () => {
     it('handles successful logout', async () => {
       mockSignOut.mockResolvedValueOnce({ error: null })
       
-      const { supabase } = require('@/lib/supabase/client')
       const result = await supabase.auth.signOut()
       
       expect(result.error).toBeNull()
@@ -230,7 +228,6 @@ describe('Authentication System', () => {
         error: { message: errorMessage } 
       })
       
-      const { supabase } = require('@/lib/supabase/client')
       const result = await supabase.auth.signOut()
       
       expect(result.error?.message).toBe(errorMessage)

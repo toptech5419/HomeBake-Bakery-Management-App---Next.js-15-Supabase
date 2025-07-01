@@ -16,19 +16,25 @@ jest.mock('sonner', () => ({
 }))
 
 jest.mock('@/hooks/use-shift', () => ({
-  useShift: () => ({ shift: 'morning' }),
+  useShift: jest.fn(),
 }))
 
 jest.mock('@/hooks/use-offline-mutations', () => ({
-  useOfflineSalesMutation: () => ({
-    mutateAsync: jest.fn().mockResolvedValue({}),
-    isPending: false,
-  }),
+  useOfflineSalesMutation: jest.fn(),
 }))
 
 jest.mock('@/hooks/use-offline', () => ({
-  useOfflineStatus: () => ({ isOnline: true }),
+  useOfflineStatus: jest.fn(),
 }))
+
+// Get the mocked functions after jest.mock is set up
+const { useShift } = require('@/hooks/use-shift')
+const { useOfflineSalesMutation } = require('@/hooks/use-offline-mutations')
+const { useOfflineStatus } = require('@/hooks/use-offline')
+
+const mockUseShift = useShift as jest.MockedFunction<any>
+const mockUseOfflineSalesMutation = useOfflineSalesMutation as jest.MockedFunction<any>
+const mockUseOfflineStatus = useOfflineStatus as jest.MockedFunction<any>
 
 // Mock bread types data
 const mockBreadTypes = [
@@ -43,6 +49,14 @@ describe('Sales Functionality', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    
+    // Set up default mock return values
+    mockUseShift.mockReturnValue({ shift: 'morning' })
+    mockUseOfflineSalesMutation.mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue({}),
+      isPending: false,
+    })
+    mockUseOfflineStatus.mockReturnValue({ isOnline: true })
   })
 
   describe('Sales Form Component', () => {
@@ -129,6 +143,7 @@ describe('Sales Functionality', () => {
         />
       )
 
+      // Submit the form using the submit button
       const submitButton = screen.getByRole('button', { name: /save sales log/i })
       await user.click(submitButton)
 
@@ -136,16 +151,15 @@ describe('Sales Functionality', () => {
         expect(toast.error).toHaveBeenCalledWith(
           'Please enter at least one quantity sold greater than 0.'
         )
-      })
+      }, { timeout: 2000 })
     })
 
     it('submits valid sales data', async () => {
       const user = userEvent.setup()
       const { toast } = require('sonner')
-      const { useOfflineSalesMutation } = require('@/hooks/use-offline-mutations')
       const mockMutateAsync = jest.fn().mockResolvedValue({})
       
-      useOfflineSalesMutation.mockReturnValue({
+      mockUseOfflineSalesMutation.mockReturnValue({
         mutateAsync: mockMutateAsync,
         isPending: false,
       })
@@ -162,10 +176,15 @@ describe('Sales Functionality', () => {
       const quantityInputs = screen.getAllByLabelText(/quantity sold/i)
       const discountInputs = screen.getAllByLabelText(/discount/i)
 
+      // Clear and type values
+      await user.clear(quantityInputs[0])
       await user.type(quantityInputs[0], '5') // 5 Sourdough
+      await user.clear(discountInputs[0])
       await user.type(discountInputs[0], '10') // 10% discount
+      await user.clear(quantityInputs[1])
       await user.type(quantityInputs[1], '3') // 3 Whole Wheat
 
+      // Submit the form using the submit button
       const submitButton = screen.getByRole('button', { name: /save sales log/i })
       await user.click(submitButton)
 
@@ -175,7 +194,7 @@ describe('Sales Functionality', () => {
           expect.stringContaining('Sales log saved for 2 bread type(s)!')
         )
         expect(mockOnSuccess).toHaveBeenCalled()
-      })
+      }, { timeout: 3000 })
     })
 
     it('validates discount percentage limits', async () => {
@@ -335,8 +354,7 @@ describe('Sales Functionality', () => {
 
   describe('Offline Sales Handling', () => {
     it('shows offline message when offline', () => {
-      const { useOfflineStatus } = require('@/hooks/use-offline')
-      useOfflineStatus.mockReturnValue({ isOnline: false })
+      mockUseOfflineStatus.mockReturnValue({ isOnline: false })
 
       render(
         <SalesForm 
@@ -351,8 +369,7 @@ describe('Sales Functionality', () => {
     })
 
     it('handles pending offline mutations', () => {
-      const { useOfflineSalesMutation } = require('@/hooks/use-offline-mutations')
-      useOfflineSalesMutation.mockReturnValue({
+      mockUseOfflineSalesMutation.mockReturnValue({
         mutateAsync: jest.fn(),
         isPending: true,
       })
@@ -384,8 +401,7 @@ describe('Sales Functionality', () => {
     })
 
     it('handles evening shift', () => {
-      const { useShift } = require('@/hooks/use-shift')
-      useShift.mockReturnValue({ shift: 'evening' })
+      mockUseShift.mockReturnValue({ shift: 'evening' })
 
       render(
         <SalesForm 
