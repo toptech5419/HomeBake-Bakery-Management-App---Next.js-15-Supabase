@@ -101,7 +101,7 @@ export default function Error({ error, reset }: ErrorPageProps) {
           </div>
           
           <Button asChild className="w-full bg-red-600 hover:bg-red-700">
-            <Link href="/dashboard">
+            <Link href="/dashboard" className="flex items-center justify-center">
               <Home className="h-4 w-4 mr-2" />
               Go to Dashboard
             </Link>
