@@ -12,7 +12,10 @@
     "test:coverage": "jest --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:all": "npm run test && npm run test:e2e"
+    "test:all": "npm run test && npm run test:e2e",
+    "deploy": "vercel --prod",
+    "deploy:staging": "vercel",
+    "predeploy": "npm run build && npm run test"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
