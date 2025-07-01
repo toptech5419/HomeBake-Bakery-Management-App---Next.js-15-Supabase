@@ -1,125 +1,109 @@
-import type { Metadata, Viewport } from 'next';
-import { GeistSans } from 'geist/font/sans';
-import { GeistMono } from 'geist/font/mono';
-import { cn } from '@/lib/utils';
-import './globals.css';
-import { NavigationSpinnerProvider } from '@/components/ui/NavigationSpinnerProvider';
-import NavigationEvents from '@/components/ui/NavigationEvents';
-import { ToastProvider } from "@/components/ui/ToastProvider";
-import { QueryProvider } from "@/providers/query-provider";
-import { OfflineIndicator } from "@/components/offline-indicator";
-import { InstallPrompt } from "@/components/pwa/install-prompt";
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { Toaster } from "sonner";
 import PWAWrapper from "@/components/pwa/pwa-wrapper";
+import { Providers } from "@/providers/providers";
+import { cn } from "@/lib/utils";
 
-const APP_NAME = "HomeBake";
-const APP_DESCRIPTION = "Manage your bakery with ease.";
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
-  applicationName: APP_NAME,
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://homebake.vercel.app'),
   title: {
-    default: APP_NAME,
-    template: `%s - ${APP_NAME}`,
+    default: 'HomeBake - Bakery Management System',
+    template: '%s | HomeBake'
   },
-  description: APP_DESCRIPTION,
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: APP_NAME,
-    startupImage: "/icons/icon-512x512.png",
-  },
+  description: 'Professional bakery management system for tracking production, sales, and inventory. Optimized for efficiency with real-time updates and offline capabilities.',
+  keywords: ['bakery', 'management', 'production', 'sales', 'inventory', 'POS', 'bread'],
+  authors: [{ name: 'HomeBake Team' }],
+  creator: 'HomeBake',
+  publisher: 'HomeBake',
   formatDetection: {
-    telephone: false,
     email: false,
     address: false,
+    telephone: false,
+  },
+  manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/icons/icon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/icon-144x144.png', sizes: '144x144', type: 'image/png' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' }
+    ],
+    apple: '/icons/icon-192x192.png',
   },
   openGraph: {
-    type: "website",
-    siteName: APP_NAME,
-    title: {
-      default: APP_NAME,
-      template: `%s - ${APP_NAME}`,
-    },
-    description: APP_DESCRIPTION,
+    type: 'website',
+    siteName: 'HomeBake',
+    title: 'HomeBake - Bakery Management System',
+    description: 'Professional bakery management system for tracking production, sales, and inventory.',
     images: [
       {
-        url: "/screenshots/mobile-1.png",
-        width: 400,
-        height: 800,
-        alt: "HomeBake Mobile Dashboard",
-      },
+        url: '/icons/icon-512x512.png',
+        width: 512,
+        height: 512,
+        alt: 'HomeBake Logo',
+      }
     ],
   },
   twitter: {
-    card: "summary_large_image",
-    title: {
-      default: APP_NAME,
-      template: `%s - ${APP_NAME}`,
-    },
-    description: APP_DESCRIPTION,
-    images: ["/screenshots/mobile-1.png"],
+    card: 'summary',
+    title: 'HomeBake - Bakery Management System',
+    description: 'Professional bakery management system for tracking production, sales, and inventory.',
+    images: ['/icons/icon-512x512.png'],
   },
-  icons: {
-    icon: [
-      { url: "/icons/icon-72x72.png", sizes: "72x72", type: "image/png" },
-      { url: "/icons/icon-96x96.png", sizes: "96x96", type: "image/png" },
-      { url: "/icons/icon-128x128.png", sizes: "128x128", type: "image/png" },
-      { url: "/icons/icon-144x144.png", sizes: "144x144", type: "image/png" },
-      { url: "/icons/icon-152x152.png", sizes: "152x152", type: "image/png" },
-      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-384x384.png", sizes: "384x384", type: "image/png" },
-      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
-    ],
-    apple: [
-      { url: "/icons/icon-152x152.png", sizes: "152x152", type: "image/png" },
-      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-    ],
-    other: [
-      {
-        rel: "mask-icon",
-        url: "/icons/icon-192x192.png",
-        color: "#f97316",
-      },
-    ],
+  robots: {
+    index: true,
+    follow: true,
   },
-};
-
-export const viewport: Viewport = {
-  themeColor: "#f97316",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: "cover",
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+  themeColor: '#f97316',
+  colorScheme: 'light',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'HomeBake',
+  },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(
-          "min-h-screen bg-background font-sans antialiased",
-          GeistSans.variable,
-          GeistMono.variable
-        )}
-        suppressHydrationWarning
-      >
-        <PWAWrapper>
-          <ToastProvider>
-            <QueryProvider>
-              <NavigationSpinnerProvider>
-                <NavigationEvents />
-                {children}
-                <OfflineIndicator showDetails={true} />
-                <InstallPrompt variant="floating" autoShow={true} />
-              </NavigationSpinnerProvider>
-            </QueryProvider>
-          </ToastProvider>
-        </PWAWrapper>
+      <head>
+        <meta name="theme-color" content="#f97316" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="HomeBake" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+      </head>
+      <body className={cn(geistSans.variable, geistMono.variable, "font-sans antialiased")}>
+        <Providers>
+          <PWAWrapper>
+            {children}
+          </PWAWrapper>
+        </Providers>
+        <Toaster 
+          position="top-right"
+          richColors
+          closeButton
+          toastOptions={{
+            duration: 4000,
+          }}
+        />
       </body>
     </html>
   );

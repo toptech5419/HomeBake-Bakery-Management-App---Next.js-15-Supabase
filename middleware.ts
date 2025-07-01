@@ -17,7 +17,9 @@ export async function middleware(request: NextRequest) {
           const { data } = await supabase.auth.getUser();
           userRole = data?.user?.user_metadata?.role;
         } catch (error) {
-          console.log('Auth check failed:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Auth check failed:', error);
+          }
         }
       }
       
@@ -34,7 +36,9 @@ export async function middleware(request: NextRequest) {
     
     return response
   } catch (error) {
-    console.log('Middleware error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Middleware error:', error);
+    }
     // If middleware fails, just continue with the request
     return NextResponse.next()
   }
