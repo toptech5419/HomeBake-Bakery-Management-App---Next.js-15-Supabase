@@ -265,7 +265,6 @@ export async function getBreadTypes(): Promise<BreadType[]> {
   const { data, error } = await supabase
     .from('bread_types')
     .select('id, name, size, unit_price, created_by, created_at')
-    .eq('is_active', true)
     .order('name');
 
   if (error) {
