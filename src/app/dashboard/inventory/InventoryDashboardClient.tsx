@@ -1,11 +1,14 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BreadType, ProductionLog, SalesLog, UserRole } from '@/types';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { Package, TrendingDown, TrendingUp, AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { useInventoryRealtime } from '@/hooks/use-realtime';
+import { useToast } from '@/components/ui/ToastProvider';
+import { Package, TrendingDown, TrendingUp, AlertTriangle, ArrowLeft, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 
 interface InventoryDashboardClientProps {
   breadTypes: BreadType[];
@@ -26,11 +29,39 @@ interface InventoryItem {
 
 export default function InventoryDashboardClient({
   breadTypes,
-  todaysProduction,
-  todaysSales,
-  userRole,
-  userId
+  todaysProduction: initialProduction,
+  todaysSales: initialSales,
+  userRole
 }: InventoryDashboardClientProps) {
+  const [todaysProduction, setTodaysProduction] = useState(initialProduction);
+  const [todaysSales, setTodaysSales] = useState(initialSales);
+  const [loading, setLoading] = useState(false);
+  const toast = useToast();
+
+  // Callback to refresh inventory data when real-time updates occur
+  const refreshInventoryData = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch fresh data (you could create specific API endpoints for this)
+      const response = await fetch('/api/inventory/current');
+      if (response.ok) {
+        const data = await response.json();
+        setTodaysProduction(data.production || []);
+        setTodaysSales(data.sales || []);
+        
+        // Show subtle notification for real-time updates
+        console.log('Inventory data refreshed via real-time update');
+      }
+    } catch (error) {
+      console.error('Error refreshing inventory data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Subscribe to real-time inventory updates
+  const { isConnected } = useInventoryRealtime(refreshInventoryData, true);
 
   // Calculate inventory for each bread type
   const inventoryItems: InventoryItem[] = breadTypes.map(breadType => {
@@ -106,11 +137,25 @@ export default function InventoryDashboardClient({
           </div>
         </div>
         <div className="flex gap-2">
+          <div className="flex items-center gap-2 px-3 py-2 text-sm border rounded-md">
+            {isConnected ? (
+              <>
+                <Wifi className="h-4 w-4 text-green-600" />
+                <span className="text-green-600">Live</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-4 w-4 text-gray-400" />
+                <span className="text-gray-500">Offline</span>
+              </>
+            )}
+          </div>
           <Button 
             variant="outline"
-            onClick={() => window.location.reload()}
+            onClick={refreshInventoryData}
+            disabled={loading}
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button 
