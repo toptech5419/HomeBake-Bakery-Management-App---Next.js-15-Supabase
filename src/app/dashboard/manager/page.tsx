@@ -16,9 +16,6 @@ export const metadata: Metadata = {
 };
 
 // Types for manager dashboard data
-type ProductionLogRow = Database['public']['Tables']['production_logs']['Row'];
-type UserRow = Database['public']['Tables']['users']['Row'];
-type BreadTypeRow = Database['public']['Tables']['bread_types']['Row'];
 
 interface ProductionBatch {
   id: string;
@@ -70,9 +67,9 @@ async function getManagerDashboardData() {
 
   // Fetch dashboard data
   const [
-    { data: productionLogs, error: productionError },
-    { data: breadTypes, error: breadTypesError },
-    { data: staff, error: staffError }
+    { data: productionLogs },
+    { data: breadTypes },
+    { data: staff }
   ] = await Promise.all([
     // Production logs for today
     supabase

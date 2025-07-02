@@ -232,6 +232,8 @@ export default function SalesNewClient({
                         <Label className="text-sm font-medium">Quantity Sold</Label>
                         <Input
                           type="number"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           min="0"
                           max={available}
                           value={entry?.quantity || ''}
@@ -240,7 +242,8 @@ export default function SalesNewClient({
                             'quantity', 
                             parseInt(e.target.value) || 0
                           )}
-                          placeholder="0"
+                          placeholder="Enter quantity"
+                          className="text-lg"
                           disabled={loading}
                         />
                       </div>

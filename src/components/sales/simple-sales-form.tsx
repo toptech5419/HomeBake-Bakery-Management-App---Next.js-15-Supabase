@@ -103,7 +103,7 @@ export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: Sales
         <span className="text-lg font-semibold">Log Sales</span>
         <div className="flex items-center gap-2">
           <Button
-            variant={shift === 'morning' ? 'default' : 'outline'}
+            variant={shift === 'morning' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setShift('morning')}
             disabled={loading}
@@ -111,7 +111,7 @@ export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: Sales
             Morning
           </Button>
           <Button
-            variant={shift === 'night' ? 'default' : 'outline'}
+            variant={shift === 'night' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setShift('night')}
             disabled={loading}
@@ -139,9 +139,11 @@ export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: Sales
                 <Input
                   id={`quantity-${bread.id}`}
                   type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   min="0"
-                  placeholder="0"
-                  className="w-full"
+                  placeholder="Enter quantity"
+                  className="w-full text-lg"
                   value={formData[bread.id]?.quantity || ''}
                   onChange={(e) => handleInputChange(bread.id, 'quantity', e.target.value)}
                   disabled={loading}
@@ -156,10 +158,12 @@ export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: Sales
                 <Input
                   id={`discount-${bread.id}`}
                   type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   min="0"
                   max="100"
-                  placeholder="0"
-                  className="w-full"
+                  placeholder="Enter discount %"
+                  className="w-full text-lg"
                   value={formData[bread.id]?.discount || ''}
                   onChange={(e) => handleInputChange(bread.id, 'discount', e.target.value)}
                   disabled={loading}

@@ -7,7 +7,7 @@ import { createServer } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/error-boundary';
-import type { Database } from '@/types/supabase';
+
 
 export const metadata: Metadata = {
   title: 'Owner Dashboard - HomeBake',
@@ -31,12 +31,7 @@ type ProductionRecord = {
   created_at: string;
 };
 
-type StaffRecord = {
-  id: string;
-  name: string;
-  role: 'owner' | 'manager' | 'sales_rep';
-  created_at: string;
-};
+
 
 interface Activity {
   id: string;
@@ -79,10 +74,10 @@ async function getOwnerDashboardData() {
 
   // Fetch dashboard metrics
   const [
-    { data: todaySales, error: salesError },
-    { data: yesterdaySales, error: yesterdaySalesError },
-    { data: production, error: productionError },
-    { data: staff, error: staffError }
+    { data: todaySales },
+    { data: yesterdaySales },
+    { data: production },
+    { data: staff }
   ] = await Promise.all([
     // Today's sales
     supabase
@@ -146,7 +141,7 @@ async function getOwnerDashboardData() {
 
   // Generate sample activities based on real data
   const activities: Activity[] = [
-    ...(todaySales?.slice(0, 5).map((sale: SaleRecord, index: number) => ({
+    ...(todaySales?.slice(0, 5).map((sale: SaleRecord) => ({
       id: sale.id,
       type: 'sale' as const,
       title: 'New Sale Recorded',
@@ -157,7 +152,7 @@ async function getOwnerDashboardData() {
       priority: 'medium' as const,
       status: 'success' as const
     })) || []),
-    ...(production?.slice(0, 3).map((prod: ProductionRecord, index: number) => ({
+    ...(production?.slice(0, 3).map((prod: ProductionRecord) => ({
       id: prod.id,
       type: 'production' as const,
       title: 'Production Completed',
@@ -296,7 +291,7 @@ export default async function OwnerDashboardPage() {
                   Welcome back, {data.user.name}
                 </h1>
                 <p className="text-lg text-gray-600 mt-1">
-                  Here's your bakery's performance overview
+                  Here&apos;s your bakery&apos;s performance overview
                 </p>
               </div>
               <div className="flex items-center gap-2">

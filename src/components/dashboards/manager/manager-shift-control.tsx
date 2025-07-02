@@ -12,7 +12,6 @@ import { nigeriaTime, formatNigeriaDate } from '@/lib/utils/timezone';
 import { 
   Clock, 
   RotateCcw, 
-  Settings, 
   FileText, 
   Package, 
   AlertCircle,
@@ -36,9 +35,9 @@ interface ShiftSummary {
   staffCount: number;
 }
 
-export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps) {
+export function ManagerShiftControl({ }: ManagerShiftControlProps) {
   const { currentShift, isAutoMode, setIsAutoMode, toggleShift } = useShift();
-  const { data: productionData, loading } = useRealtimeProduction();
+  const { data: productionData } = useRealtimeProduction();
   const [showHandover, setShowHandover] = useState(false);
   const [handoverNotes, setHandoverNotes] = useState('');
   const [previousShiftSummary, setPreviousShiftSummary] = useState<ShiftSummary | null>(null);

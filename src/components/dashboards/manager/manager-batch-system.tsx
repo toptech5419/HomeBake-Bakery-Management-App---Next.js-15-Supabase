@@ -15,14 +15,12 @@ import {
   Play,
   Pause,
   CheckCircle2,
-  AlertTriangle,
   Plus,
   Timer,
   Users,
   Package,
   Star,
-  ChefHat,
-  ArrowRight
+  ChefHat
 } from 'lucide-react';
 
 interface Batch {
@@ -51,7 +49,7 @@ interface BatchSystemProps {
 }
 
 export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: BatchSystemProps) {
-  const { data: productionData, loading } = useRealtimeProduction();
+  const { data: productionData } = useRealtimeProduction();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [showCreateBatch, setShowCreateBatch] = useState(false);
   const [newBatch, setNewBatch] = useState({
@@ -397,12 +395,15 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Quantity</label>
-                <Input
-                  type="number"
-                  value={newBatch.quantity}
-                  onChange={(e) => setNewBatch(prev => ({ ...prev, quantity: e.target.value }))}
-                  placeholder="Enter quantity"
-                />
+                                 <Input
+                   type="number"
+                   inputMode="numeric"
+                   pattern="[0-9]*"
+                   value={newBatch.quantity}
+                   onChange={(e) => setNewBatch(prev => ({ ...prev, quantity: e.target.value }))}
+                   placeholder="Enter quantity"
+                   className="text-lg" // Larger text for mobile
+                 />
               </div>
 
               <div>
@@ -421,12 +422,15 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Estimated Duration (minutes)</label>
-                <Input
-                  type="number"
-                  value={newBatch.estimatedDuration}
-                  onChange={(e) => setNewBatch(prev => ({ ...prev, estimatedDuration: e.target.value }))}
-                  placeholder="120"
-                />
+                                 <Input
+                   type="number"
+                   inputMode="numeric"
+                   pattern="[0-9]*"
+                   value={newBatch.estimatedDuration}
+                   onChange={(e) => setNewBatch(prev => ({ ...prev, estimatedDuration: e.target.value }))}
+                   placeholder="120"
+                   className="text-lg" // Larger text for mobile
+                 />
               </div>
             </div>
 
