@@ -2,6 +2,8 @@ import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { ManagerProductionOverview } from '@/components/dashboards/manager/manager-production-overview';
 import { ManagerQuickActions } from '@/components/dashboards/manager/manager-quick-actions';
+import { ManagerShiftControl } from '@/components/dashboards/manager/manager-shift-control';
+import { ManagerBatchSystem } from '@/components/dashboards/manager/manager-batch-system';
 import { createServer } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -79,7 +81,7 @@ async function getManagerDashboardData() {
       .gte('created_at', today)
       .order('created_at', { ascending: false }),
     
-    // Bread types for targets
+    // Bread types for targets and batch system
     supabase
       .from('bread_types')
       .select('id, name, unit_price')
@@ -170,6 +172,7 @@ async function getManagerDashboardData() {
 
   return {
     user: {
+      id: user.id,
       name: profile.name,
       role: profile.role
     },
@@ -185,7 +188,8 @@ async function getManagerDashboardData() {
       lastUpdate: new Date().toISOString()
     },
     alerts,
-    currentShift
+    currentShift,
+    breadTypes
   };
 }
 
@@ -276,6 +280,24 @@ export default async function ManagerDashboardPage() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
+          {/* Shift Control Section - MOVED FROM PRODUCTION PAGE */}
+          <ErrorBoundary fallback={<div>Error loading shift control</div>}>
+            <Suspense fallback={<div className="h-32 bg-gray-100 rounded-lg animate-pulse" />}>
+              <ManagerShiftControl currentUserId={data.user.id} />
+            </Suspense>
+          </ErrorBoundary>
+
+          {/* Interactive Batch Management System */}
+          <ErrorBoundary fallback={<div>Error loading batch system</div>}>
+            <Suspense fallback={<div className="h-64 bg-gray-100 rounded-lg animate-pulse" />}>
+              <ManagerBatchSystem 
+                currentShift={data.currentShift}
+                managerId={data.user.id}
+                breadTypes={data.breadTypes || []}
+              />
+            </Suspense>
+          </ErrorBoundary>
+
           {/* Production Overview Section */}
           <ErrorBoundary fallback={<div>Error loading production overview</div>}>
             <Suspense fallback={<ProductionOverviewLoading />}>

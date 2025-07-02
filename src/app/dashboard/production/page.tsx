@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getBreadTypes } from '@/lib/bread-types/actions';
 import LoadingSpinner from '@/components/ui/loading';
-import ShiftToggle from '@/components/shift/shift-toggle';
+
 import { Package, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 
@@ -82,8 +82,15 @@ export default async function ProductionPage() {
           </div>
         </div>
 
-        {/* Shift Control */}
-        <ShiftToggle />
+        {/* Note: Shift Control moved to Manager Dashboard */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 text-blue-800">
+            <Package className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              Shift management has been moved to the Manager Dashboard for better production oversight.
+            </span>
+          </div>
+        </div>
 
         {/* Today's Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
