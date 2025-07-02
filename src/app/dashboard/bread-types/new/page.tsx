@@ -17,7 +17,7 @@ export default async function BreadTypeNewPage({ searchParams }: PageProps) {
     role: data.user.user_metadata?.role || null,
   } : null;
 
-  let user = userData;
+  const user = userData;
 
   // If role is not 'owner', fetch from business users table
   if (user && user.role !== 'owner') {

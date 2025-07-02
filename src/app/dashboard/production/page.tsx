@@ -1,5 +1,5 @@
 import { createServer } from '@/lib/supabase/server';
-import { fetchTodayProductionLogs } from '@/lib/production/actions';
+
 import ProductionTable from '@/components/production/production-table';
 import ProductionForm from '@/components/production/production-form';
 import { Suspense } from 'react';
@@ -15,11 +15,13 @@ import Link from 'next/link';
 export default async function ProductionPage() {
   const supabase = await createServer();
   const { data } = await supabase.auth.getUser();
-  let user = data?.user ? {
+  const initialUser = data?.user ? {
     id: data.user.id,
     email: data.user.email,
     role: data.user.user_metadata?.role || null,
   } : null;
+  
+  let user = initialUser;
 
   // If role is not 'manager', fetch from business users table
   if (user && user.role !== 'manager') {

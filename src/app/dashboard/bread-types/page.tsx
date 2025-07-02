@@ -7,11 +7,13 @@ export default async function BreadTypesPage() {
   // Get current user from Supabase session
   const supabase = await createServer();
   const { data } = await supabase.auth.getUser();
-  let user = data?.user ? {
+  const initialUser = data?.user ? {
     id: data.user.id,
     email: data.user.email,
     role: data.user.user_metadata?.role || null,
   } : null;
+  
+  let user = initialUser;
 
   // If role is not 'owner', fetch from business users table
   if (user && user.role !== 'owner') {

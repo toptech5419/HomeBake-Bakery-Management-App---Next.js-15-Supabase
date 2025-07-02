@@ -64,8 +64,6 @@ export default async function InventoryLogsPage() {
     <InventoryLogsClient 
       productionLogs={productionLogs}
       salesLogs={salesLogs}
-      userRole={role}
-      userId={user.id}
     />
   );
 }

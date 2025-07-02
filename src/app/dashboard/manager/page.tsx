@@ -8,7 +8,7 @@ import { createServer } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/error-boundary';
-import type { Database } from '@/types/supabase';
+
 
 export const metadata: Metadata = {
   title: 'Manager Dashboard - HomeBake',
@@ -68,8 +68,7 @@ async function getManagerDashboardData() {
   // Fetch dashboard data
   const [
     { data: productionLogs },
-    { data: breadTypes },
-    { data: staff }
+    { data: breadTypes }
   ] = await Promise.all([
     // Production logs for today
     supabase
@@ -82,13 +81,7 @@ async function getManagerDashboardData() {
     supabase
       .from('bread_types')
       .select('id, name, unit_price')
-      .order('name', { ascending: true }),
-    
-    // Staff data
-    supabase
-      .from('users')
-      .select('id, name, role')
-      .neq('role', 'owner')
+      .order('name', { ascending: true })
   ]);
 
   // Process production data into batches and metrics

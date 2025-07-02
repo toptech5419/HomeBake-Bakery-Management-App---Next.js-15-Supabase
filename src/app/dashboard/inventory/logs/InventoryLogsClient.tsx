@@ -7,13 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { BreadType, ProductionLog, SalesLog, UserRole } from '@/types';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { ArrowLeft, Plus, Minus, Search, Filter } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Search } from 'lucide-react';
 
 interface InventoryLogsClientProps {
   productionLogs: (ProductionLog & { bread_types: BreadType })[];
   salesLogs: (SalesLog & { bread_types: BreadType })[];
-  userRole: UserRole;
-  userId: string;
 }
 
 interface LogEntry {
@@ -29,9 +27,7 @@ interface LogEntry {
 
 export default function InventoryLogsClient({
   productionLogs,
-  salesLogs,
-  userRole,
-  userId
+  salesLogs
 }: InventoryLogsClientProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'production' | 'sale'>('all');
@@ -127,21 +123,21 @@ export default function InventoryLogsClient({
             <label className="text-sm font-medium mb-2 block">Filter Type</label>
             <div className="flex gap-2">
               <Button
-                variant={filterType === 'all' ? 'default' : 'outline'}
+                variant={filterType === 'all' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => setFilterType('all')}
               >
                 All
               </Button>
               <Button
-                variant={filterType === 'production' ? 'default' : 'outline'}
+                variant={filterType === 'production' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => setFilterType('production')}
               >
                 Production
               </Button>
               <Button
-                variant={filterType === 'sale' ? 'default' : 'outline'}
+                variant={filterType === 'sale' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => setFilterType('sale')}
               >
