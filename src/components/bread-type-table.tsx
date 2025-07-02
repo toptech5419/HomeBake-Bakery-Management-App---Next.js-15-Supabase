@@ -1,5 +1,5 @@
 import React from 'react';
-import { HiPencil, HiTrash } from 'react-icons/hi';
+import { Edit, Trash2 } from 'lucide-react';
 
 interface BreadType {
   id: string;
@@ -52,7 +52,7 @@ export function BreadTypeTable({ breadTypes, onEdit, onDelete, isOwner, loadingI
                       disabled={!!loadingId}
                       className="flex items-center gap-1 px-3 py-1.5 border border-blue-500 text-blue-600 bg-white rounded-md text-xs font-medium hover:bg-blue-50 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-200 transition disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      <HiPencil className="w-4 h-4" />
+                      <Edit className="w-4 h-4" />
                       <span className="hidden sm:inline">Edit</span>
                     </button>
                     <button
@@ -65,7 +65,7 @@ export function BreadTypeTable({ breadTypes, onEdit, onDelete, isOwner, loadingI
                         <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></span>
                       ) : (
                         <>
-                          <HiTrash className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" />
                           <span className="hidden sm:inline">Delete</span>
                         </>
                       )}
