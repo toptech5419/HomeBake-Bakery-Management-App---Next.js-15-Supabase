@@ -84,9 +84,51 @@ export async function updateBreadType(currentUser: User, id: string, input: Brea
 }
 
 export async function deleteBreadType(currentUser: User, id: string) {
-  if (!isOwner(currentUser) && !isManager(currentUser)) throw new Error('Unauthorized');
+  if (!isOwner(currentUser) && !isManager(currentUser)) {
+    throw new Error('Unauthorized: Only owners and managers can delete bread types');
+  }
+  
   const supabase = await createServer();
+  
+  // First check if the bread type exists
+  const { data: existing, error: fetchError } = await supabase
+    .from('bread_types')
+    .select('id, name')
+    .eq('id', id)
+    .single();
+    
+  if (fetchError || !existing) {
+    throw new Error('Bread type not found');
+  }
+  
+  // Check if this bread type is being used in production or sales logs
+  const { data: productionLogs } = await supabase
+    .from('production_logs')
+    .select('id')
+    .eq('bread_type_id', id)
+    .limit(1);
+    
+  const { data: salesLogs } = await supabase
+    .from('sales_logs')
+    .select('id')
+    .eq('bread_type_id', id)
+    .limit(1);
+    
+  if (productionLogs && productionLogs.length > 0) {
+    throw new Error('Cannot delete this bread type as it has production records. Please archive it instead.');
+  }
+  
+  if (salesLogs && salesLogs.length > 0) {
+    throw new Error('Cannot delete this bread type as it has sales records. Please archive it instead.');
+  }
+  
+  // Perform the deletion
   const { error } = await supabase.from('bread_types').delete().eq('id', id);
-  if (error) throw error;
+  
+  if (error) {
+    console.error('Bread type deletion error:', error);
+    throw new Error(`Failed to delete bread type: ${error.message}`);
+  }
+  
   return true;
 } 

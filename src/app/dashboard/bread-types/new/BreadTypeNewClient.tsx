@@ -4,6 +4,7 @@ import { BreadTypeForm } from '@/components/bread-type-form';
 import { useToast } from '@/components/ui/ToastProvider';
 import { createBreadTypeAction, updateBreadTypeAction } from '../actions';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 
 interface BreadType {
   id: string;
@@ -53,9 +54,23 @@ export default function BreadTypeNewClient({ initialValues, user }: { initialVal
     }
   };
 
+  const handleGoBack = () => {
+    router.push('/dashboard/bread-types');
+  };
+
   return (
     <div className="p-8 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-6">{id ? 'Edit Bread Type' : 'Add Bread Type'}</h1>
+      <div className="flex items-center mb-6">
+        <button
+          onClick={handleGoBack}
+          className="flex items-center text-gray-600 hover:text-gray-800 transition-colors mr-4"
+          disabled={formLoading}
+        >
+          <ArrowLeft className="h-5 w-5 mr-1" />
+          Back
+        </button>
+        <h1 className="text-2xl font-bold">{id ? 'Edit Bread Type' : 'Add Bread Type'}</h1>
+      </div>
       <BreadTypeForm
         initialValues={initialValues || {}}
         onSubmit={handleSubmit}

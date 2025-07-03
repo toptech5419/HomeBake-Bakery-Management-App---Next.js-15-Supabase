@@ -27,8 +27,10 @@ export async function deleteBreadTypeAction(user: any, id: string) {
     await deleteBreadType(user, id);
     revalidatePath('/dashboard/bread-types');
     return { success: true };
-  } catch {
-    return { success: false, error: 'Failed to delete bread type. Please try again.' };
+  } catch (error) {
+    console.error('Delete bread type error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete bread type. Please try again.';
+    return { success: false, error: errorMessage };
   }
 }
 

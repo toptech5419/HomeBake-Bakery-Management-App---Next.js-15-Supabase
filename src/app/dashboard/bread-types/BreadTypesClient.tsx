@@ -73,7 +73,7 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
         <h1 className="text-2xl font-bold">Bread Types</h1>
         <button
           onClick={handleAddBreadType}
-          className="relative bg-primary text-primary-foreground px-4 py-2 rounded hover:bg-primary/90 transition flex items-center justify-center min-w-[140px] disabled:opacity-60 disabled:cursor-not-allowed"
+          className="relative bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[160px] disabled:opacity-60 disabled:cursor-not-allowed font-medium shadow-md hover:shadow-lg"
           disabled={!!loadingId}
         >
           {loadingId === 'add' ? (
