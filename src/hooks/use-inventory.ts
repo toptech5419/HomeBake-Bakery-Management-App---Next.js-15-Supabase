@@ -246,18 +246,41 @@ export function useInventoryMutations() {
 
   const addProduction = useMutation({
     mutationFn: async (productionData: Database['public']['Tables']['production_logs']['Insert']) => {
-      const { error } = await supabase
-        .from('production_logs')
-        .insert(productionData);
+      console.log('🔍 DEBUG: About to insert production data:', productionData);
       
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from('production_logs')
+        .insert(productionData)
+        .select();
+      
+      console.log('🔍 DEBUG: Supabase insert result:', { data, error });
+      
+      if (error) {
+        console.error('🚨 DEBUG: Supabase insert error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          fullError: error
+        });
+        throw error;
+      }
+      
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('✅ DEBUG: Production insert successful:', data);
       invalidateInventoryQueries();
       toast.success('Production recorded successfully');
     },
     onError: (error) => {
-      console.error('Error adding production:', error);
+      console.error('🚨 DEBUG: Production mutation error:', {
+        message: (error as any).message,
+        details: (error as any).details,
+        hint: (error as any).hint,
+        code: (error as any).code,
+        fullError: error
+      });
       toast.error('Failed to record production');
     },
   });

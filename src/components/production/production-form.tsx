@@ -173,9 +173,27 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
         message: (err as Error).message,
         stack: (err as Error).stack,
         managerId,
-        currentShift
+        currentShift,
+        // Log the full error object
+        fullError: err,
+        // Log error properties if it's a Supabase error
+        code: (err as any)?.code,
+        details: (err as any)?.details,
+        hint: (err as any)?.hint,
+        status: (err as any)?.status,
+        statusText: (err as any)?.statusText
       });
-      toast.error((err as Error).message || 'Failed to save production log.');
+      
+      // More specific error message
+      let errorMessage = 'Failed to save production log.';
+      if ((err as any)?.message) {
+        errorMessage = `Production error: ${(err as any).message}`;
+      }
+      if ((err as any)?.details) {
+        errorMessage += ` Details: ${(err as any).details}`;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
