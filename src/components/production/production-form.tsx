@@ -49,12 +49,19 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
   const onSubmit = async (data: ProductionFormData) => {
     setLoading(true);
     try {
+      console.log('🔍 DEBUG: Production form submission');
+      console.log('🔍 DEBUG: managerId:', managerId);
+      console.log('🔍 DEBUG: currentShift:', currentShift);
+      console.log('🔍 DEBUG: form data:', data);
+
       const validEntries = data.entries.filter(entry => entry.quantity > 0);
       if (validEntries.length === 0) {
         toast.error('Please enter at least one quantity greater than 0.');
         setLoading(false);
         return;
       }
+
+      console.log('🔍 DEBUG: validEntries:', validEntries);
 
       // Save feedback once for the shift (if provided)
       if (feedback.trim()) {
@@ -71,12 +78,15 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
 
       // Save each production entry using offline-aware mutation
       for (const entry of validEntries) {
-        await offlineProductionMutation.mutateAsync({ 
+        const productionData = { 
           bread_type_id: entry.bread_type_id,
           quantity: entry.quantity,
           shift: entry.shift,
           recorded_by: managerId,
-        });
+        };
+        console.log('🔍 DEBUG: Saving production entry:', productionData);
+        
+        await offlineProductionMutation.mutateAsync(productionData);
       }
       
       const syncMessage = isOnline 
@@ -87,6 +97,13 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
       setFeedback('');
       onSuccess?.();
     } catch (err) {
+      console.error('🚨 DEBUG: Production form error:', err);
+      console.error('🚨 DEBUG: Error details:', {
+        message: (err as Error).message,
+        stack: (err as Error).stack,
+        managerId,
+        currentShift
+      });
       toast.error((err as Error).message || 'Failed to save production log.');
     } finally {
       setLoading(false);
@@ -133,13 +150,17 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
                   value={field.value === 0 ? '' : field.value}
                   onChange={(e) => {
                     const value = e.target.value;
-                    if (value === '') {
+                    // Let users type freely - only convert to number on blur or form submission
+                    field.onChange(value === '' ? 0 : value);
+                  }}
+                  onBlur={(e) => {
+                    // Convert to proper number on blur
+                    const value = e.target.value;
+                    const numValue = value === '' ? 0 : parseInt(value);
+                    if (isNaN(numValue) || numValue < 0) {
                       field.onChange(0);
                     } else {
-                      const numValue = parseInt(value);
-                      if (!isNaN(numValue) && numValue >= 0) {
-                        field.onChange(numValue);
-                      }
+                      field.onChange(numValue);
                     }
                   }}
                   disabled={isSubmitting}
