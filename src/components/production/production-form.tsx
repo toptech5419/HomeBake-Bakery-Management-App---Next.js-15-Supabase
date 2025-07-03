@@ -126,10 +126,10 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
                   id={`quantity-${bread.id}`}
                   type="number"
                   min="0"
-                  placeholder="Enter quantity produced"
+                  placeholder={`Enter ${bread.name} quantity produced`}
                   className="w-full"
                   {...field}
-                  value={field.value || 0}
+                  value={field.value || ''}
                   onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                   disabled={isSubmitting}
                   aria-invalid={!!errors.entries?.[idx]?.quantity}

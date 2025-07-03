@@ -12,20 +12,22 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   variant = 'spinner' 
 }) => {
   const sizeClasses = {
-    sm: 'h-8 w-8',
-    md: 'h-16 w-16',
-    lg: 'h-24 w-24'
+    sm: 'h-6 w-6 sm:h-8 sm:w-8',
+    md: 'h-12 w-12 sm:h-16 sm:w-16',
+    lg: 'h-16 w-16 sm:h-24 sm:w-24'
   };
 
   const messageSizeClasses = {
-    sm: 'text-sm',
-    md: 'text-base',
-    lg: 'text-lg'
+    sm: 'text-xs sm:text-sm',
+    md: 'text-sm sm:text-base',
+    lg: 'text-base sm:text-lg'
   };
+
+  const containerClasses = "flex flex-col items-center justify-center min-h-screen w-full bg-background px-4 py-8";
 
   if (variant === 'dots') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen w-full bg-background" aria-busy="true" aria-live="polite" role="status">
+      <div className={containerClasses} aria-busy="true" aria-live="polite" role="status">
         <div className="flex space-x-2">
           {[0, 1, 2].map((i) => (
             <div
@@ -39,7 +41,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
           ))}
         </div>
         {message && (
-          <p className={`mt-6 text-center font-medium text-orange-500 px-4 ${messageSizeClasses[size]}`}>
+          <p className={`mt-6 text-center font-medium text-orange-500 max-w-sm ${messageSizeClasses[size]}`}>
             {message}
           </p>
         )}
@@ -49,11 +51,11 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   if (variant === 'skeleton') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen w-full bg-background" aria-busy="true" aria-live="polite" role="status">
+      <div className={containerClasses} aria-busy="true" aria-live="polite" role="status">
         <div className="w-32 h-4 bg-gray-200 rounded animate-pulse mb-4"></div>
         <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
         {message && (
-          <p className={`mt-6 text-center font-medium text-orange-500 px-4 ${messageSizeClasses[size]}`}>
+          <p className={`mt-6 text-center font-medium text-orange-500 max-w-sm ${messageSizeClasses[size]}`}>
             {message}
           </p>
         )}
@@ -62,7 +64,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen w-full bg-background" aria-busy="true" aria-live="polite" role="status">
+    <div className={containerClasses} aria-busy="true" aria-live="polite" role="status">
       <div className="flex items-center justify-center">
         <svg
           className={`${sizeClasses[size]} animate-spin text-orange-500`}
@@ -87,7 +89,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         </svg>
       </div>
       {message && (
-        <p className={`mt-6 text-center font-medium text-orange-500 px-4 ${messageSizeClasses[size]}`}>
+        <p className={`mt-6 text-center font-medium text-orange-500 max-w-sm ${messageSizeClasses[size]}`}>
           {message}
         </p>
       )}

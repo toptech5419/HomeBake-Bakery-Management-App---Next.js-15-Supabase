@@ -5,9 +5,11 @@ import ProfessionalHistoryFilters from '@/components/production/professional-his
 import ProductionTable from '@/components/production/production-table';
 import CSVExport from '@/components/production/csv-export';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Suspense } from 'react';
 import LoadingSpinner from '@/components/ui/loading';
-import { Package } from 'lucide-react';
+import { Package, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 export default async function ProductionHistoryPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const supabase = await createServer();
@@ -58,23 +60,59 @@ export default async function ProductionHistoryPage({ searchParams }: { searchPa
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* Header with Back Button */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Production History</h1>
-            <p className="text-gray-600 mt-1">View and filter past bread production logs</p>
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard/production">
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Back to Production</span>
+                <span className="sm:hidden">Back</span>
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Production History</h1>
+              <p className="text-gray-600 mt-1 text-sm sm:text-base">View and filter past bread production logs</p>
+            </div>
           </div>
         </div>
-        <ProfessionalHistoryFilters breadTypes={breadTypes} />
-        <Card className="flex flex-col gap-4 p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <div className="text-lg font-semibold">Entries: {logs.length}</div>
-            <CSVExport logs={logs} filename="production-history" />
+
+        {/* Responsive Filters */}
+        <div className="w-full">
+          <ProfessionalHistoryFilters breadTypes={breadTypes} />
+        </div>
+
+        {/* Responsive Results Card */}
+        <Card className="w-full">
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="text-lg font-semibold">
+                <span className="block sm:inline">Production Entries: </span>
+                <span className="text-orange-600 font-bold">{logs.length}</span>
+              </div>
+              <div className="w-full sm:w-auto">
+                <CSVExport logs={logs} filename="production-history" />
+              </div>
+            </div>
+            
+            {/* Responsive Table Container */}
+            <div className="w-full overflow-hidden">
+              <Suspense fallback={
+                <div className="flex items-center justify-center py-12">
+                  <LoadingSpinner message="Loading production history..." />
+                </div>
+              }>
+                <div className="overflow-x-auto">
+                  <ProductionTable logs={logs} />
+                </div>
+              </Suspense>
+            </div>
           </div>
-          <Suspense fallback={<LoadingSpinner message="Loading production history..." />}>
-            <ProductionTable logs={logs} />
-          </Suspense>
         </Card>
+
+        {/* Mobile Bottom Padding */}
+        <div className="h-4 sm:h-8" />
       </div>
     </div>
   );

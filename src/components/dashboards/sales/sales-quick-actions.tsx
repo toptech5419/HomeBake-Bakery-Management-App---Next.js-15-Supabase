@@ -50,7 +50,7 @@ export function SalesQuickActions({
       title: 'Record Sale',
       description: 'Add new transaction',
       icon: <Plus className="w-5 h-5" />,
-      href: '/sales/new',
+      href: '/dashboard/sales/new',
       color: 'green',
       badge: 0,
       shortcut: '⌘N',
@@ -61,7 +61,7 @@ export function SalesQuickActions({
       title: 'Sales History',
       description: 'View transactions',
       icon: <ShoppingCart className="w-5 h-5" />,
-      href: '/sales/history',
+      href: '/dashboard/sales',
       color: 'blue',
       badge: salesData?.customerCount || 0,
       shortcut: '⌘H',
@@ -72,7 +72,7 @@ export function SalesQuickActions({
       title: 'Customer Log',
       description: 'Manage customers',
       icon: <Users className="w-5 h-5" />,
-      href: '/customers',
+      href: '/dashboard/users',
       color: 'purple',
       badge: alerts.customerFollow,
       shortcut: '⌘C',
@@ -83,7 +83,7 @@ export function SalesQuickActions({
       title: 'Performance',
       description: 'Track progress',
       icon: <Target className="w-5 h-5" />,
-      href: '/sales/performance',
+      href: '/dashboard/reports',
       color: 'orange',
       badge: 0,
       shortcut: '⌘P',
@@ -96,7 +96,7 @@ export function SalesQuickActions({
       id: 'common-bread',
       title: 'Common Breads',
       icon: <Package className="w-4 h-4" />,
-      href: '/sales/quick/common',
+      href: '/dashboard/sales/new',
       description: 'Quick sale shortcuts',
       items: ['White Bread', 'Brown Bread', 'Agege Bread']
     },
@@ -104,7 +104,7 @@ export function SalesQuickActions({
       id: 'bulk-sale',
       title: 'Bulk Sale',
       icon: <ShoppingCart className="w-4 h-4" />,
-      href: '/sales/quick/bulk',
+      href: '/dashboard/sales/new',
       description: 'Large quantity orders',
       items: ['Wholesale', 'Events', 'Retailers']
     },
@@ -112,7 +112,7 @@ export function SalesQuickActions({
       id: 'customer-sale',
       title: 'Regular Customer',
       icon: <Users className="w-4 h-4" />,
-      href: '/sales/quick/regular',
+      href: '/dashboard/sales/new',
       description: 'Frequent customer orders',
       items: ['Saved Orders', 'Preferences', 'Discounts']
     }
@@ -123,21 +123,21 @@ export function SalesQuickActions({
       id: 'daily-report',
       title: 'Daily Report',
       icon: <FileText className="w-4 h-4" />,
-      href: '/reports/daily',
+      href: '/dashboard/reports',
       description: 'Generate daily summary'
     },
     {
       id: 'shift-summary',
       title: 'Shift Summary',
       icon: <Clock className="w-4 h-4" />,
-      href: '/reports/shift',
+      href: '/dashboard/sales/shift',
       description: 'End shift report'
     },
     {
       id: 'target-progress',
       title: 'Target Progress',
       icon: <TrendingUp className="w-4 h-4" />,
-      href: '/reports/targets',
+      href: '/dashboard/reports',
       description: 'Track goal achievement'
     }
   ];

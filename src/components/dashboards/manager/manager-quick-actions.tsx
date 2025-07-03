@@ -40,7 +40,7 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
       title: 'Start New Batch',
       description: 'Initialize production run',
       icon: <Play className="w-5 h-5" />,
-      href: '/production/new',
+      href: '/dashboard/production',
       color: 'green',
       badge: 0,
       shortcut: '⌘N',
@@ -51,7 +51,7 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
       title: 'Monitor Batches',
       description: 'Track active production',
       icon: <Package className="w-5 h-5" />,
-      href: '/production/monitor',
+      href: '/dashboard/production/history',
       color: 'blue',
       badge: alerts?.activeBatches || 0,
       shortcut: '⌘M',
@@ -62,7 +62,7 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
       title: 'Team Management',
       description: 'Staff coordination',
       icon: <Users className="w-5 h-5" />,
-      href: '/team/status',
+      href: '/dashboard/users',
       color: 'purple',
       badge: alerts?.staffIssues || 0,
       shortcut: '⌘T',
@@ -73,7 +73,7 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
       title: 'Inventory Status',
       description: 'Raw materials check',
       icon: <Layers className="w-5 h-5" />,
-      href: '/inventory/status',
+      href: '/dashboard/inventory',
       color: 'orange',
       badge: alerts?.inventoryAlerts || 0,
       shortcut: '⌘I',
@@ -86,7 +86,7 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
       id: 'pause-production',
       title: 'Pause All Batches',
       icon: <Pause className="w-4 h-4" />,
-      href: '/production/pause',
+      href: '/dashboard/production',
       description: 'Emergency pause',
       color: 'red'
     },
@@ -94,7 +94,7 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
       id: 'quality-check',
       title: 'Quality Control',
       icon: <CheckCircle className="w-4 h-4" />,
-      href: '/production/quality',
+      href: '/dashboard/production/history',
       description: 'Run quality checks',
       color: 'green'
     },
@@ -102,7 +102,7 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
       id: 'production-report',
       title: 'Production Report',
       icon: <BarChart3 className="w-4 h-4" />,
-      href: '/reports/production',
+      href: '/dashboard/reports',
       description: 'Generate reports',
       color: 'blue'
     }
@@ -113,21 +113,21 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
       id: 'shift-handover',
       title: 'Shift Handover',
       icon: <ClipboardList className="w-4 h-4" />,
-      href: '/shifts/handover',
+      href: '/dashboard/sales/shift',
       description: 'Prepare shift transition'
     },
     {
       id: 'shift-report',
       title: 'Shift Report',
       icon: <FileText className="w-4 h-4" />,
-      href: '/shifts/report',
+      href: '/dashboard/reports',
       description: 'Document shift activities'
     },
     {
       id: 'schedule-optimization',
       title: 'Schedule Optimization',
       icon: <Target className="w-4 h-4" />,
-      href: '/production/optimize',
+      href: '/dashboard/production',
       description: 'Optimize production schedule'
     }
   ];

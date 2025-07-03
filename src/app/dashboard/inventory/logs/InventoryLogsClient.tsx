@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { BreadType, ProductionLog, SalesLog, UserRole } from '@/types';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { ArrowLeft, Plus, Minus, Search } from 'lucide-react';
+import Link from 'next/link';
 
 interface InventoryLogsClientProps {
   productionLogs: (ProductionLog & { bread_types: BreadType })[];
@@ -84,164 +85,213 @@ export default function InventoryLogsClient({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => window.history.back()}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Inventory Audit Logs</h1>
-          <p className="text-muted-foreground">
-            Complete history of all inventory changes through production and sales
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* Responsive Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <Link href="/dashboard/inventory">
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Back to Inventory</span>
+              <span className="sm:hidden">Back</span>
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Inventory Audit Logs</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Complete history of all inventory changes through production and sales
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Filters */}
-      <Card className="p-6">
-        <div className="flex gap-4 items-end">
-          <div className="flex-1">
-            <label className="text-sm font-medium mb-2 block">Search Bread Type</label>
-            <div className="relative">
-              <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
-              <Input
-                placeholder="Search by bread type name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+        {/* Responsive Filters */}
+        <Card className="p-4 sm:p-6">
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-end">
+            <div className="flex-1 w-full">
+              <label className="text-sm font-medium mb-2 block">Search Bread Type</label>
+              <div className="relative">
+                <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+                <Input
+                  placeholder="Search by bread type name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
+            
+            <div className="w-full lg:w-auto">
+              <label className="text-sm font-medium mb-2 block">Filter Type</label>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant={filterType === 'all' ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilterType('all')}
+                  className="flex-1 sm:flex-none"
+                >
+                  All
+                </Button>
+                <Button
+                  variant={filterType === 'production' ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilterType('production')}
+                  className="flex-1 sm:flex-none"
+                >
+                  Production
+                </Button>
+                <Button
+                  variant={filterType === 'sale' ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilterType('sale')}
+                  className="flex-1 sm:flex-none"
+                >
+                  Sales
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Responsive Summary Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="p-4 sm:p-6">
+            <div className="text-center">
+              <p className="text-xl sm:text-2xl font-bold text-green-600">
+                {productionLogs.reduce((sum, log) => sum + log.quantity, 0)}
+              </p>
+              <p className="text-sm text-muted-foreground">Total Produced</p>
+            </div>
+          </Card>
+          
+          <Card className="p-4 sm:p-6">
+            <div className="text-center">
+              <p className="text-xl sm:text-2xl font-bold text-blue-600">
+                {salesLogs.filter(log => !log.returned).reduce((sum, log) => sum + log.quantity, 0)}
+              </p>
+              <p className="text-sm text-muted-foreground">Total Sold</p>
+            </div>
+          </Card>
+          
+          <Card className="p-4 sm:p-6">
+            <div className="text-center">
+              <p className="text-xl sm:text-2xl font-bold text-red-600">
+                {salesLogs.filter(log => log.returned).reduce((sum, log) => sum + log.quantity, 0)}
+              </p>
+              <p className="text-sm text-muted-foreground">Total Returns</p>
+            </div>
+          </Card>
+        </div>
+
+        {/* Responsive Logs Display */}
+        <Card className="p-4 sm:p-6">
+          <div className="mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-semibold">Activity Timeline</h2>
+            <p className="text-muted-foreground text-sm">
+              Showing {filteredLogs.length} of {allLogs.length} total entries
+            </p>
           </div>
           
-          <div>
-            <label className="text-sm font-medium mb-2 block">Filter Type</label>
-            <div className="flex gap-2">
-              <Button
-                variant={filterType === 'all' ? 'primary' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType('all')}
-              >
-                All
-              </Button>
-              <Button
-                variant={filterType === 'production' ? 'primary' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType('production')}
-              >
-                Production
-              </Button>
-              <Button
-                variant={filterType === 'sale' ? 'primary' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType('sale')}
-              >
-                Sales
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Summary Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="p-6">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">
-              {productionLogs.reduce((sum, log) => sum + log.quantity, 0)}
-            </p>
-            <p className="text-sm text-muted-foreground">Total Produced</p>
-          </div>
-        </Card>
-        
-        <Card className="p-6">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-blue-600">
-              {salesLogs.filter(log => !log.returned).reduce((sum, log) => sum + log.quantity, 0)}
-            </p>
-            <p className="text-sm text-muted-foreground">Total Sold</p>
-          </div>
-        </Card>
-        
-        <Card className="p-6">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-red-600">
-              {salesLogs.filter(log => log.returned).reduce((sum, log) => sum + log.quantity, 0)}
-            </p>
-            <p className="text-sm text-muted-foreground">Total Returns</p>
-          </div>
-        </Card>
-      </div>
-
-      {/* Logs Table */}
-      <Card className="p-6">
-        <div className="mb-4">
-          <h2 className="text-xl font-semibold">Activity Timeline</h2>
-          <p className="text-muted-foreground">
-            Showing {filteredLogs.length} of {allLogs.length} total entries
-          </p>
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left p-2">Date & Time</th>
-                <th className="text-left p-2">Type</th>
-                <th className="text-left p-2">Bread Type</th>
-                <th className="text-left p-2">Quantity</th>
-                <th className="text-left p-2">Shift</th>
-                <th className="text-left p-2">Amount</th>
-                <th className="text-left p-2">Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.slice(0, 50).map((log) => (
-                <tr key={`${log.type}-${log.id}`} className="border-b hover:bg-gray-50">
-                  <td className="p-2">
-                    <div className="text-sm">
-                      {new Date(log.createdAt).toLocaleDateString()}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(log.createdAt).toLocaleTimeString()}
-                    </div>
-                  </td>
-                  <td className="p-2">
-                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getLogColor(log.type, log.returned)}`}>
-                      {getLogIcon(log.type, log.returned)}
-                      {log.type === 'production' ? 'Production' : 
-                       log.returned ? 'Return' : 'Sale'}
-                    </div>
-                  </td>
-                  <td className="p-2">
-                    <div className="font-medium">{log.breadType.name}</div>
-                    {log.breadType.size && (
-                      <div className="text-xs text-muted-foreground">{log.breadType.size}</div>
-                    )}
-                  </td>
-                  <td className="p-2 font-medium">
-                    {log.type === 'production' ? '+' : '-'}{log.quantity}
-                  </td>
-                  <td className="p-2">
-                    <Badge>
-                      {log.shift === 'morning' ? '☀️' : '🌙'} {log.shift}
-                    </Badge>
-                  </td>
-                  <td className="p-2">
-                    {log.amount ? formatCurrencyNGN(log.amount) : '-'}
-                  </td>
-                  <td className="p-2 text-sm text-muted-foreground">
-                    {getLogDescription(log)}
-                  </td>
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Date & Time</th>
+                  <th className="text-left p-2">Type</th>
+                  <th className="text-left p-2">Bread Type</th>
+                  <th className="text-left p-2">Quantity</th>
+                  <th className="text-left p-2">Shift</th>
+                  <th className="text-left p-2">Amount</th>
+                  <th className="text-left p-2">Description</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredLogs.slice(0, 50).map((log) => (
+                  <tr key={`${log.type}-${log.id}`} className="border-b hover:bg-gray-50">
+                    <td className="p-2">
+                      <div className="text-sm">
+                        {new Date(log.createdAt).toLocaleDateString()}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(log.createdAt).toLocaleTimeString()}
+                      </div>
+                    </td>
+                    <td className="p-2">
+                      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getLogColor(log.type, log.returned)}`}>
+                        {getLogIcon(log.type, log.returned)}
+                        {log.type === 'production' ? 'Production' : 
+                         log.returned ? 'Return' : 'Sale'}
+                      </div>
+                    </td>
+                    <td className="p-2">
+                      <div className="font-medium">{log.breadType.name}</div>
+                      {log.breadType.size && (
+                        <div className="text-xs text-muted-foreground">{log.breadType.size}</div>
+                      )}
+                    </td>
+                    <td className="p-2 font-medium">
+                      {log.type === 'production' ? '+' : '-'}{log.quantity}
+                    </td>
+                    <td className="p-2">
+                      <Badge>
+                        {log.shift === 'morning' ? '☀️' : '🌙'} {log.shift}
+                      </Badge>
+                    </td>
+                    <td className="p-2">
+                      {log.amount ? formatCurrencyNGN(log.amount) : '-'}
+                    </td>
+                    <td className="p-2 text-sm text-muted-foreground">
+                      {getLogDescription(log)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-3">
+            {filteredLogs.slice(0, 50).map((log) => (
+              <div key={`${log.type}-${log.id}`} className="border rounded-lg p-4 bg-white">
+                <div className="flex items-start justify-between mb-2">
+                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getLogColor(log.type, log.returned)}`}>
+                    {getLogIcon(log.type, log.returned)}
+                    {log.type === 'production' ? 'Production' : 
+                     log.returned ? 'Return' : 'Sale'}
+                  </div>
+                                     <Badge>
+                     {log.shift === 'morning' ? '☀️' : '🌙'} {log.shift}
+                   </Badge>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="font-medium text-lg">{log.breadType.name}</div>
+                  {log.breadType.size && (
+                    <div className="text-sm text-muted-foreground">{log.breadType.size}</div>
+                  )}
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">
+                      Quantity: {log.type === 'production' ? '+' : '-'}{log.quantity}
+                    </span>
+                    {log.amount && (
+                      <span className="text-sm font-medium text-green-600">
+                        {formatCurrencyNGN(log.amount)}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="text-sm text-muted-foreground">
+                    {getLogDescription(log)}
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground pt-1 border-t">
+                    {new Date(log.createdAt).toLocaleDateString()} at {new Date(log.createdAt).toLocaleTimeString()}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
           
           {filteredLogs.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
@@ -250,27 +300,28 @@ export default function InventoryLogsClient({
           )}
           
           {filteredLogs.length > 50 && (
-            <div className="text-center py-4 text-muted-foreground">
+            <div className="text-center py-4 text-sm text-muted-foreground">
               Showing first 50 entries. Use filters to narrow down results.
             </div>
           )}
-        </div>
-      </Card>
+        </Card>
 
-      {/* Quick Actions */}
-      <div className="flex gap-4">
-        <Button 
-          variant="outline"
-          onClick={() => window.location.href = '/dashboard/inventory'}
-        >
-          Back to Inventory
-        </Button>
-        <Button 
-          variant="outline"
-          onClick={() => window.location.href = '/dashboard/reports'}
-        >
-          View Reports
-        </Button>
+        {/* Responsive Quick Actions */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Link href="/dashboard/inventory">
+            <Button variant="outline" className="w-full sm:w-auto">
+              Back to Inventory
+            </Button>
+          </Link>
+          <Link href="/dashboard/reports">
+            <Button variant="outline" className="w-full sm:w-auto">
+              View Reports
+            </Button>
+          </Link>
+        </div>
+
+        {/* Mobile Bottom Padding */}
+        <div className="h-4 sm:h-8" />
       </div>
     </div>
   );

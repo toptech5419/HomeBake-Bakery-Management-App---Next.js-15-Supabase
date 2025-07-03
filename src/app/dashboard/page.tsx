@@ -96,8 +96,9 @@ export default async function DashboardPage() {
     case 'manager':
       return redirect('/dashboard/manager');
     case 'sales_rep':
+      return redirect('/dashboard/sales');
     default:
-      // Sales reps stay on the main dashboard
+      // Unknown role - show basic dashboard
       break;
   }
 

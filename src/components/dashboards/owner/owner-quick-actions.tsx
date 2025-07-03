@@ -36,7 +36,7 @@ export function OwnerQuickActions({ alerts }: OwnerQuickActionsProps) {
       title: 'View Reports',
       description: 'Analytics & insights',
       icon: <BarChart3 className="w-5 h-5" />,
-      href: '/reports',
+      href: '/dashboard/reports',
       color: 'blue',
       badge: alerts?.pendingReports || 0,
       shortcut: '⌘R'
@@ -46,7 +46,7 @@ export function OwnerQuickActions({ alerts }: OwnerQuickActionsProps) {
       title: 'Staff Management',
       description: 'Team overview',
       icon: <Users className="w-5 h-5" />,
-      href: '/staff',
+      href: '/dashboard/users',
       color: 'green',
       badge: alerts?.staffNotifications || 0,
       shortcut: '⌘S'
@@ -56,7 +56,7 @@ export function OwnerQuickActions({ alerts }: OwnerQuickActionsProps) {
       title: 'Inventory Status',
       description: 'Stock levels',
       icon: <Package className="w-5 h-5" />,
-      href: '/inventory',
+      href: '/dashboard/inventory',
       color: 'purple',
       badge: alerts?.lowStock || 0,
       shortcut: '⌘I'
@@ -66,7 +66,7 @@ export function OwnerQuickActions({ alerts }: OwnerQuickActionsProps) {
       title: 'Financial Overview',
       description: 'Revenue & costs',
       icon: <DollarSign className="w-5 h-5" />,
-      href: '/finances',
+      href: '/dashboard/reports',
       color: 'orange',
       badge: 0,
       shortcut: '⌘F'
@@ -78,21 +78,21 @@ export function OwnerQuickActions({ alerts }: OwnerQuickActionsProps) {
       id: 'settings',
       title: 'System Settings',
       icon: <Settings className="w-4 h-4" />,
-      href: '/settings',
+      href: '/dashboard/users',
       description: 'Configure system'
     },
     {
       id: 'export',
       title: 'Export Data',
       icon: <Download className="w-4 h-4" />,
-      href: '/export',
+      href: '/dashboard/reports',
       description: 'Download reports'
     },
     {
       id: 'notifications',
       title: 'Notifications',
       icon: <Bell className="w-4 h-4" />,
-      href: '/notifications',
+      href: '/dashboard',
       description: 'View all alerts'
     }
   ];
@@ -102,21 +102,21 @@ export function OwnerQuickActions({ alerts }: OwnerQuickActionsProps) {
       id: 'new-report',
       title: 'Generate Report',
       icon: <FileText className="w-4 h-4" />,
-      href: '/reports/new',
+      href: '/dashboard/reports',
       description: 'Create custom report'
     },
     {
       id: 'add-staff',
       title: 'Add Staff Member',
       icon: <Plus className="w-4 h-4" />,
-      href: '/staff/new',
+      href: '/dashboard/users/invite',
       description: 'Register new employee'
     },
     {
       id: 'performance-check',
       title: 'Performance Check',
       icon: <TrendingUp className="w-4 h-4" />,
-      href: '/performance',
+      href: '/dashboard/reports',
       description: 'Run system analysis'
     }
   ];

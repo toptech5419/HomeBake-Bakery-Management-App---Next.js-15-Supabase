@@ -53,8 +53,16 @@ export default function LoginPage() {
           setError(result.error);
           toast.error(result.error);
         }
-        // If no error, the server action will handle the redirect
+        // If no error and no result, the server action redirected successfully
+        // Don't show any error message in this case
       } catch (err) {
+        // Check if this is a redirect error (which is expected for successful logins)
+        if (err && typeof err === 'object' && 'digest' in err) {
+          // This is likely a Next.js redirect, which is expected behavior
+          // Don't show an error message
+          return;
+        }
+        
         const errorMsg = 'An unexpected error occurred. Please try again.';
         setError(errorMsg);
         toast.error(errorMsg);
