@@ -27,10 +27,6 @@ export async function generateInviteTokenAction(role: UserRole) {
         .single();
       
       if (profileError) {
-        console.error('Profile fetch error:', profileError);
-        console.error('User ID:', user.id);
-        console.error('User email:', user.email);
-        
         // If profile doesn't exist, check if this is the first user (owner)
         if (profileError.code === 'PGRST116') {
           // Check if this is the first user in the system
@@ -51,17 +47,9 @@ export async function generateInviteTokenAction(role: UserRole) {
         userRole = profile?.role as UserRole;
       }
     } catch (error) {
-      console.error('Error checking user role:', error);
       throw new Error('Could not verify user role. Please contact support.');
     }
   }
-  
-  // Debug logging
-  console.log('User ID:', user.id);
-  console.log('User email:', user.email);
-  console.log('User metadata role:', user.user_metadata?.role);
-  console.log('Profile role:', userRole);
-  console.log('Requested role:', role);
   
   if (!userRole || userRole !== 'owner') {
     throw new Error(`Only owners can generate invite tokens. Your role: ${userRole || 'undefined'}`);
