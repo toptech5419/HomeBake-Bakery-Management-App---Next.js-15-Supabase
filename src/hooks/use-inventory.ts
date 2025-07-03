@@ -247,22 +247,22 @@ export function useInventoryMutations() {
   const addProduction = useMutation({
     mutationFn: async (productionData: Database['public']['Tables']['production_logs']['Insert']) => {
       console.log('🔍 DEBUG: About to insert production data:', productionData);
+      console.log('🔍 DEBUG: Production data stringified:', JSON.stringify(productionData, null, 2));
       
       const { data, error } = await supabase
         .from('production_logs')
         .insert(productionData)
         .select();
       
-      console.log('🔍 DEBUG: Supabase insert result:', { data, error });
+      console.log('🔍 DEBUG: Supabase insert result - data:', data);
+      console.log('🔍 DEBUG: Supabase insert result - error:', error);
       
       if (error) {
-        console.error('🚨 DEBUG: Supabase insert error:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-          fullError: error
-        });
+        console.error('🚨 DEBUG: Supabase insert error MESSAGE:', error.message);
+        console.error('🚨 DEBUG: Supabase insert error DETAILS:', error.details);
+        console.error('🚨 DEBUG: Supabase insert error HINT:', error.hint);
+        console.error('🚨 DEBUG: Supabase insert error CODE:', error.code);
+        console.error('🚨 DEBUG: Supabase insert error FULL:', JSON.stringify(error, null, 2));
         throw error;
       }
       
