@@ -40,7 +40,7 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
     defaultValues: { 
       entries: breadTypes.map(b => ({ 
         bread_type_id: b.id, 
-        quantity: 0, 
+        quantity: 0,
         shift: currentShift
       })) 
     },
@@ -146,22 +146,16 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
                   step="1"
                   placeholder={`Enter ${bread.name} quantity produced`}
                   className="w-full"
-                  {...field}
                   value={field.value === 0 ? '' : field.value}
                   onChange={(e) => {
                     const value = e.target.value;
-                    // Let users type freely - only convert to number on blur or form submission
-                    field.onChange(value === '' ? 0 : value);
-                  }}
-                  onBlur={(e) => {
-                    // Convert to proper number on blur
-                    const value = e.target.value;
-                    const numValue = value === '' ? 0 : parseInt(value);
-                    if (isNaN(numValue) || numValue < 0) {
+                    // Only update if it's a valid number or empty
+                    if (value === '') {
                       field.onChange(0);
-                    } else {
-                      field.onChange(numValue);
+                    } else if (!isNaN(Number(value)) && Number(value) >= 0) {
+                      field.onChange(Number(value));
                     }
+                    // If invalid input, don't update the field (prevents auto-changing)
                   }}
                   disabled={isSubmitting}
                   aria-invalid={!!errors.entries?.[idx]?.quantity}
