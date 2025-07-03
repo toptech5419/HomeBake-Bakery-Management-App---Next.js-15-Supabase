@@ -1,45 +1,112 @@
 import { updateSession } from '@/lib/supabase/middleware'
 import { type NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(request: NextRequest) {
   try {
-    // Always try to update session, but don't fail if it doesn't work
+    // Always try to update session first
     const response = await updateSession(request)
 
-    // Only apply access control to specific protected routes
-    if (request.nextUrl.pathname.startsWith('/dashboard/users')) {
-      // Get user from Supabase session (assume JWT in cookie)
-      const supabase = (global as any).createServerClient?.() || null;
-      let userRole = null;
+    // Check if this is a protected dashboard route
+    if (request.nextUrl.pathname.startsWith('/dashboard')) {
+      // Create Supabase client for middleware
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            get(name: string) {
+              return request.cookies.get(name)?.value
+            },
+            set(name: string, value: string, options) {
+              // Set cookie in response
+              response.cookies.set({ name, value, ...options })
+            },
+            remove(name: string, options) {
+              // Remove cookie from response
+              response.cookies.set({ name, value: '', ...options })
+            },
+          },
+        }
+      )
+
+      // Check authentication
+      const { data: { user }, error } = await supabase.auth.getUser()
       
-      if (supabase) {
-        try {
-          const { data } = await supabase.auth.getUser();
-          userRole = data?.user?.user_metadata?.role;
-        } catch (error) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Auth check failed:', error);
+      if (error || !user) {
+        // Not authenticated, redirect to login
+        return NextResponse.redirect(new URL('/login', request.url))
+      }
+
+      // Check role-based access for specific routes
+      if (request.nextUrl.pathname.startsWith('/dashboard/users') || 
+          request.nextUrl.pathname.startsWith('/dashboard/owner')) {
+        // Get user role from metadata or users table
+        let userRole = user.user_metadata?.role;
+        
+        // If no role in metadata, this will be handled by the page component
+        // For middleware, we'll allow access and let the page handle detailed role checking
+        if (!userRole) {
+          try {
+            const { data: profile } = await supabase
+              .from('users')
+              .select('role')
+              .eq('id', user.id)
+              .single();
+            
+            userRole = profile?.role;
+          } catch {
+            // If profile fetch fails, redirect to login
+            return NextResponse.redirect(new URL('/login', request.url))
+          }
+        }
+        
+        // Only owners can access these routes
+        if (userRole !== 'owner') {
+          // Redirect to appropriate dashboard based on role
+          switch (userRole) {
+            case 'manager':
+              return NextResponse.redirect(new URL('/dashboard/manager', request.url))
+            case 'sales_rep':
+            default:
+              return NextResponse.redirect(new URL('/dashboard', request.url))
           }
         }
       }
-      
-      // Fallback: check cookie (if you store role in a cookie)
-      if (!userRole) {
-        const roleCookie = request.cookies.get('role')?.value;
-        if (roleCookie) userRole = roleCookie;
-      }
-      
-      if (userRole !== 'owner') {
-        return NextResponse.redirect(new URL('/login', request.url));
+
+      // Check manager-specific routes
+      if (request.nextUrl.pathname.startsWith('/dashboard/manager')) {
+        let userRole = user.user_metadata?.role;
+        
+        if (!userRole) {
+          try {
+            const { data: profile } = await supabase
+              .from('users')
+              .select('role')
+              .eq('id', user.id)
+              .single();
+            
+            userRole = profile?.role;
+          } catch {
+            return NextResponse.redirect(new URL('/login', request.url))
+          }
+        }
+        
+        // Owners and managers can access manager routes
+        if (userRole !== 'owner' && userRole !== 'manager') {
+          return NextResponse.redirect(new URL('/dashboard', request.url))
+        }
       }
     }
-    
+
     return response
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Middleware error:', error);
+    // If middleware completely fails, redirect to login for safety
+    if (request.nextUrl.pathname.startsWith('/dashboard')) {
+      return NextResponse.redirect(new URL('/login', request.url))
     }
-    // If middleware fails, just continue with the request
+    
+    // For non-dashboard routes, continue with the request
     return NextResponse.next()
   }
 }

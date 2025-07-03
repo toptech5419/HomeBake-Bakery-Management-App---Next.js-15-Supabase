@@ -1,30 +1,65 @@
 'use client';
 
-import { useState } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { useState, useTransition, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useRouter } from 'next/navigation';
+import { login } from '@/lib/auth/actions';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState('');
-  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const searchParams = useSearchParams();
+
+  // Handle error messages from URL parameters
+  useEffect(() => {
+    const urlError = searchParams.get('error');
+    if (urlError) {
+      let errorMessage = '';
+      switch (urlError) {
+        case 'no-profile':
+          errorMessage = 'Your account is not set up. Please contact your bakery owner for access.';
+          break;
+        case 'profile-error':
+          errorMessage = 'There was an issue with your account. Please try again or contact support.';
+          break;
+        case 'auth-error':
+          errorMessage = 'Authentication failed. Please try logging in again.';
+          break;
+        default:
+          errorMessage = 'An error occurred. Please try again.';
+      }
+      setError(errorMessage);
+      toast.error(errorMessage);
+    }
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsPending(true);
     setError('');
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setIsPending(false);
-    if (error) {
-      setError(error.message);
-    } else {
-      router.push('/dashboard');
-    }
+    
+    const formData = new FormData();
+    formData.append('email', email);
+    formData.append('password', password);
+    
+    startTransition(async () => {
+      try {
+        const result = await login({ error: undefined }, formData);
+        if (result?.error) {
+          setError(result.error);
+          toast.error(result.error);
+        }
+        // If no error, the server action will handle the redirect
+      } catch (err) {
+        const errorMsg = 'An unexpected error occurred. Please try again.';
+        setError(errorMsg);
+        toast.error(errorMsg);
+      }
+    });
   };
 
   return (
@@ -34,19 +69,45 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+            <Input 
+              id="email" 
+              name="email" 
+              type="email" 
+              required 
+              value={email} 
+              onChange={e => setEmail(e.target.value)}
+              disabled={isPending}
+            />
           </div>
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} />
+            <Input 
+              id="password" 
+              name="password" 
+              type="password" 
+              required 
+              value={password} 
+              onChange={e => setPassword(e.target.value)}
+              disabled={isPending}
+            />
           </div>
           {error && (
-            <div className="text-sm text-red-500">{error}</div>
+            <div className="text-sm text-red-500 bg-red-50 p-3 rounded-md border border-red-200">
+              {error}
+            </div>
           )}
-          <Button type="submit" className="w-full" loading={isPending} disabled={isPending}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isPending}
+          >
             {isPending ? 'Logging In...' : 'Log In'}
           </Button>
         </form>
+        <div className="mt-4 text-sm text-gray-600">
+          <p>Don't have an account? <a href="/signup" className="text-orange-600 hover:underline">Sign up</a></p>
+          <p className="mt-2">Need access? Contact your bakery owner for an invite.</p>
+        </div>
       </div>
     </main>
   );
