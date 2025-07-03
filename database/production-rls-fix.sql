@@ -92,20 +92,20 @@ CREATE POLICY "production_logs_delete_owner" ON production_logs
 -- Test the policies by creating a test function
 CREATE OR REPLACE FUNCTION test_production_rls()
 RETURNS TABLE(
-  current_user_id UUID,
-  current_role TEXT,
-  can_insert BOOLEAN,
-  can_select BOOLEAN
+  user_id_result UUID,
+  user_role_result TEXT,
+  can_insert_result BOOLEAN,
+  can_select_result BOOLEAN
 ) AS $$
 BEGIN
   RETURN QUERY
   SELECT 
-    auth.uid() as current_user_id,
-    get_user_role() as current_role,
+    auth.uid() as user_id_result,
+    get_user_role() as user_role_result,
     -- Test if user can insert
-    (get_user_role() IN ('manager', 'owner')) as can_insert,
+    (get_user_role() IN ('manager', 'owner')) as can_insert_result,
     -- Test if user can select
-    (auth.role() = 'authenticated') as can_select;
+    (auth.role() = 'authenticated') as can_select_result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
