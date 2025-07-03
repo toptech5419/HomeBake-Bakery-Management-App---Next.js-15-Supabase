@@ -37,7 +37,6 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.45.1",
     "@tanstack/react-query": "^5.81.5",
-    "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^0.2.0",
@@ -60,7 +59,6 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@playwright/test": "^1.53.2",
-    "@tailwindcss/postcss": "^4.1.11",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -68,12 +66,14 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
     "jest": "^30.0.3",
     "jest-environment-jsdom": "^30.0.2",
+    "postcss": "^8.5.6",
     "sharp": "^0.34.2",
-    "tailwindcss": "^4.1.10",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5"
   },
   "engines": {

@@ -110,7 +110,6 @@ body {
   .card {
     @apply bg-white rounded-lg border border-gray-200 shadow-sm;
     @apply p-6 space-y-4;
-    @apply animate-fade-in;
   }
   
   .card-header {
