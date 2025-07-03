@@ -167,41 +167,41 @@ async function fetchTodaysProduction(): Promise<ProductionLogWithBreadType[]> {
 }
 
 // Hook for current inventory with polling
-export function useInventory(pollingInterval = 30000) {
+export function useInventory(pollingInterval = 60000) {
   return useQuery({
     queryKey: queryKeys.inventory.current(),
     queryFn: fetchCurrentInventory,
     refetchInterval: pollingInterval,
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    staleTime: 10000, // 10 seconds
+    staleTime: 30000,
   });
 }
 
 // Hook for today's sales
-export function useTodaysSales(pollingInterval = 30000) {
+export function useTodaysSales(pollingInterval = 60000) {
   return useQuery({
     queryKey: queryKeys.sales.today(),
     queryFn: fetchTodaysSales,
     refetchInterval: pollingInterval,
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    staleTime: 10000,
+    staleTime: 30000,
   });
 }
 
 // Hook for today's production
-export function useTodaysProduction(pollingInterval = 30000) {
+export function useTodaysProduction(pollingInterval = 60000) {
   return useQuery({
     queryKey: queryKeys.production.today(),
     queryFn: fetchTodaysProduction,
     refetchInterval: pollingInterval,
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    staleTime: 10000,
+    staleTime: 30000,
   });
 }
 

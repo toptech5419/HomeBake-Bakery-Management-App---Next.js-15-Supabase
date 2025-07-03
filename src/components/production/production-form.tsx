@@ -126,11 +126,22 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
                   id={`quantity-${bread.id}`}
                   type="number"
                   min="0"
+                  step="1"
                   placeholder={`Enter ${bread.name} quantity produced`}
                   className="w-full"
                   {...field}
-                  value={field.value || ''}
-                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                  value={field.value === 0 ? '' : field.value}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      field.onChange(0);
+                    } else {
+                      const numValue = parseInt(value);
+                      if (!isNaN(numValue) && numValue >= 0) {
+                        field.onChange(numValue);
+                      }
+                    }
+                  }}
                   disabled={isSubmitting}
                   aria-invalid={!!errors.entries?.[idx]?.quantity}
                 />
