@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { productionFormSchema, ProductionFormData } from '@/lib/validations/production';
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/lib/supabase/client';
 
 import { useShift } from '@/contexts/ShiftContext';
 import { Package, Save, Loader2 } from 'lucide-react';
@@ -32,6 +33,8 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
   const { currentShift } = useShift();
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [isAuthenticating, setIsAuthenticating] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const { isOnline } = useOfflineStatus();
   const offlineProductionMutation = useOfflineProductionMutation(managerId);
   
@@ -45,6 +48,74 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
       })) 
     },
   });
+
+  // Ensure Supabase authentication
+  useEffect(() => {
+    async function ensureSupabaseAuth() {
+      try {
+        const managerEmail = `manager-${managerId}@homebake.local`;
+        
+        // Check if already authenticated
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user?.email === managerEmail) {
+          console.log('✅ Already authenticated with Supabase');
+          setIsAuthenticating(false);
+          return;
+        }
+
+        console.log('🔐 Authenticating with Supabase...', { managerEmail, managerId });
+        
+        const tempPassword = 'temp-password-123';
+        
+        let { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: managerEmail,
+          password: tempPassword
+        });
+
+        if (signInError && signInError.message.includes('Invalid login credentials')) {
+          console.log('🆕 Creating Supabase user...');
+          
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: managerEmail,
+            password: tempPassword,
+            options: {
+              data: {
+                user_id: managerId,
+                role: 'manager'
+              }
+            }
+          });
+
+          if (signUpError) {
+            throw new Error(`Failed to create Supabase user: ${signUpError.message}`);
+          }
+
+          if (signUpData.user) {
+            console.log('✅ Successfully created and authenticated with Supabase');
+            setIsAuthenticating(false);
+            return;
+          }
+        } else if (signInError) {
+          throw new Error(`Failed to sign in: ${signInError.message}`);
+        }
+
+        if (signInData?.user) {
+          console.log('✅ Successfully authenticated with Supabase');
+          setIsAuthenticating(false);
+        } else {
+          throw new Error('Authentication failed - no user returned');
+        }
+
+      } catch (error) {
+        console.error('🚨 Supabase auth error:', error);
+        setAuthError((error as Error).message);
+        setIsAuthenticating(false);
+      }
+    }
+
+    ensureSupabaseAuth();
+  }, [managerId]);
 
   const onSubmit = async (data: ProductionFormData) => {
     setLoading(true);
@@ -110,6 +181,35 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
     }
   };
 
+  const isSubmitting = loading || offlineProductionMutation.isPending;
+
+  // Show authentication loading
+  if (isAuthenticating) {
+    return (
+      <Card className="w-full p-6 text-center">
+        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+        <p className="text-sm text-muted-foreground">Setting up authentication...</p>
+      </Card>
+    );
+  }
+
+  // Show authentication error
+  if (authError) {
+    return (
+      <Card className="w-full p-6 text-center border-red-200 bg-red-50">
+        <h3 className="text-lg font-semibold text-red-800 mb-2">Authentication Error</h3>
+        <p className="text-sm text-red-600 mb-4">{authError}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        >
+          Retry
+        </button>
+      </Card>
+    );
+  }
+
+  // Show no bread types message
   if (!breadTypes.length) {
     return (
       <Card className="flex flex-col items-center justify-center py-12">
@@ -118,8 +218,6 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
       </Card>
     );
   }
-
-  const isSubmitting = loading || offlineProductionMutation.isPending;
 
   return (
     <Card className="w-full">
