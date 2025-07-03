@@ -1,7 +1,7 @@
 import { createServer } from '@/lib/supabase/server';
 
 import ProductionTable from '@/components/production/production-table';
-import ProductionForm from '@/components/production/production-form';
+import ProductionFormWithAuth from '@/components/production/production-form-with-auth';
 import { Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -117,7 +117,10 @@ export default async function ProductionPage() {
         {/* Production Form - Only for managers */}
         {user.role === 'manager' && (
           <Suspense fallback={<LoadingSpinner message="Loading production form..." />}>
-            <ProductionForm breadTypes={breadTypes} managerId={user.id} />
+            <ProductionFormWithAuth 
+              breadTypes={breadTypes} 
+              managerId={user.id}
+            />
           </Suspense>
         )}
         
