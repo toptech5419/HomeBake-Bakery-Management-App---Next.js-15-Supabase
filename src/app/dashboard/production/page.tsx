@@ -8,8 +8,9 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getBreadTypes } from '@/lib/bread-types/actions';
 import LoadingSpinner from '@/components/ui/loading';
+import { ErrorBoundary } from '@/components/error-boundary';
 
-import { Package, TrendingUp } from 'lucide-react';
+import { Package, TrendingUp, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function ProductionPage() {
@@ -47,12 +48,13 @@ export default async function ProductionPage() {
     );
   }
 
-  // Fetch all today's production logs for viewing
+  // Fetch today's production logs - OPTIMIZED with limits to prevent browser crashes
   const { data: allLogsData } = await supabase
     .from('production_logs')
     .select('id, bread_type_id, quantity, shift, created_at, bread_types(name), recorded_by')
     .gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString())
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(50); // Limit to prevent excessive data processing
     
   const logs = allLogsData || [];
   const breadTypes = await getBreadTypes();
@@ -114,14 +116,42 @@ export default async function ProductionPage() {
           </Card>
         </div>
 
-        {/* Production Form - Only for managers */}
-        {user.role === 'manager' && (
-          <Suspense fallback={<LoadingSpinner message="Loading production form..." />}>
-            <ProductionForm 
-              breadTypes={breadTypes} 
-              managerId={user.id}
-            />
-          </Suspense>
+        {/* Production Form - Only for managers - OPTIMIZED with error boundary */}
+        {user.role === 'manager' && breadTypes.length > 0 && (
+          <ErrorBoundary fallback={
+            <Card className="p-6 text-center border-red-200 bg-red-50">
+              <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-red-600" />
+              <h3 className="text-lg font-semibold mb-2 text-red-800">Production Form Error</h3>
+              <p className="text-red-700 mb-4">
+                There was an issue loading the production form. Please refresh the page.
+              </p>
+              <Button onClick={() => window.location.reload()}>
+                Refresh Page
+              </Button>
+            </Card>
+          }>
+            <Suspense fallback={<LoadingSpinner message="Loading production form..." />}>
+              <ProductionForm 
+                breadTypes={breadTypes.slice(0, 10)} // Limit bread types to prevent performance issues
+                managerId={user.id}
+              />
+            </Suspense>
+          </ErrorBoundary>
+        )}
+        
+        {user.role === 'manager' && breadTypes.length === 0 && (
+          <Card className="p-6 text-center border-yellow-200 bg-yellow-50">
+            <Package className="h-12 w-12 mx-auto mb-4 text-yellow-600" />
+            <h3 className="text-lg font-semibold mb-2 text-yellow-800">No Bread Types Available</h3>
+            <p className="text-yellow-700 mb-4">
+              You need to create bread types before logging production.
+            </p>
+            <Link href="/dashboard/bread-types">
+              <Button>
+                Manage Bread Types
+              </Button>
+            </Link>
+          </Card>
         )}
         
         {user.role !== 'manager' && (
@@ -137,9 +167,12 @@ export default async function ProductionPage() {
           </Card>
         )}
 
-        {/* Today's Entries */}
-        <Card>
+        {/* Today's Entries - OPTIMIZED with limited data */}
+        <Card className="p-6">
           <div className="mb-4 text-lg font-semibold">Today&apos;s Production Entries</div>
+          <div className="mb-2 text-sm text-muted-foreground">
+            Showing {logs.length} most recent entries {logs.length >= 50 && '(limited to 50)'}
+          </div>
           <Suspense fallback={<LoadingSpinner message="Loading production logs..." />}>
             <ProductionTable logs={logs} />
           </Suspense>

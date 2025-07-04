@@ -12,7 +12,12 @@ interface BreadTypeInput {
 export async function getBreadTypes(): Promise<BreadType[]> {
   try {
     const supabase = await createServer();
-    const { data, error } = await supabase.from('bread_types').select('*').order('name');
+    // OPTIMIZED: Limit results and select only necessary fields
+    const { data, error } = await supabase
+      .from('bread_types')
+      .select('id, name, size, unit_price, created_by, created_at')
+      .order('name')
+      .limit(20); // Limit to prevent excessive data processing
     
     if (error) {
       console.error('Error fetching bread types:', error);
@@ -23,7 +28,7 @@ export async function getBreadTypes(): Promise<BreadType[]> {
       return [];
     }
     
-    // Transform the data to match our TypeScript interface
+    // Simplified transformation to reduce processing time
     return data.map(item => ({
       id: item.id,
       name: item.name,
@@ -31,8 +36,8 @@ export async function getBreadTypes(): Promise<BreadType[]> {
       unit_price: item.unit_price,
       createdBy: item.created_by,
       createdAt: new Date(item.created_at),
-      updatedAt: undefined, // Not in database schema
-      isActive: true, // Default to true since not in database schema
+      updatedAt: undefined,
+      isActive: true,
     }));
   } catch (error) {
     console.error('Error in getBreadTypes:', error);

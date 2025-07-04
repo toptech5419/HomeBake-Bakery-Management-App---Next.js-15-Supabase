@@ -23,13 +23,17 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
   const [isAutoMode, setIsAutoMode] = useState(true);
   const [currentShift, setCurrentShift] = useState<ShiftType>(getAutoShift());
 
-  // Update shift automatically every minute when in auto mode
+  // Update shift automatically - OPTIMIZED with less frequent polling
   useEffect(() => {
     if (!isAutoMode) return;
 
     const interval = setInterval(() => {
-      setCurrentShift(getAutoShift());
-    }, 60000); // Check every minute
+      const newShift = getAutoShift();
+      // Only update if shift actually changed to prevent unnecessary re-renders
+      setCurrentShift(prevShift => {
+        return newShift !== prevShift ? newShift : prevShift;
+      });
+    }, 300000); // Check every 5 minutes instead of every minute
 
     return () => clearInterval(interval);
   }, [isAutoMode]);
