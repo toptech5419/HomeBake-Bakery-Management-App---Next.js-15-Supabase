@@ -241,7 +241,7 @@ export default function InventoryDashboardClient({
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Today&apos;s Revenue</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
               <p className="text-2xl font-bold">
                 {isLoading ? (
                   <Loader2 className="h-6 w-6 animate-spin" />
@@ -260,7 +260,7 @@ export default function InventoryDashboardClient({
         <div className="mb-4">
           <h2 className="text-xl font-semibold">Current Inventory Levels</h2>
           <p className="text-muted-foreground">
-            Real-time calculation from today's production and sales data
+            Real-time calculation from all production and sales data
           </p>
         </div>
         
@@ -457,8 +457,8 @@ export default function InventoryDashboardClient({
           </div>
           <div className="text-xs text-blue-600 space-y-1">
             <div>📊 Showing {inventoryItems.length} bread types</div>
-            <div>🍞 Total produced today: {totalProduced}</div>
-            <div>💰 Total sold today: {totalSold}</div>
+            <div>🍞 Total produced (all time): {totalProduced}</div>
+            <div>💰 Total sold (all time): {totalSold}</div>
             <div>📱 Mobile optimized interface</div>
           </div>
         </div>

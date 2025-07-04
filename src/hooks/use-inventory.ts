@@ -68,17 +68,13 @@ async function fetchCurrentInventory(): Promise<InventoryItem[]> {
   console.log('🔍 INVENTORY DEBUG: Bread types count:', breadTypes.length);
   console.log('🔍 INVENTORY DEBUG: Bread types:', breadTypes.map(bt => ({ id: bt.id, name: bt.name })));
   
-  // Get today's production logs with more flexible date range
-  const startOfDay = `${today}T00:00:00.000Z`;
-  const endOfDay = `${today}T23:59:59.999Z`;
-  
-  console.log('🔍 INVENTORY DEBUG: Fetching production logs from', startOfDay, 'to', endOfDay);
+  // MODIFIED: Get ALL production logs (not just today's) to show complete inventory
+  console.log('🔍 INVENTORY DEBUG: Fetching ALL production logs (not just today)');
   
   const { data: productionLogs, error: prodError } = await supabase
     .from('production_logs')
     .select('*')
-    .gte('created_at', startOfDay)
-    .lte('created_at', endOfDay);
+    .order('created_at', { ascending: false });
 
   console.log('🔍 INVENTORY DEBUG: Production logs query result:', {
     data: productionLogs,
@@ -104,12 +100,11 @@ async function fetchCurrentInventory(): Promise<InventoryItem[]> {
     count: allProductionLogs?.length || 0
   });
 
-  // Get today's sales logs
+  // MODIFIED: Get ALL sales logs (not just today's) to match production logs
   const { data: salesLogs, error: salesError } = await supabase
     .from('sales_logs')
     .select('*')
-    .gte('created_at', startOfDay)
-    .lte('created_at', endOfDay);
+    .order('created_at', { ascending: false });
 
   console.log('🔍 INVENTORY DEBUG: Sales logs query result:', {
     data: salesLogs,
