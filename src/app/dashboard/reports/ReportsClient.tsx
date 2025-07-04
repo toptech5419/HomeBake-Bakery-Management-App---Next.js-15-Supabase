@@ -45,6 +45,9 @@ export default function ReportsClient({
   const searchParams = useSearchParams();
 
   const updateFilters = useCallback(async (newFilters: ReportFilters) => {
+    // Prevent multiple simultaneous filter updates
+    if (loading) return;
+    
     setLoading(true);
     setFilters(newFilters);
 
@@ -67,14 +70,18 @@ export default function ReportsClient({
       } else {
         toast.error(result.error || 'Failed to fetch report data');
       }
-          } catch {
-        toast.error('Failed to update filters');
-      } finally {
+    } catch (error) {
+      console.error('Filter update error:', error);
+      toast.error('Failed to update filters');
+    } finally {
       setLoading(false);
     }
-  }, [router, searchParams, toast]);
+  }, [router, searchParams, loading]);
 
   const refreshData = async () => {
+    // Prevent multiple simultaneous refreshes
+    if (loading) return;
+    
     setLoading(true);
     try {
       const result = await fetchReportData(filters);
@@ -84,9 +91,10 @@ export default function ReportsClient({
       } else {
         toast.error(result.error || 'Failed to refresh data');
       }
-         } catch {
-       toast.error('Failed to refresh report data');
-     } finally {
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast.error('Failed to refresh report data');
+    } finally {
       setLoading(false);
     }
   };

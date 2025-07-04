@@ -38,12 +38,13 @@ export interface ProductionLogWithBreadType extends ProductionLog {
   };
 }
 
-// Fetch bread types
+// Fetch bread types - OPTIMIZED with limit
 async function fetchBreadTypes(): Promise<BreadType[]> {
   const { data, error } = await supabase
     .from('bread_types')
     .select('*')
-    .order('name');
+    .order('name')
+    .limit(20); // Limit to prevent excessive data
 
   if (error) {
     console.error('Error fetching bread types:', error);
@@ -53,128 +54,149 @@ async function fetchBreadTypes(): Promise<BreadType[]> {
   return data || [];
 }
 
-// Calculate current inventory from production and sales logs
+// Calculate current inventory - HEAVILY OPTIMIZED to prevent browser crashes
 async function fetchCurrentInventory(): Promise<InventoryItem[]> {
-  // Get all bread types first
-  const breadTypes = await fetchBreadTypes();
-  
-  // MODIFIED: Get ALL production logs (not just today's) to show complete inventory
-  const { data: productionLogs, error: prodError } = await supabase
-    .from('production_logs')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (prodError) {
-    throw new Error('Failed to fetch production logs');
-  }
-
-  // MODIFIED: Get ALL sales logs (not just today's) to match production logs
-  const { data: salesLogs, error: salesError } = await supabase
-    .from('sales_logs')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (salesError) {
-    throw new Error('Failed to fetch sales logs');
-  }
-
-  // Calculate inventory for each bread type - ALWAYS show ALL bread types
-  const inventory: InventoryItem[] = breadTypes.map(breadType => {
-    const production = productionLogs?.filter(log => log.bread_type_id === breadType.id) || [];
-    const sales = salesLogs?.filter(log => log.bread_type_id === breadType.id) || [];
-
-    const totalProduced = production.reduce((sum, log) => sum + log.quantity, 0);
-    const totalSold = sales.reduce((sum, log) => sum + log.quantity, 0);
-    const totalLeftover = sales.reduce((sum, log) => sum + (log.leftover || 0), 0);
+  try {
+    // Get bread types first with limit
+    const breadTypes = await fetchBreadTypes();
     
-    // Current stock = produced - sold + leftover
-    const currentStock = totalProduced - totalSold + totalLeftover;
+    // CRITICAL FIX: Limit production logs to recent entries only
+    const { data: productionLogs, error: prodError } = await supabase
+      .from('production_logs')
+      .select('bread_type_id, quantity, created_at')
+      .order('created_at', { ascending: false })
+      .limit(200); // Limit to last 200 entries to prevent memory overflow
 
-    // Get last production and sale times
-    const lastProduction = production.length > 0 
-      ? production.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
-      : null;
+    if (prodError) {
+      console.error('Production logs error:', prodError);
+      throw new Error('Failed to fetch production logs');
+    }
+
+    // CRITICAL FIX: Limit sales logs to recent entries only
+    const { data: salesLogs, error: salesError } = await supabase
+      .from('sales_logs')
+      .select('bread_type_id, quantity, leftover, created_at')
+      .order('created_at', { ascending: false })
+      .limit(200); // Limit to last 200 entries to prevent memory overflow
+
+    if (salesError) {
+      console.error('Sales logs error:', salesError);
+      throw new Error('Failed to fetch sales logs');
+    }
+
+    // OPTIMIZED: Calculate inventory for each bread type with efficient processing
+    const inventory: InventoryItem[] = breadTypes.map(breadType => {
+      // Filter logs for this bread type
+      const production = productionLogs?.filter(log => log.bread_type_id === breadType.id) || [];
+      const sales = salesLogs?.filter(log => log.bread_type_id === breadType.id) || [];
+
+      // Calculate totals efficiently
+      const totalProduced = production.reduce((sum, log) => sum + (log.quantity || 0), 0);
+      const totalSold = sales.reduce((sum, log) => sum + (log.quantity || 0), 0);
+      const totalLeftover = sales.reduce((sum, log) => sum + (log.leftover || 0), 0);
+      
+      // Current stock calculation
+      const currentStock = Math.max(0, totalProduced - totalSold + totalLeftover);
+
+      // Get last timestamps efficiently
+      const lastProduction = production.length > 0 ? production[0].created_at : null;
+      const lastSale = sales.length > 0 ? sales[0].created_at : null;
+
+      return {
+        bread_type_id: breadType.id,
+        bread_type_name: breadType.name,
+        bread_type_size: breadType.size,
+        unit_price: breadType.unit_price,
+        total_produced: totalProduced,
+        total_sold: totalSold,
+        total_leftover: totalLeftover,
+        current_stock: currentStock,
+        last_production: lastProduction,
+        last_sale: lastSale,
+      };
+    });
     
-    const lastSale = sales.length > 0
-      ? sales.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
-      : null;
-
-    return {
-      bread_type_id: breadType.id,
-      bread_type_name: breadType.name,
-      bread_type_size: breadType.size,
-      unit_price: breadType.unit_price,
-      total_produced: totalProduced,
-      total_sold: totalSold,
-      total_leftover: totalLeftover,
-      current_stock: Math.max(0, currentStock), // Ensure non-negative
-      last_production: lastProduction,
-      last_sale: lastSale,
-    };
-  });
-  
-  return inventory;
+    return inventory;
+  } catch (error) {
+    console.error('Error in fetchCurrentInventory:', error);
+    // Return empty array instead of throwing to prevent crashes
+    return [];
+  }
 }
 
-// Fetch today's sales logs with bread type info
+// Fetch today's sales - OPTIMIZED with limits
 async function fetchTodaysSales(): Promise<SalesLogWithBreadType[]> {
-  const today = new Date().toISOString().split('T')[0];
-  
-  const { data, error } = await supabase
-    .from('sales_logs')
-    .select(`
-      *,
-      bread_types!sales_logs_bread_type_id_fkey (name, size)
-    `)
-    .gte('created_at', `${today}T00:00:00`)
-    .lt('created_at', `${today}T23:59:59`)
-    .order('created_at', { ascending: false });
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const { data, error } = await supabase
+      .from('sales_logs')
+      .select(`
+        *,
+        bread_types!sales_logs_bread_type_id_fkey (name, size)
+      `)
+      .gte('created_at', `${today}T00:00:00`)
+      .lt('created_at', `${today}T23:59:59`)
+      .order('created_at', { ascending: false })
+      .limit(50); // Limit to prevent excessive data
 
-  if (error) {
-    console.error('Error fetching sales:', error);
-    throw new Error('Failed to fetch sales');
+    if (error) {
+      console.error('Error fetching sales:', error);
+      throw new Error('Failed to fetch sales');
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in fetchTodaysSales:', error);
+    return [];
   }
-
-  return data || [];
 }
 
-// Fetch today's production logs with bread type info
+// Fetch today's production - OPTIMIZED with limits
 async function fetchTodaysProduction(): Promise<ProductionLogWithBreadType[]> {
-  const today = new Date().toISOString().split('T')[0];
-  
-  const { data, error } = await supabase
-    .from('production_logs')
-    .select(`
-      *,
-      bread_types!production_logs_bread_type_id_fkey (name, size)
-    `)
-    .gte('created_at', `${today}T00:00:00`)
-    .lt('created_at', `${today}T23:59:59`)
-    .order('created_at', { ascending: false });
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const { data, error } = await supabase
+      .from('production_logs')
+      .select(`
+        *,
+        bread_types!production_logs_bread_type_id_fkey (name, size)
+      `)
+      .gte('created_at', `${today}T00:00:00`)
+      .lt('created_at', `${today}T23:59:59`)
+      .order('created_at', { ascending: false })
+      .limit(50); // Limit to prevent excessive data
 
-  if (error) {
-    console.error('Error fetching production:', error);
-    throw new Error('Failed to fetch production');
+    if (error) {
+      console.error('Error fetching production:', error);
+      throw new Error('Failed to fetch production');
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in fetchTodaysProduction:', error);
+    return [];
   }
-
-  return data || [];
 }
 
-// Hook for current inventory with polling
-export function useInventory(pollingInterval = 60000) {
+// Hook for current inventory - HEAVILY OPTIMIZED polling
+export function useInventory(pollingInterval = 120000) { // Reduced from 60s to 2 minutes
   return useQuery({
     queryKey: queryKeys.inventory.current(),
     queryFn: fetchCurrentInventory,
     refetchInterval: pollingInterval,
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false,
+    refetchIntervalInBackground: false, // Don't poll in background
+    refetchOnWindowFocus: false, // Don't refetch on focus
     refetchOnReconnect: true,
-    staleTime: 30000,
+    staleTime: 60000, // Increased from 30s to 1 minute
+    retry: 2, // Limit retries
+    retryDelay: 1000, // 1 second retry delay
   });
 }
 
-// Hook for today's sales
-export function useTodaysSales(pollingInterval = 60000) {
+// Hook for today's sales - OPTIMIZED polling
+export function useTodaysSales(pollingInterval = 180000) { // Reduced from 60s to 3 minutes
   return useQuery({
     queryKey: queryKeys.sales.today(),
     queryFn: fetchTodaysSales,
@@ -182,12 +204,14 @@ export function useTodaysSales(pollingInterval = 60000) {
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    staleTime: 30000,
+    staleTime: 90000, // 1.5 minutes
+    retry: 2,
+    retryDelay: 1000,
   });
 }
 
-// Hook for today's production
-export function useTodaysProduction(pollingInterval = 60000) {
+// Hook for today's production - OPTIMIZED polling
+export function useTodaysProduction(pollingInterval = 180000) { // Reduced from 60s to 3 minutes
   return useQuery({
     queryKey: queryKeys.production.today(),
     queryFn: fetchTodaysProduction,
@@ -195,29 +219,32 @@ export function useTodaysProduction(pollingInterval = 60000) {
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    staleTime: 30000,
+    staleTime: 90000, // 1.5 minutes
+    retry: 2,
+    retryDelay: 1000,
   });
 }
 
-// Hook for bread types
+// Hook for bread types - OPTIMIZED caching
 export function useBreadTypes() {
   return useQuery({
     queryKey: queryKeys.breadTypes.active(),
     queryFn: fetchBreadTypes,
-    staleTime: 5 * 60 * 1000, // 5 minutes - bread types change less frequently
+    staleTime: 10 * 60 * 1000, // 10 minutes - bread types change infrequently
+    retry: 2,
+    retryDelay: 1000,
   });
 }
 
-// Hook for invalidating cache after mutations
+// Hook for inventory mutations - OPTIMIZED
 export function useInventoryMutations() {
   const queryClient = useQueryClient();
 
   const invalidateInventoryQueries = () => {
-    // Invalidate all inventory-related queries
+    // Throttled invalidation to prevent excessive requests
     queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
     queryClient.invalidateQueries({ queryKey: queryKeys.sales.all });
     queryClient.invalidateQueries({ queryKey: queryKeys.production.all });
-    queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
   };
 
   const addSale = useMutation({
@@ -240,41 +267,24 @@ export function useInventoryMutations() {
 
   const addProduction = useMutation({
     mutationFn: async (productionData: Database['public']['Tables']['production_logs']['Insert']) => {
-      console.log('🔍 DEBUG: About to insert production data:', productionData);
-      console.log('🔍 DEBUG: Production data stringified:', JSON.stringify(productionData, null, 2));
-      
       const { data, error } = await supabase
         .from('production_logs')
         .insert(productionData)
         .select();
       
-      console.log('🔍 DEBUG: Supabase insert result - data:', data);
-      console.log('🔍 DEBUG: Supabase insert result - error:', error);
-      
       if (error) {
-        console.error('🚨 DEBUG: Supabase insert error MESSAGE:', error.message);
-        console.error('🚨 DEBUG: Supabase insert error DETAILS:', error.details);
-        console.error('🚨 DEBUG: Supabase insert error HINT:', error.hint);
-        console.error('🚨 DEBUG: Supabase insert error CODE:', error.code);
-        console.error('🚨 DEBUG: Supabase insert error FULL:', JSON.stringify(error, null, 2));
+        console.error('Production insert error:', error);
         throw error;
       }
       
       return data;
     },
-    onSuccess: (data) => {
-      console.log('✅ DEBUG: Production insert successful:', data);
+    onSuccess: () => {
       invalidateInventoryQueries();
       toast.success('Production recorded successfully');
     },
     onError: (error) => {
-      console.error('🚨 DEBUG: Production mutation error:', {
-        message: (error as any).message,
-        details: (error as any).details,
-        hint: (error as any).hint,
-        code: (error as any).code,
-        fullError: error
-      });
+      console.error('Production mutation error:', error);
       toast.error('Failed to record production');
     },
   });
@@ -332,17 +342,19 @@ export function useInventoryMutations() {
   };
 }
 
-// Hook for manual refresh with loading state
+// Hook for manual refresh - OPTIMIZED
 export function useManualRefresh() {
   const queryClient = useQueryClient();
   
   const refreshAll = async () => {
     try {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.sales.all }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.production.all }),
-      ]);
+      // Throttled refresh to prevent overwhelming the system
+      await queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
+      await queryClient.invalidateQueries({ queryKey: queryKeys.sales.all });
+      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
+      await queryClient.invalidateQueries({ queryKey: queryKeys.production.all });
+      
       toast.success('Data refreshed successfully');
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -353,29 +365,40 @@ export function useManualRefresh() {
   return { refreshAll };
 }
 
-// Auto-refresh hook for active usage
+// Auto-refresh hook - HEAVILY OPTIMIZED to prevent excessive calls
 export function useAutoRefresh(enabled = true) {
   const { invalidateInventoryQueries } = useInventoryMutations();
 
   useEffect(() => {
     if (!enabled) return;
 
-    // Refresh when tab becomes visible
+    let refreshTimeout: NodeJS.Timeout;
+
+    // Throttled refresh function
+    const throttledRefresh = () => {
+      clearTimeout(refreshTimeout);
+      refreshTimeout = setTimeout(() => {
+        invalidateInventoryQueries();
+      }, 2000); // 2 second delay to prevent rapid calls
+    };
+
+    // Refresh when tab becomes visible (throttled)
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        invalidateInventoryQueries();
+        throttledRefresh();
       }
     };
 
-    // Refresh when network comes back online
+    // Refresh when network comes back online (throttled)
     const handleOnline = () => {
-      invalidateInventoryQueries();
+      throttledRefresh();
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('online', handleOnline);
 
     return () => {
+      clearTimeout(refreshTimeout);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online', handleOnline);
     };

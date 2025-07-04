@@ -34,22 +34,22 @@ export default function InventoryDashboardClient({
 }: InventoryDashboardClientProps) {
   const [refreshing, setRefreshing] = useState(false);
 
-  // Use React Query hooks for data fetching with more frequent polling
+  // Use React Query hooks for data fetching - OPTIMIZED polling intervals
   const { 
     data: inventoryItems = [], 
     isLoading: inventoryLoading, 
     error: inventoryError,
     dataUpdatedAt: inventoryUpdatedAt,
     refetch: refetchInventory
-  } = useInventory(10000); // Poll every 10 seconds for faster updates
+  } = useInventory(120000); // OPTIMIZED: 2 minutes instead of 10 seconds
 
   const { 
     isLoading: salesLoading 
-  } = useTodaysSales(30000); // Poll every 30 seconds
+  } = useTodaysSales(180000); // OPTIMIZED: 3 minutes instead of 30 seconds
 
   const { 
     isLoading: productionLoading 
-  } = useTodaysProduction(30000); // Poll every 30 seconds
+  } = useTodaysProduction(180000); // OPTIMIZED: 3 minutes instead of 30 seconds
 
   const { refreshAll } = useManualRefresh();
 
