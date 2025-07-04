@@ -56,15 +56,15 @@ SELECT
   COUNT(*) as count,
   COALESCE(SUM(quantity), 0) as total_quantity
 FROM production_logs 
-WHERE DATE(created_at) = CURRENT_DATE;
+WHERE DATE(production_logs.created_at) = CURRENT_DATE;
 
 SELECT 
   'Todays Production (Method 2)' as check_type,
   COUNT(*) as count,
   COALESCE(SUM(quantity), 0) as total_quantity
 FROM production_logs 
-WHERE created_at >= CURRENT_DATE 
-AND created_at < CURRENT_DATE + INTERVAL '1 day';
+WHERE production_logs.created_at >= CURRENT_DATE 
+AND production_logs.created_at < CURRENT_DATE + INTERVAL '1 day';
 
 -- Show today's production details
 SELECT 
@@ -77,7 +77,7 @@ SELECT
   EXTRACT(EPOCH FROM (NOW() - pl.created_at)) / 3600 as hours_ago
 FROM production_logs pl
 JOIN bread_types bt ON bt.id = pl.bread_type_id
-WHERE DATE(created_at) = CURRENT_DATE
+WHERE DATE(pl.created_at) = CURRENT_DATE
 ORDER BY pl.created_at DESC;
 
 -- ============================================================================
@@ -153,7 +153,7 @@ LEFT JOIN (
     bread_type_id,
     SUM(quantity) as quantity_today
   FROM production_logs 
-  WHERE DATE(created_at) = CURRENT_DATE
+  WHERE DATE(production_logs.created_at) = CURRENT_DATE
   GROUP BY bread_type_id
 ) prod_today ON prod_today.bread_type_id = bt.id
 LEFT JOIN (
@@ -177,7 +177,7 @@ SELECT
   CASE 
     WHEN (SELECT COUNT(*) FROM production_logs) = 0 THEN 
       'NO PRODUCTION LOGS FOUND - Add some production logs first'
-    WHEN (SELECT COUNT(*) FROM production_logs WHERE DATE(created_at) = CURRENT_DATE) = 0 THEN 
+    WHEN (SELECT COUNT(*) FROM production_logs WHERE DATE(production_logs.created_at) = CURRENT_DATE) = 0 THEN 
       'NO PRODUCTION LOGS FOR TODAY - Production logs exist but not for today'
     WHEN (SELECT COUNT(*) FROM bread_types) = 0 THEN 
       'NO BREAD TYPES FOUND - Add bread types first'
@@ -186,7 +186,7 @@ SELECT
   END as diagnosis,
   
   CASE 
-    WHEN (SELECT COUNT(*) FROM production_logs WHERE DATE(created_at) = CURRENT_DATE) = 0 THEN 
+    WHEN (SELECT COUNT(*) FROM production_logs WHERE DATE(production_logs.created_at) = CURRENT_DATE) = 0 THEN 
       'Add production logs for today or modify app to show all-time inventory'
     ELSE 
       'Check browser console for detailed debugging information'
