@@ -127,7 +127,8 @@ SELECT
   pl.created_at,
   pl.created_at >= adr.start_of_day::timestamptz as matches_start,
   pl.created_at <= adr.end_of_day::timestamptz as matches_end
-FROM production_logs pl, app_date_range adr
+FROM production_logs pl
+CROSS JOIN app_date_range adr
 JOIN bread_types bt ON bt.id = pl.bread_type_id
 ORDER BY pl.created_at DESC
 LIMIT 10;
