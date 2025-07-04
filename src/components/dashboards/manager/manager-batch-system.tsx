@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,6 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useRealtimeProduction } from '@/hooks/use-realtime-data';
 import { formatNigeriaDate } from '@/lib/utils/timezone';
 import { 
   Clock,
@@ -49,9 +48,9 @@ interface BatchSystemProps {
 }
 
 export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: BatchSystemProps) {
-  const { data: productionData } = useRealtimeProduction();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [showCreateBatch, setShowCreateBatch] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [newBatch, setNewBatch] = useState({
     breadType: '',
     quantity: '',
@@ -61,51 +60,16 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
     notes: ''
   });
 
-  // Simulate real-time batch updates - OPTIMIZED with less frequent updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBatches(currentBatches => {
-        let hasChanges = false;
-        const updatedBatches = currentBatches.map(batch => {
-          if (batch.status === 'in-progress' && batch.startTime) {
-            const startTime = new Date(batch.startTime);
-            const now = new Date();
-            const elapsedMinutes = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60));
-            const newProgress = Math.min((elapsedMinutes / batch.estimatedDuration) * 100, 100);
-            
-            // Only update if progress actually changed
-            if (Math.abs(newProgress - batch.progress) > 1) {
-              hasChanges = true;
-              
-              // Auto-transition to quality check when near completion
-              if (newProgress >= 95 && batch.status === 'in-progress') {
-                return { ...batch, progress: newProgress, status: 'quality-check' as const };
-              }
-              
-              return { ...batch, progress: newProgress };
-            }
-          }
-          return batch;
-        });
-        
-        // Only update state if there are actual changes
-        return hasChanges ? updatedBatches : currentBatches;
-      });
-    }, 60000); // Reduced frequency: Update every 60 seconds instead of 30
-
-    return () => clearInterval(interval);
-  }, []); // No dependencies to prevent recreation
-
-  // Initialize with sample batches - OPTIMIZED to prevent infinite re-renders
-  useEffect(() => {
-    if (breadTypes.length > 0 && batches.length === 0) {
+  // FIXED: Initialize sample batches only once to prevent infinite loops
+  const initializeBatches = useCallback(() => {
+    if (breadTypes.length > 0 && !isInitialized) {
       const sampleBatches: Batch[] = [
         {
           id: '1',
           batchNumber: 'B001',
           breadType: breadTypes[0]?.name || 'White Bread',
           quantity: 50,
-          status: 'planning', // Changed from 'in-progress' to reduce processing
+          status: 'planning',
           estimatedDuration: 120,
           progress: 0,
           assignedStaff: ['John Doe', 'Jane Smith'],
@@ -118,7 +82,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
           batchNumber: 'B002',
           breadType: breadTypes[1]?.name || 'Brown Bread',
           quantity: 30,
-          status: 'planning', // Simplified initial state
+          status: 'planning',
           estimatedDuration: 100,
           progress: 0,
           assignedStaff: ['Mike Johnson'],
@@ -128,10 +92,71 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
         }
       ];
       setBatches(sampleBatches);
+      setIsInitialized(true);
     }
-  }, [breadTypes.length]); // Simplified dependencies to prevent re-renders
+  }, [breadTypes, isInitialized, currentShift, managerId]);
 
-  const createBatch = () => {
+  // FIXED: Use useCallback to prevent unnecessary re-renders
+  const updateBatchProgress = useCallback(() => {
+    setBatches(prevBatches => {
+      let hasChanges = false;
+      const updatedBatches = prevBatches.map(batch => {
+        if (batch.status === 'in-progress' && batch.startTime) {
+          const startTime = new Date(batch.startTime);
+          const now = new Date();
+          const elapsedMinutes = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60));
+          const newProgress = Math.min((elapsedMinutes / batch.estimatedDuration) * 100, 100);
+          
+          // Only update if progress changed significantly (prevents excessive updates)
+          if (Math.abs(newProgress - batch.progress) > 2) {
+            hasChanges = true;
+            
+            // Auto-transition to quality check when near completion
+            if (newProgress >= 95 && batch.status === 'in-progress') {
+              return { ...batch, progress: newProgress, status: 'quality-check' as const };
+            }
+            
+            return { ...batch, progress: newProgress };
+          }
+        }
+        return batch;
+      });
+      
+      // Only update state if there are actual changes
+      return hasChanges ? updatedBatches : prevBatches;
+    });
+  }, []);
+
+  // FIXED: Initialize batches only once
+  useEffect(() => {
+    initializeBatches();
+  }, [initializeBatches]);
+
+  // FIXED: Progress update with proper cleanup and longer intervals
+  useEffect(() => {
+    // Only start interval if there are active batches
+    const activeBatches = batches.filter(batch => batch.status === 'in-progress');
+    if (activeBatches.length === 0) return;
+
+    const interval = setInterval(updateBatchProgress, 120000); // FIXED: 2 minutes instead of 1 minute
+
+    return () => clearInterval(interval);
+  }, [batches.length, updateBatchProgress]); // FIXED: Only depend on batch count, not full batches array
+
+  // FIXED: Memoize calculated values to prevent unnecessary re-renders
+  const batchStats = useMemo(() => {
+    const activeBatches = batches.filter(batch => ['in-progress', 'quality-check'].includes(batch.status));
+    const upcomingBatches = batches.filter(batch => batch.status === 'planning');
+    const completedBatches = batches.filter(batch => batch.status === 'completed');
+    
+    return {
+      activeBatches,
+      upcomingBatches,
+      completedBatches
+    };
+  }, [batches]);
+
+  const createBatch = useCallback(() => {
     if (!newBatch.breadType || !newBatch.quantity) return;
 
     const batch: Batch = {
@@ -159,9 +184,9 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
       notes: ''
     });
     setShowCreateBatch(false);
-  };
+  }, [newBatch, batches.length, currentShift, managerId]);
 
-  const updateBatchStatus = (batchId: string, newStatus: Batch['status']) => {
+  const updateBatchStatus = useCallback((batchId: string, newStatus: Batch['status']) => {
     setBatches(prev => prev.map(batch => {
       if (batch.id === batchId) {
         const updates: Partial<Batch> = { status: newStatus };
@@ -182,9 +207,10 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
       }
       return batch;
     }));
-  };
+  }, []);
 
-  const getStatusColor = (status: Batch['status']) => {
+  // FIXED: Memoize utility functions to prevent re-renders
+  const getStatusColor = useMemo(() => (status: Batch['status']) => {
     switch (status) {
       case 'planning': return 'bg-gray-100 text-gray-800';
       case 'in-progress': return 'bg-blue-100 text-blue-800';
@@ -193,20 +219,30 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
       case 'paused': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
-  };
+  }, []);
 
-  const getPriorityColor = (priority: Batch['priority']) => {
+  const getPriorityColor = useMemo(() => (priority: Batch['priority']) => {
     switch (priority) {
       case 'high': return 'border-red-500';
       case 'medium': return 'border-yellow-500';
       case 'low': return 'border-green-500';
       default: return 'border-gray-300';
     }
-  };
+  }, []);
 
-  const activeBatches = batches.filter(batch => ['in-progress', 'quality-check'].includes(batch.status));
-  const upcomingBatches = batches.filter(batch => batch.status === 'planning');
-  const completedBatches = batches.filter(batch => batch.status === 'completed');
+  // Early return if not initialized to prevent rendering with empty data
+  if (!isInitialized) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center h-32">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
+            <p className="text-sm text-muted-foreground">Loading batch system...</p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -231,20 +267,20 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">{activeBatches.length}</div>
+            <div className="text-2xl font-bold text-blue-600">{batchStats.activeBatches.length}</div>
             <div className="text-xs text-blue-800">Active Batches</div>
           </div>
           <div className="text-center p-4 bg-yellow-50 rounded-lg">
-            <div className="text-2xl font-bold text-yellow-600">{upcomingBatches.length}</div>
+            <div className="text-2xl font-bold text-yellow-600">{batchStats.upcomingBatches.length}</div>
             <div className="text-xs text-yellow-800">Planning Stage</div>
           </div>
           <div className="text-center p-4 bg-green-50 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">{completedBatches.length}</div>
+            <div className="text-2xl font-bold text-green-600">{batchStats.completedBatches.length}</div>
             <div className="text-xs text-green-800">Completed Today</div>
           </div>
           <div className="text-center p-4 bg-purple-50 rounded-lg">
             <div className="text-2xl font-bold text-purple-600">
-              {completedBatches.reduce((sum, batch) => sum + batch.quantity, 0)}
+              {batchStats.completedBatches.reduce((sum, batch) => sum + batch.quantity, 0)}
             </div>
             <div className="text-xs text-purple-800">Total Units</div>
           </div>
@@ -252,14 +288,14 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
       </Card>
 
       {/* Active Batches */}
-      {activeBatches.length > 0 && (
+      {batchStats.activeBatches.length > 0 && (
         <Card className="p-6">
           <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Timer className="h-5 w-5 text-blue-600" />
-            Active Batches ({activeBatches.length})
+            Active Batches ({batchStats.activeBatches.length})
           </h4>
           <div className="space-y-4">
-            {activeBatches.map(batch => (
+            {batchStats.activeBatches.map(batch => (
               <div
                 key={batch.id}
                 className={`p-4 border-l-4 bg-white rounded-lg shadow-sm ${getPriorityColor(batch.priority)}`}
@@ -330,14 +366,14 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
       )}
 
       {/* Upcoming Batches */}
-      {upcomingBatches.length > 0 && (
+      {batchStats.upcomingBatches.length > 0 && (
         <Card className="p-6">
           <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Package className="h-5 w-5 text-yellow-600" />
-            Upcoming Batches ({upcomingBatches.length})
+            Upcoming Batches ({batchStats.upcomingBatches.length})
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {upcomingBatches.map(batch => (
+            {batchStats.upcomingBatches.map(batch => (
               <div key={batch.id} className="p-4 border rounded-lg bg-gray-50">
                 <div className="flex items-center justify-between mb-2">
                   <div className="font-medium">{batch.batchNumber} - {batch.breadType}</div>
@@ -388,15 +424,15 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Quantity</label>
-                                 <Input
-                   type="number"
-                   inputMode="numeric"
-                   pattern="[0-9]*"
-                   value={newBatch.quantity}
-                   onChange={(e) => setNewBatch(prev => ({ ...prev, quantity: e.target.value }))}
-                   placeholder="Enter quantity"
-                   className="text-lg" // Larger text for mobile
-                 />
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={newBatch.quantity}
+                  onChange={(e) => setNewBatch(prev => ({ ...prev, quantity: e.target.value }))}
+                  placeholder="Enter quantity"
+                  className="text-lg"
+                />
               </div>
 
               <div>
@@ -415,15 +451,15 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Estimated Duration (minutes)</label>
-                                 <Input
-                   type="number"
-                   inputMode="numeric"
-                   pattern="[0-9]*"
-                   value={newBatch.estimatedDuration}
-                   onChange={(e) => setNewBatch(prev => ({ ...prev, estimatedDuration: e.target.value }))}
-                   placeholder="120"
-                   className="text-lg" // Larger text for mobile
-                 />
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={newBatch.estimatedDuration}
+                  onChange={(e) => setNewBatch(prev => ({ ...prev, estimatedDuration: e.target.value }))}
+                  placeholder="120"
+                  className="text-lg"
+                />
               </div>
             </div>
 
