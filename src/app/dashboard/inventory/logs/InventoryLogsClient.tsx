@@ -6,19 +6,25 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { BreadType, ProductionLog, SalesLog, UserRole } from '@/types';
+import type { Database } from '@/types/supabase';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { ArrowLeft, Plus, Minus, Search } from 'lucide-react';
 import Link from 'next/link';
 
+// Use the actual database types
+type ProductionLogDB = Database['public']['Tables']['production_logs']['Row'];
+type SalesLogDB = Database['public']['Tables']['sales_logs']['Row'];
+type BreadTypeDB = Database['public']['Tables']['bread_types']['Row'];
+
 interface InventoryLogsClientProps {
-  productionLogs: (ProductionLog & { bread_types: BreadType })[];
-  salesLogs: (SalesLog & { bread_types: BreadType })[];
+  productionLogs: (ProductionLogDB & { bread_types: BreadTypeDB })[];
+  salesLogs: (SalesLogDB & { bread_types: BreadTypeDB })[];
 }
 
 interface LogEntry {
   id: string;
   type: 'production' | 'sale';
-  breadType: BreadType;
+  breadType: BreadTypeDB;
   quantity: number;
   shift: 'morning' | 'night';
   createdAt: Date;
@@ -41,7 +47,7 @@ export default function InventoryLogsClient({
       breadType: log.bread_types,
       quantity: log.quantity,
       shift: log.shift,
-      createdAt: log.createdAt,
+      createdAt: new Date(log.created_at), // Fix: use created_at from database
     })),
     ...salesLogs.map(log => ({
       id: log.id,
@@ -49,8 +55,8 @@ export default function InventoryLogsClient({
       breadType: log.bread_types,
       quantity: log.quantity,
       shift: log.shift,
-      createdAt: log.createdAt,
-      amount: log.quantity * (log.unitPrice || 0),
+      createdAt: new Date(log.created_at), // Fix: use created_at from database
+      amount: log.quantity * (log.unit_price || 0), // Fix: use unit_price from database
       returned: log.returned,
     }))
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

@@ -84,7 +84,7 @@ async function fetchCurrentInventory(): Promise<InventoryItem[]> {
     throw new Error('Failed to fetch sales logs');
   }
 
-  // Calculate inventory for each bread type
+  // Calculate inventory for each bread type - ALWAYS show ALL bread types
   const inventory: InventoryItem[] = breadTypes.map(breadType => {
     const production = productionLogs?.filter(log => log.bread_type_id === breadType.id) || [];
     const sales = salesLogs?.filter(log => log.bread_type_id === breadType.id) || [];
