@@ -55,32 +55,70 @@ async function fetchBreadTypes(): Promise<BreadType[]> {
 
 // Calculate current inventory from production and sales logs
 async function fetchCurrentInventory(): Promise<InventoryItem[]> {
-  const today = new Date().toISOString().split('T')[0];
+  console.log('🔍 INVENTORY DEBUG: Starting fetchCurrentInventory');
   
-  // Get all bread types
+  // Get current date in local timezone
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  console.log('🔍 INVENTORY DEBUG: Today date:', today);
+  console.log('🔍 INVENTORY DEBUG: Current time:', now.toISOString());
+  
+  // Get all bread types first
   const breadTypes = await fetchBreadTypes();
+  console.log('🔍 INVENTORY DEBUG: Bread types count:', breadTypes.length);
+  console.log('🔍 INVENTORY DEBUG: Bread types:', breadTypes.map(bt => ({ id: bt.id, name: bt.name })));
   
-  // Get today's production logs
+  // Get today's production logs with more flexible date range
+  const startOfDay = `${today}T00:00:00.000Z`;
+  const endOfDay = `${today}T23:59:59.999Z`;
+  
+  console.log('🔍 INVENTORY DEBUG: Fetching production logs from', startOfDay, 'to', endOfDay);
+  
   const { data: productionLogs, error: prodError } = await supabase
     .from('production_logs')
     .select('*')
-    .gte('created_at', `${today}T00:00:00`)
-    .lt('created_at', `${today}T23:59:59`);
+    .gte('created_at', startOfDay)
+    .lte('created_at', endOfDay);
+
+  console.log('🔍 INVENTORY DEBUG: Production logs query result:', {
+    data: productionLogs,
+    error: prodError,
+    count: productionLogs?.length || 0
+  });
 
   if (prodError) {
-    console.error('Error fetching production logs:', prodError);
+    console.error('🚨 INVENTORY DEBUG: Error fetching production logs:', prodError);
     throw new Error('Failed to fetch production logs');
   }
+
+  // Also try to get ALL production logs to see if there are any
+  const { data: allProductionLogs, error: allProdError } = await supabase
+    .from('production_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  console.log('🔍 INVENTORY DEBUG: All production logs (last 10):', {
+    data: allProductionLogs,
+    error: allProdError,
+    count: allProductionLogs?.length || 0
+  });
 
   // Get today's sales logs
   const { data: salesLogs, error: salesError } = await supabase
     .from('sales_logs')
     .select('*')
-    .gte('created_at', `${today}T00:00:00`)
-    .lt('created_at', `${today}T23:59:59`);
+    .gte('created_at', startOfDay)
+    .lte('created_at', endOfDay);
+
+  console.log('🔍 INVENTORY DEBUG: Sales logs query result:', {
+    data: salesLogs,
+    error: salesError,
+    count: salesLogs?.length || 0
+  });
 
   if (salesError) {
-    console.error('Error fetching sales logs:', salesError);
+    console.error('🚨 INVENTORY DEBUG: Error fetching sales logs:', salesError);
     throw new Error('Failed to fetch sales logs');
   }
 
@@ -88,6 +126,14 @@ async function fetchCurrentInventory(): Promise<InventoryItem[]> {
   const inventory: InventoryItem[] = breadTypes.map(breadType => {
     const production = productionLogs?.filter(log => log.bread_type_id === breadType.id) || [];
     const sales = salesLogs?.filter(log => log.bread_type_id === breadType.id) || [];
+
+    console.log(`🔍 INVENTORY DEBUG: Processing ${breadType.name}:`, {
+      breadTypeId: breadType.id,
+      productionCount: production.length,
+      salesCount: sales.length,
+      production: production,
+      sales: sales
+    });
 
     const totalProduced = production.reduce((sum, log) => sum + log.quantity, 0);
     const totalSold = sales.reduce((sum, log) => sum + log.quantity, 0);
@@ -105,7 +151,7 @@ async function fetchCurrentInventory(): Promise<InventoryItem[]> {
       ? sales.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
       : null;
 
-    return {
+    const inventoryItem = {
       bread_type_id: breadType.id,
       bread_type_name: breadType.name,
       bread_type_size: breadType.size,
@@ -117,8 +163,14 @@ async function fetchCurrentInventory(): Promise<InventoryItem[]> {
       last_production: lastProduction,
       last_sale: lastSale,
     };
+
+    console.log(`🔍 INVENTORY DEBUG: Final item for ${breadType.name}:`, inventoryItem);
+    return inventoryItem;
   });
 
+  console.log('🔍 INVENTORY DEBUG: Final inventory array:', inventory);
+  console.log('🔍 INVENTORY DEBUG: Total items with production:', inventory.filter(item => item.total_produced > 0).length);
+  
   return inventory;
 }
 

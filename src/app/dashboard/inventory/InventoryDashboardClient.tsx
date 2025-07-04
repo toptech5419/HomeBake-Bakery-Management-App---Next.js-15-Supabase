@@ -34,13 +34,14 @@ export default function InventoryDashboardClient({
 }: InventoryDashboardClientProps) {
   const [refreshing, setRefreshing] = useState(false);
 
-  // Use React Query hooks for data fetching with polling
+  // Use React Query hooks for data fetching with more frequent polling
   const { 
     data: inventoryItems = [], 
     isLoading: inventoryLoading, 
     error: inventoryError,
-    dataUpdatedAt: inventoryUpdatedAt
-  } = useInventory(20000); // Poll every 20 seconds
+    dataUpdatedAt: inventoryUpdatedAt,
+    refetch: refetchInventory
+  } = useInventory(10000); // Poll every 10 seconds for faster updates
 
   const { 
     isLoading: salesLoading 
@@ -57,10 +58,12 @@ export default function InventoryDashboardClient({
 
   const isLoading = inventoryLoading || salesLoading || productionLoading;
 
-  // Handle manual refresh
+  // Handle manual refresh with immediate inventory refetch
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
+      // Force immediate refetch of inventory data
+      await refetchInventory();
       await refreshAll();
     } finally {
       setRefreshing(false);
@@ -374,8 +377,18 @@ export default function InventoryDashboardClient({
             </div>
             
             {inventoryItems.length === 0 && !isLoading && (
-              <div className="text-center py-8 text-muted-foreground">
-                No bread types configured yet
+              <div className="text-center py-8 space-y-4">
+                <div className="text-muted-foreground">
+                  No bread types configured yet
+                </div>
+                <Button 
+                  onClick={handleRefresh}
+                  variant="outline"
+                  size="sm"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh Data
+                </Button>
               </div>
             )}
           </>
@@ -433,14 +446,21 @@ export default function InventoryDashboardClient({
         </Card>
       )}
 
-      {/* Auto-update Notice */}
+      {/* Debug Info Panel - Shows data status */}
       <Card className="p-4 bg-blue-50 border-blue-200">
-        <div className="flex items-center gap-2 text-blue-700 text-sm">
-          <Clock className="h-4 w-4" />
-          <span>
-            This dashboard updates automatically every 20-30 seconds. 
-            Data refreshes when you switch tabs or go online.
-          </span>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-blue-700 text-sm">
+            <Clock className="h-4 w-4" />
+            <span>
+              Auto-updates every 10 seconds. Last update: {new Date(inventoryUpdatedAt).toLocaleTimeString()}
+            </span>
+          </div>
+          <div className="text-xs text-blue-600 space-y-1">
+            <div>📊 Showing {inventoryItems.length} bread types</div>
+            <div>🍞 Total produced today: {totalProduced}</div>
+            <div>💰 Total sold today: {totalSold}</div>
+            <div>📱 Mobile optimized interface</div>
+          </div>
         </div>
       </Card>
     </div>
