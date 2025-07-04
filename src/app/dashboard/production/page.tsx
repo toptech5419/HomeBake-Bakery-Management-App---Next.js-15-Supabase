@@ -1,16 +1,15 @@
 import { createServer } from '@/lib/supabase/server';
 
 import ProductionTable from '@/components/production/production-table';
-import ProductionForm from '@/components/production/production-form';
+import ProductionFormWrapper from '@/components/production/production-form-wrapper';
 import { Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getBreadTypes } from '@/lib/bread-types/actions';
 import LoadingSpinner from '@/components/ui/loading';
-import { ErrorBoundary } from '@/components/error-boundary';
 
-import { Package, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Package, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function ProductionPage() {
@@ -116,27 +115,12 @@ export default async function ProductionPage() {
           </Card>
         </div>
 
-        {/* Production Form - Only for managers - OPTIMIZED with error boundary */}
+        {/* Production Form - Only for managers - OPTIMIZED with client-side error boundary */}
         {user.role === 'manager' && breadTypes.length > 0 && (
-          <ErrorBoundary fallback={
-            <Card className="p-6 text-center border-red-200 bg-red-50">
-              <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-red-600" />
-              <h3 className="text-lg font-semibold mb-2 text-red-800">Production Form Error</h3>
-              <p className="text-red-700 mb-4">
-                There was an issue loading the production form. Please refresh the page.
-              </p>
-              <Button onClick={() => window.location.reload()}>
-                Refresh Page
-              </Button>
-            </Card>
-          }>
-            <Suspense fallback={<LoadingSpinner message="Loading production form..." />}>
-              <ProductionForm 
-                breadTypes={breadTypes.slice(0, 10)} // Limit bread types to prevent performance issues
-                managerId={user.id}
-              />
-            </Suspense>
-          </ErrorBoundary>
+          <ProductionFormWrapper 
+            breadTypes={breadTypes.slice(0, 10)} // Limit bread types to prevent performance issues
+            managerId={user.id}
+          />
         )}
         
         {user.role === 'manager' && breadTypes.length === 0 && (

@@ -208,4 +208,110 @@ const { data, error } = await supabase
 5. ✅ Error handling shows friendly messages
 6. ✅ Performance is responsive and fast
 
-**The production page is now fully optimized and crash-free for manager accounts!** 🎉
+## 🔧 **Additional Critical Fixes Applied:**
+
+### **7. Fixed Next.js 15 Client Component Props Error**
+
+#### **Root Cause:**
+The error `Event handlers cannot be passed to Client Component props` was caused by trying to pass functions from server components to client components.
+
+#### **Before (Causing Browser Crash):**
+```typescript
+// Server component trying to pass onClick function to client component
+<ErrorBoundary fallback={
+  <Card className="p-6 text-center border-red-200 bg-red-50">
+    <Button onClick={() => window.location.reload()}>  // ❌ Server → Client function
+      Refresh Page
+    </Button>
+  </Card>
+}>
+```
+
+#### **After (Fixed with Client-Side Wrapper):**
+```typescript
+// Created separate client component wrapper
+// src/components/production/production-form-wrapper.tsx
+'use client';
+
+function ProductionFormErrorFallback() {
+  const handleRefresh = () => {    // ✅ Client-side function
+    window.location.reload();
+  };
+
+  return (
+    <Card className="p-6 text-center border-red-200 bg-red-50">
+      <Button onClick={handleRefresh}>  // ✅ Client → Client function
+        Refresh Page
+      </Button>
+    </Card>
+  );
+}
+```
+
+### **8. Fixed Next.js 15 Metadata/Viewport Warnings**
+
+#### **Root Cause:**
+Next.js 15 requires viewport-related metadata to be in a separate `viewport` export.
+
+#### **Before (Warnings):**
+```typescript
+// src/app/layout.tsx
+export const metadata: Metadata = {
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+  themeColor: '#f97316',
+  colorScheme: 'light',
+  // ⚠️ Caused "Unsupported metadata" warnings
+};
+```
+
+#### **After (Fixed):**
+```typescript
+// Separated viewport configuration
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#f97316',
+  colorScheme: 'light',
+};
+```
+
+## 🎯 **Final Architecture:**
+
+### **Server Component (production/page.tsx):**
+- Handles data fetching (limited to 50 production logs)
+- Manages user authentication and role checking
+- Passes serializable data to client components
+- No event handlers or functions passed to client components
+
+### **Client Component (production-form-wrapper.tsx):**
+- Handles all interactivity and error boundaries
+- Manages client-side state and event handlers
+- Provides crash recovery with refresh functionality
+- Wraps ProductionForm with proper error handling
+
+### **Optimized Data Flow:**
+```
+Server Component (page.tsx)
+├── Fetches limited data (50 logs, 20 bread types)
+├── Handles authentication
+└── Passes data to Client Component
+
+Client Component (wrapper.tsx)
+├── Handles errors and crashes
+├── Manages user interactions
+└── Renders ProductionForm safely
+```
+
+## ✅ **Complete Fix Summary:**
+
+1. **Database Optimization:** Limited queries to prevent data overload
+2. **Error Boundaries:** Client-side crash protection
+3. **Performance:** Reduced polling and data processing
+4. **Next.js 15 Compatibility:** Fixed client/server component issues
+5. **Metadata Warnings:** Proper viewport configuration
+6. **Memory Management:** Efficient state updates
+7. **Mobile Optimization:** Responsive and fast loading
+
+**The production page is now fully optimized, crash-free, and Next.js 15 compatible for manager accounts!** 🎉
