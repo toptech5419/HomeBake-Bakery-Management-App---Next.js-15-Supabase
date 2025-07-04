@@ -101,32 +101,54 @@ export async function deleteBreadType(currentUser: User, id: string) {
     throw new Error('Bread type not found');
   }
   
-  // Check if this bread type is being used in production or sales logs
-  const { data: productionLogs } = await supabase
-    .from('production_logs')
-    .select('id')
-    .eq('bread_type_id', id)
-    .limit(1);
+  // Check if this bread type is being used in any related tables
+  const checks = await Promise.all([
+    // Check production logs
+    supabase
+      .from('production_logs')
+      .select('id')
+      .eq('bread_type_id', id)
+      .limit(1),
     
-  const { data: salesLogs } = await supabase
-    .from('sales_logs')
-    .select('id')
-    .eq('bread_type_id', id)
-    .limit(1);
-    
-  if (productionLogs && productionLogs.length > 0) {
+    // Check sales logs
+    supabase
+      .from('sales_logs')
+      .select('id')
+      .eq('bread_type_id', id)
+      .limit(1)
+  ]);
+  
+  const [productionResult, salesResult] = checks;
+  
+  if (productionResult.data && productionResult.data.length > 0) {
     throw new Error('Cannot delete this bread type as it has production records. Please archive it instead.');
   }
   
-  if (salesLogs && salesLogs.length > 0) {
+  if (salesResult.data && salesResult.data.length > 0) {
     throw new Error('Cannot delete this bread type as it has sales records. Please archive it instead.');
   }
+  
+  // Note: Additional checks for inventory table will be handled by database constraints
   
   // Perform the deletion
   const { error } = await supabase.from('bread_types').delete().eq('id', id);
   
   if (error) {
     console.error('Bread type deletion error:', error);
+    
+    // Handle foreign key constraint violations with user-friendly messages
+    if (error.code === '23503') {
+      if (error.message.includes('inventory')) {
+        throw new Error('Cannot delete this bread type as it has inventory records. Please clear the inventory first or contact your administrator.');
+      } else if (error.message.includes('production_logs')) {
+        throw new Error('Cannot delete this bread type as it has production records. Please archive it instead.');
+      } else if (error.message.includes('sales_logs')) {
+        throw new Error('Cannot delete this bread type as it has sales records. Please archive it instead.');
+      } else {
+        throw new Error('Cannot delete this bread type as it is being used by other records in the system.');
+      }
+    }
+    
     throw new Error(`Failed to delete bread type: ${error.message}`);
   }
   
