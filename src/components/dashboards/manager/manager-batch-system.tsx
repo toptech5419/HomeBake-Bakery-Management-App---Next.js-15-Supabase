@@ -61,33 +61,42 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
     notes: ''
   });
 
-  // Simulate real-time batch updates
+  // Simulate real-time batch updates - OPTIMIZED with less frequent updates
   useEffect(() => {
     const interval = setInterval(() => {
-      setBatches(currentBatches => 
-        currentBatches.map(batch => {
+      setBatches(currentBatches => {
+        let hasChanges = false;
+        const updatedBatches = currentBatches.map(batch => {
           if (batch.status === 'in-progress' && batch.startTime) {
             const startTime = new Date(batch.startTime);
             const now = new Date();
             const elapsedMinutes = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60));
-            const progress = Math.min((elapsedMinutes / batch.estimatedDuration) * 100, 100);
+            const newProgress = Math.min((elapsedMinutes / batch.estimatedDuration) * 100, 100);
             
-            // Auto-transition to quality check when near completion
-            if (progress >= 95 && batch.status === 'in-progress') {
-              return { ...batch, progress, status: 'quality-check' as const };
+            // Only update if progress actually changed
+            if (Math.abs(newProgress - batch.progress) > 1) {
+              hasChanges = true;
+              
+              // Auto-transition to quality check when near completion
+              if (newProgress >= 95 && batch.status === 'in-progress') {
+                return { ...batch, progress: newProgress, status: 'quality-check' as const };
+              }
+              
+              return { ...batch, progress: newProgress };
             }
-            
-            return { ...batch, progress };
           }
           return batch;
-        })
-      );
-    }, 30000); // Update every 30 seconds
+        });
+        
+        // Only update state if there are actual changes
+        return hasChanges ? updatedBatches : currentBatches;
+      });
+    }, 60000); // Reduced frequency: Update every 60 seconds instead of 30
 
     return () => clearInterval(interval);
-  }, []);
+  }, []); // No dependencies to prevent recreation
 
-  // Initialize with sample batches
+  // Initialize with sample batches - OPTIMIZED to prevent infinite re-renders
   useEffect(() => {
     if (breadTypes.length > 0 && batches.length === 0) {
       const sampleBatches: Batch[] = [
@@ -96,10 +105,9 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
           batchNumber: 'B001',
           breadType: breadTypes[0]?.name || 'White Bread',
           quantity: 50,
-          status: 'in-progress',
-          startTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // Started 30 min ago
+          status: 'planning', // Changed from 'in-progress' to reduce processing
           estimatedDuration: 120,
-          progress: 25,
+          progress: 0,
           assignedStaff: ['John Doe', 'Jane Smith'],
           priority: 'high',
           shift: currentShift,
@@ -110,33 +118,18 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
           batchNumber: 'B002',
           breadType: breadTypes[1]?.name || 'Brown Bread',
           quantity: 30,
-          status: 'quality-check',
-          startTime: new Date(Date.now() - 90 * 60 * 1000).toISOString(), // Started 90 min ago
+          status: 'planning', // Simplified initial state
           estimatedDuration: 100,
-          progress: 100,
+          progress: 0,
           assignedStaff: ['Mike Johnson'],
           priority: 'medium',
-          qualityScore: 95,
-          shift: currentShift,
-          managerId,
-        },
-        {
-          id: '3',
-          batchNumber: 'B003',
-          breadType: breadTypes[2]?.name || 'Whole Wheat',
-          quantity: 25,
-          status: 'planning',
-          estimatedDuration: 150,
-          progress: 0,
-          assignedStaff: [],
-          priority: 'low',
           shift: currentShift,
           managerId,
         }
       ];
       setBatches(sampleBatches);
     }
-  }, [breadTypes, batches.length, currentShift, managerId]);
+  }, [breadTypes.length]); // Simplified dependencies to prevent re-renders
 
   const createBatch = () => {
     if (!newBatch.breadType || !newBatch.quantity) return;

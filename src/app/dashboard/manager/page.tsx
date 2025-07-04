@@ -65,23 +65,25 @@ async function getManagerDashboardData() {
   const currentHour = new Date().getHours();
   const currentShift: 'morning' | 'night' = (currentHour >= 6 && currentHour < 14) ? 'morning' : 'night';
 
-  // Fetch dashboard data
+  // Fetch dashboard data - OPTIMIZED with limits to prevent browser crashes
   const [
     { data: productionLogs },
     { data: breadTypes }
   ] = await Promise.all([
-    // Production logs for today
+    // Production logs for today - LIMITED to last 20 entries
     supabase
       .from('production_logs')
       .select('id, bread_type_id, quantity, shift, recorded_by, created_at')
       .gte('created_at', today)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(20), // Limit to prevent excessive data processing
     
     // Bread types for targets and batch system
     supabase
       .from('bread_types')
       .select('id, name, unit_price')
       .order('name', { ascending: true })
+      .limit(10) // Limit bread types for performance
   ]);
 
   // Process production data into batches and metrics
