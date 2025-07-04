@@ -13,7 +13,6 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/lib/supabase/client';
 
 import { useShift } from '@/contexts/ShiftContext';
 import { Package, Save, Loader2 } from 'lucide-react';
@@ -33,8 +32,6 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
   const { currentShift } = useShift();
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState('');
-  const [isAuthenticating, setIsAuthenticating] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
   const { isOnline } = useOfflineStatus();
   const offlineProductionMutation = useOfflineProductionMutation(managerId);
   
@@ -48,48 +45,6 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
       })) 
     },
   });
-
-  // Simplified Supabase authentication - OPTIMIZED to prevent browser crashes
-  useEffect(() => {
-    async function ensureSupabaseAuth() {
-      try {
-        // Check if already authenticated
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          setIsAuthenticating(false);
-          return;
-        }
-
-        // Simple authentication without creating users
-        const managerEmail = `manager-${managerId}@homebake.local`;
-        const tempPassword = 'temp-password-123';
-        
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: managerEmail,
-          password: tempPassword
-        });
-
-        if (signInError) {
-          // If sign in fails, just continue without auth - the app will work without Supabase auth
-          console.log('Continuing without Supabase auth');
-          setIsAuthenticating(false);
-          return;
-        }
-
-        if (signInData?.user) {
-          setIsAuthenticating(false);
-        }
-
-      } catch (error) {
-        // Don't break the app if auth fails
-        console.log('Auth skipped, continuing...');
-        setIsAuthenticating(false);
-      }
-    }
-
-    ensureSupabaseAuth();
-  }, [managerId]);
 
   const onSubmit = async (data: ProductionFormData) => {
     setLoading(true);
@@ -143,32 +98,6 @@ export default function ProductionForm({ breadTypes, managerId, onSuccess }: Pro
   };
 
   const isSubmitting = loading || offlineProductionMutation.isPending;
-
-  // Show authentication loading
-  if (isAuthenticating) {
-    return (
-      <Card className="w-full p-6 text-center">
-        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-        <p className="text-sm text-muted-foreground">Setting up authentication...</p>
-      </Card>
-    );
-  }
-
-  // Show authentication error
-  if (authError) {
-    return (
-      <Card className="w-full p-6 text-center border-red-200 bg-red-50">
-        <h3 className="text-lg font-semibold text-red-800 mb-2">Authentication Error</h3>
-        <p className="text-sm text-red-600 mb-4">{authError}</p>
-        <button 
-          onClick={() => window.location.reload()} 
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-        >
-          Retry
-        </button>
-      </Card>
-    );
-  }
 
   // Show no bread types message
   if (!breadTypes.length) {

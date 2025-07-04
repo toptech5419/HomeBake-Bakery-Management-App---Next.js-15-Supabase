@@ -5,8 +5,6 @@ import {
   Package,
   Users,
   ClipboardList,
-  Settings,
-  Plus,
   Play,
   Pause,
   BarChart3,
@@ -17,9 +15,9 @@ import {
   Layers,
   FileText
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useState } from 'react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 interface ManagerQuickActionsProps {
   alerts?: {
@@ -168,21 +166,6 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
     return colors[color as keyof typeof colors]?.[variant] || '';
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -202,16 +185,10 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
       </div>
 
       {/* Primary Actions Grid */}
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {primaryActions.map((action) => (
-          <motion.div
+          <div
             key={action.id}
-            variants={itemVariants}
             onMouseEnter={() => setHoveredAction(action.id)}
             onMouseLeave={() => setHoveredAction(null)}
           >
@@ -225,7 +202,7 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
                 {/* Badge */}
                 {action.badge > 0 && (
                   <div className={cn(
-                    "absolute -top-2 -right-2 w-6 h-6  text-white text-xs font-bold rounded-full flex items-center justify-center",
+                    "absolute -top-2 -right-2 w-6 h-6 text-white text-xs font-bold rounded-full flex items-center justify-center",
                     action.urgent ? "bg-red-500" : "bg-orange-500"
                   )}>
                     {action.badge > 99 ? '99+' : action.badge}
@@ -268,22 +245,17 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
                 </div>
               </div>
             </Link>
-          </motion.div>
+          </div>
         ))}
-      </motion.div>
+      </div>
 
       {/* Production Controls */}
-      <motion.div 
-        className="space-y-4"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">Production Controls</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {productionControls.map((control) => (
-            <motion.div key={control.id} variants={itemVariants}>
+            <div key={control.id}>
               <Link href={control.href}>
                 <div className={cn(
                   "p-4 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200 cursor-pointer group",
@@ -309,25 +281,20 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
                   </div>
                 </div>
               </Link>
-            </motion.div>
+            </div>
           ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* Shift Management */}
-      <motion.div 
-        className="space-y-4"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">
           {currentShift.charAt(0).toUpperCase() + currentShift.slice(1)} Shift Management
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {shiftActions.map((action) => (
-            <motion.div key={action.id} variants={itemVariants}>
+            <div key={action.id}>
               <Link href={action.href}>
                 <div className="p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg border border-orange-200 shadow-sm hover:shadow-md hover:from-orange-100 hover:to-orange-200 transition-all duration-200 cursor-pointer group">
                   <div className="flex items-center gap-3">
@@ -347,18 +314,13 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
                   </div>
                 </div>
               </Link>
-            </motion.div>
+            </div>
           ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* Quick Stats */}
-      <motion.div 
-        className="bg-white rounded-lg border border-gray-200 shadow-sm p-6"
-        variants={itemVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Production Stats</h3>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -381,7 +343,7 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
             <div className="text-sm text-gray-500">Inventory Alerts</div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Mobile Action Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 safe-area-bottom">
@@ -391,7 +353,7 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
               <div className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-gray-100 transition-colors relative">
                 {action.badge > 0 && (
                   <div className={cn(
-                    "absolute -top-1 -right-1 w-4 h-4  text-white text-xs font-bold rounded-full flex items-center justify-center",
+                    "absolute -top-1 -right-1 w-4 h-4 text-white text-xs font-bold rounded-full flex items-center justify-center",
                     action.urgent ? "bg-red-500" : "bg-orange-500"
                   )}>
                     {action.badge > 9 ? '9+' : action.badge}
