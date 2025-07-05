@@ -5,6 +5,8 @@ import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
 import { ShiftProvider } from '@/contexts/ShiftContext';
 import { OfflineSyncIndicator } from '@/components/offline-sync-indicator';
+import { DataProvider } from '@/contexts/DataContext';
+import { ToastProvider } from '@/components/ui/toast-provider';
 
 export default async function DashboardLayout({
   children,
@@ -43,24 +45,28 @@ export default async function DashboardLayout({
   }
 
   return (
-    <ShiftProvider>
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <Header user={user} displayName={displayName} role={role} />
-        
-        {/* Offline Sync Indicator */}
-        <OfflineSyncIndicator />
-        
-        <div className="flex">
-          {/* Sidebar */}
-          <Sidebar role={role} />
-          
-          {/* Main Content */}
-          <main className="flex-1 p-4 md:p-6 lg:p-8">
-            {children}
-          </main>
-        </div>
-      </div>
-    </ShiftProvider>
+    <DataProvider>
+      <ToastProvider>
+        <ShiftProvider>
+          <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <Header user={user} displayName={displayName} role={role} />
+            
+            {/* Offline Sync Indicator */}
+            <OfflineSyncIndicator />
+            
+            <div className="flex">
+              {/* Sidebar */}
+              <Sidebar role={role} />
+              
+              {/* Main Content */}
+              <main className="flex-1 p-4 md:p-6 lg:p-8">
+                {children}
+              </main>
+            </div>
+          </div>
+        </ShiftProvider>
+      </ToastProvider>
+    </DataProvider>
   );
 } 
