@@ -4,6 +4,7 @@ import { UserRole } from '@/types';
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
 import { ShiftProvider } from '@/contexts/ShiftContext';
+import { OfflineSyncIndicator } from '@/components/offline-sync-indicator';
 
 export default async function DashboardLayout({
   children,
@@ -46,6 +47,9 @@ export default async function DashboardLayout({
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <Header user={user} displayName={displayName} role={role} />
+        
+        {/* Offline Sync Indicator */}
+        <OfflineSyncIndicator />
         
         <div className="flex">
           {/* Sidebar */}

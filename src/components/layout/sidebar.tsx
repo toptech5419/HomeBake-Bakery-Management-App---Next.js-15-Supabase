@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserRole } from '@/types';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 interface SidebarProps {
   role: UserRole;
@@ -64,7 +65,9 @@ const navigationItems: NavigationItem[] = [
 
 export function Sidebar({ role }: SidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   const filteredNavigation = navigationItems.filter(item =>
     item.requiredRole.includes(role)
@@ -75,6 +78,28 @@ export function Sidebar({ role }: SidebarProps) {
       return pathname === '/dashboard';
     }
     return pathname.startsWith(href);
+  };
+
+  const handleNavigation = async (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    
+    // Don't navigate if already on the same page
+    if (isActiveLink(href)) {
+      setIsMobileOpen(false);
+      return;
+    }
+    
+    setIsNavigating(true);
+    setIsMobileOpen(false);
+    
+    try {
+      await router.push(href);
+    } catch (error) {
+      console.error('Navigation error:', error);
+    } finally {
+      // Always reset navigation state after a short delay
+      setTimeout(() => setIsNavigating(false), 500);
+    }
   };
 
   return (
@@ -110,6 +135,15 @@ export function Sidebar({ role }: SidebarProps) {
           className="lg:hidden fixed inset-0 z-40 bg-gray-600 bg-opacity-75"
           onClick={() => setIsMobileOpen(false)}
         />
+      )}
+
+      {/* Loading overlay during navigation */}
+      {isNavigating && (
+        <div className="fixed inset-0 z-[60] bg-black bg-opacity-30 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-4 shadow-lg">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
       )}
 
       {/* Sidebar */}
@@ -153,7 +187,7 @@ export function Sidebar({ role }: SidebarProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setIsMobileOpen(false)}
+                  onClick={(e) => handleNavigation(e, item.href)}
                   className={`
                     flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
                     ${
@@ -161,6 +195,7 @@ export function Sidebar({ role }: SidebarProps) {
                         ? 'bg-blue-100 text-blue-900 border-r-2 border-blue-500'
                         : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                     }
+                    ${isNavigating ? 'pointer-events-none opacity-50' : ''}
                   `}
                 >
                   <span className="mr-3 text-lg">{item.icon}</span>
@@ -174,7 +209,7 @@ export function Sidebar({ role }: SidebarProps) {
           <div className="p-4 border-t border-gray-200">
             <div className="text-xs text-gray-500">
               <p>Role: {role}</p>
-              <p>HomeBake v1.0</p>
+              <p>HomeBake v2.0</p>
             </div>
           </div>
         </div>
