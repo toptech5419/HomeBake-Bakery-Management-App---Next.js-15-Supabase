@@ -165,77 +165,128 @@ export function ProductionClient({ userRole, userId }: ProductionClientProps) {
                 <span className="hidden sm:inline">Add</span>
               </Button>
               
-              {/* Mobile-friendly Modal */}
+              {/* Improved Mobile-friendly Modal */}
               {isDialogOpen && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
                   <div 
-                    className="fixed inset-0 bg-black/50" 
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm" 
                     onClick={() => setIsDialogOpen(false)}
                   />
-                  <div className="relative bg-white rounded-t-xl sm:rounded-lg w-full sm:max-w-md p-6 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 max-h-[90vh] overflow-y-auto">
-                    <h2 className="text-lg font-semibold mb-4">Add Production Log</h2>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div>
-                        <Label htmlFor="bread_type">Bread Type</Label>
-                        <Select
-                          value={formData.bread_type_id}
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, bread_type_id: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select bread type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {breadTypes.map((type) => (
-                              <SelectItem key={type.id} value={type.id}>
-                                {type.name} - ₦{type.unit_price}
+                  <div className="relative bg-white rounded-t-xl sm:rounded-xl w-full sm:max-w-md max-h-[90vh] flex flex-col shadow-2xl border">
+                    {/* Modal Header */}
+                    <div className="flex items-center justify-between p-6 border-b">
+                      <h2 className="text-lg font-semibold">Add Production Log</h2>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setIsDialogOpen(false)}
+                        className="h-8 w-8 p-0"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                    
+                    {/* Modal Content - Scrollable */}
+                    <div className="flex-1 overflow-y-auto p-6">
+                      <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="bread_type" className="text-sm font-medium">Bread Type *</Label>
+                          <Select
+                            value={formData.bread_type_id}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, bread_type_id: value }))}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Choose bread type" />
+                            </SelectTrigger>
+                            <SelectContent 
+                              position="popper" 
+                              side="bottom" 
+                              sideOffset={4}
+                              className="z-[200] w-full min-w-[var(--radix-select-trigger-width)]"
+                            >
+                              {breadTypes.map((type) => (
+                                <SelectItem key={type.id} value={type.id}>
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{type.name}</span>
+                                    <span className="text-sm text-gray-500">₦{type.unit_price} per unit</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="quantity" className="text-sm font-medium">Quantity *</Label>
+                          <Input
+                            id="quantity"
+                            type="number"
+                            placeholder="Enter quantity"
+                            value={formData.quantity}
+                            onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
+                            min="1"
+                            className="w-full text-base"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="shift" className="text-sm font-medium">Shift</Label>
+                          <Select
+                            value={formData.shift}
+                            onValueChange={(value: 'morning' | 'night') => setFormData(prev => ({ ...prev, shift: value }))}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent 
+                              position="popper" 
+                              side="bottom" 
+                              sideOffset={4}
+                              className="z-[200] w-full min-w-[var(--radix-select-trigger-width)]"
+                            >
+                              <SelectItem value="morning">
+                                <div className="flex flex-col">
+                                  <span className="font-medium">Morning Shift</span>
+                                  <span className="text-sm text-gray-500">6:00 AM - 2:00 PM</span>
+                                </div>
                               </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="quantity">Quantity</Label>
-                        <Input
-                          id="quantity"
-                          type="number"
-                          placeholder="Enter quantity"
-                          value={formData.quantity}
-                          onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
-                          min="1"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="shift">Shift</Label>
-                        <Select
-                          value={formData.shift}
-                          onValueChange={(value: 'morning' | 'night') => setFormData(prev => ({ ...prev, shift: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="morning">Morning (6AM - 2PM)</SelectItem>
-                            <SelectItem value="night">Night (2PM - 10PM)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="flex gap-3 pt-2">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          className="flex-1"
-                          onClick={() => setIsDialogOpen(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit" className="flex-1" disabled={isAdding}>
-                          {isAdding ? 'Adding...' : 'Add'}
-                        </Button>
-                      </div>
-                    </form>
+                              <SelectItem value="night">
+                                <div className="flex flex-col">
+                                  <span className="font-medium">Night Shift</span>
+                                  <span className="text-sm text-gray-500">2:00 PM - 10:00 PM</span>
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </form>
+                    </div>
+                    
+                    {/* Modal Footer */}
+                    <div className="flex gap-3 p-6 border-t bg-gray-50 rounded-b-xl">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => setIsDialogOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleSubmit}
+                        className="flex-1" 
+                        disabled={isAdding || !formData.bread_type_id || !formData.quantity}
+                      >
+                        {isAdding ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                            Adding...
+                          </>
+                        ) : (
+                          'Add Production'
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}

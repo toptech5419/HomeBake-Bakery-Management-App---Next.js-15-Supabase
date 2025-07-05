@@ -179,97 +179,135 @@ export function SalesClient({ userRole, userId }: SalesClientProps) {
                 <span className="hidden sm:inline">Record Sale</span>
               </Button>
               
-              {/* Mobile-friendly Modal */}
-              {isDialogOpen && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-                  <div 
-                    className="fixed inset-0 bg-black/50" 
-                    onClick={() => setIsDialogOpen(false)}
-                  />
-                  <div className="relative bg-white rounded-t-xl sm:rounded-lg w-full sm:max-w-md p-6 animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 max-h-[90vh] overflow-y-auto">
-                    <h2 className="text-lg font-semibold mb-4">Record Sale</h2>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div>
-                        <Label htmlFor="bread_type">Bread Type</Label>
-                        <Select
-                          value={formData.bread_type_id}
-                          onValueChange={(value) => setFormData(prev => ({ ...prev, bread_type_id: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select bread type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {breadTypes.map((type) => (
-                              <SelectItem key={type.id} value={type.id}>
-                                {type.name} - ₦{type.unit_price}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="quantity">Quantity</Label>
-                        <Input
-                          id="quantity"
-                          type="number"
-                          placeholder="Enter quantity"
-                          value={formData.quantity}
-                          onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
-                          min="1"
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="discount">Discount (₦)</Label>
-                        <Input
-                          id="discount"
-                          type="number"
-                          placeholder="0"
-                          value={formData.discount}
-                          onChange={(e) => setFormData(prev => ({ ...prev, discount: e.target.value }))}
-                          min="0"
-                          step="0.01"
-                        />
-                      </div>
-                      
-                      {/* Sale Preview */}
-                      {selectedBreadType && parseInt(formData.quantity || '0') > 0 && (
-                        <Card className="p-4 bg-gray-50">
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span>Subtotal:</span>
-                              <span>₦{subtotal.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Discount:</span>
-                              <span>-₦{parseFloat(formData.discount || '0').toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between font-bold text-base">
-                              <span>Total:</span>
-                              <span>₦{total.toLocaleString()}</span>
-                            </div>
-                          </div>
-                        </Card>
-                      )}
-                      
-                      <div className="flex gap-3 pt-2">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          className="flex-1"
-                          onClick={() => setIsDialogOpen(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit" className="flex-1" disabled={isAdding}>
-                          {isAdding ? 'Recording...' : 'Record Sale'}
-                        </Button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              )}
+                             {/* Improved Mobile-friendly Modal */}
+               {isDialogOpen && (
+                 <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
+                   <div 
+                     className="fixed inset-0 bg-black/50 backdrop-blur-sm" 
+                     onClick={() => setIsDialogOpen(false)}
+                   />
+                   <div className="relative bg-white rounded-t-xl sm:rounded-xl w-full sm:max-w-md max-h-[90vh] flex flex-col shadow-2xl border">
+                     {/* Modal Header */}
+                     <div className="flex items-center justify-between p-6 border-b">
+                       <h2 className="text-lg font-semibold">Record Sale</h2>
+                       <Button 
+                         variant="ghost" 
+                         size="sm"
+                         onClick={() => setIsDialogOpen(false)}
+                         className="h-8 w-8 p-0"
+                       >
+                         ×
+                       </Button>
+                     </div>
+                     
+                     {/* Modal Content - Scrollable */}
+                     <div className="flex-1 overflow-y-auto p-6">
+                       <form onSubmit={handleSubmit} className="space-y-6">
+                         <div className="space-y-2">
+                           <Label htmlFor="bread_type" className="text-sm font-medium">Bread Type *</Label>
+                           <Select
+                             value={formData.bread_type_id}
+                             onValueChange={(value) => setFormData(prev => ({ ...prev, bread_type_id: value }))}
+                           >
+                             <SelectTrigger className="w-full">
+                               <SelectValue placeholder="Choose bread type" />
+                             </SelectTrigger>
+                             <SelectContent 
+                               position="popper" 
+                               side="bottom" 
+                               sideOffset={4}
+                               className="z-[200] w-full min-w-[var(--radix-select-trigger-width)]"
+                             >
+                               {breadTypes.map((type) => (
+                                 <SelectItem key={type.id} value={type.id}>
+                                   <div className="flex flex-col">
+                                     <span className="font-medium">{type.name}</span>
+                                     <span className="text-sm text-gray-500">₦{type.unit_price} per unit</span>
+                                   </div>
+                                 </SelectItem>
+                               ))}
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="quantity" className="text-sm font-medium">Quantity *</Label>
+                           <Input
+                             id="quantity"
+                             type="number"
+                             placeholder="Enter quantity"
+                             value={formData.quantity}
+                             onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
+                             min="1"
+                             className="w-full text-base"
+                           />
+                         </div>
+                         
+                         <div className="space-y-2">
+                           <Label htmlFor="discount" className="text-sm font-medium">Discount (₦)</Label>
+                           <Input
+                             id="discount"
+                             type="number"
+                             placeholder="0.00"
+                             value={formData.discount}
+                             onChange={(e) => setFormData(prev => ({ ...prev, discount: e.target.value }))}
+                             min="0"
+                             step="0.01"
+                             className="w-full text-base"
+                           />
+                         </div>
+                         
+                         {/* Sale Preview */}
+                         {selectedBreadType && parseInt(formData.quantity || '0') > 0 && (
+                           <Card className="p-4 bg-blue-50 border-blue-200">
+                             <h4 className="font-medium text-blue-900 mb-3">Sale Summary</h4>
+                             <div className="space-y-2 text-sm">
+                               <div className="flex justify-between">
+                                 <span className="text-gray-600">Subtotal:</span>
+                                 <span className="font-medium">₦{subtotal.toLocaleString()}</span>
+                               </div>
+                               <div className="flex justify-between">
+                                 <span className="text-gray-600">Discount:</span>
+                                 <span className="font-medium text-orange-600">-₦{parseFloat(formData.discount || '0').toLocaleString()}</span>
+                               </div>
+                               <div className="flex justify-between font-bold text-base pt-2 border-t border-blue-200">
+                                 <span className="text-blue-900">Total:</span>
+                                 <span className="text-blue-900">₦{total.toLocaleString()}</span>
+                               </div>
+                             </div>
+                           </Card>
+                         )}
+                       </form>
+                     </div>
+                     
+                     {/* Modal Footer */}
+                     <div className="flex gap-3 p-6 border-t bg-gray-50 rounded-b-xl">
+                       <Button 
+                         type="button" 
+                         variant="outline" 
+                         className="flex-1"
+                         onClick={() => setIsDialogOpen(false)}
+                       >
+                         Cancel
+                       </Button>
+                       <Button 
+                         onClick={handleSubmit}
+                         className="flex-1" 
+                         disabled={isAdding || !formData.bread_type_id || !formData.quantity}
+                       >
+                         {isAdding ? (
+                           <>
+                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                             Recording...
+                           </>
+                         ) : (
+                           'Record Sale'
+                         )}
+                       </Button>
+                     </div>
+                   </div>
+                 </div>
+               )}
             </>
           )}
         </div>
