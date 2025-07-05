@@ -61,6 +61,19 @@ const navigationItems: NavigationItem[] = [
     icon: '📈',
     requiredRole: ['owner', 'manager'],
   },
+  // Test pages for debugging
+  {
+    name: 'Test Inventory',
+    href: '/dashboard/test-inventory',
+    icon: '🧪',
+    requiredRole: ['owner', 'manager'],
+  },
+  {
+    name: 'Simple Inventory',
+    href: '/dashboard/inventory-simple',
+    icon: '🔧',
+    requiredRole: ['owner', 'manager'],
+  },
 ];
 
 export function Sidebar({ role }: SidebarProps) {

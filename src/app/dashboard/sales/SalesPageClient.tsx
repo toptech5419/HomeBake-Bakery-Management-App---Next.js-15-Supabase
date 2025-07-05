@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,7 @@ export default function SalesPageClient({
 }: SalesPageClientProps) {
   const { shift: currentShift, setShift: setCurrentShift } = useShift();
   const [salesLogs, setSalesLogs] = useState(initialSalesLogs);
+  const router = useRouter();
 
   // Calculate metrics for today
   const todayStart = new Date();
@@ -103,20 +105,20 @@ export default function SalesPageClient({
       {/* Quick Actions */}
       <div className="flex gap-4">
         {userRole === 'sales_rep' && (
-          <Button onClick={() => window.location.href = '/dashboard/sales/new'}>
+          <Button onClick={() => router.push('/dashboard/sales/new')}>
             <Plus className="h-4 w-4 mr-2" />
             Record Sale
           </Button>
         )}
         <Button 
           variant="outline" 
-          onClick={() => window.location.href = '/dashboard/sales/shift'}
+          onClick={() => router.push('/dashboard/sales/shift')}
         >
           Manage Shift
         </Button>
         <Button 
           variant="outline"
-          onClick={() => window.location.href = '/dashboard/sales/end'}
+          onClick={() => router.push('/dashboard/sales/end')}
         >
           End Shift
         </Button>
