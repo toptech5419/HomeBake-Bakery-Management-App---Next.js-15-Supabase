@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { UserRole } from '@/types';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
+import { PageDebugger } from '@/components/debug/page-debugger';
 import { 
   Package, 
   TrendingDown, 
@@ -33,28 +35,29 @@ export default function InventoryDashboardClient({
   userRole
 }: InventoryDashboardClientProps) {
   const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
 
-  // Use React Query hooks for data fetching with more frequent polling
+  // Use React Query hooks for data fetching with reasonable polling
   const { 
     data: inventoryItems = [], 
     isLoading: inventoryLoading, 
     error: inventoryError,
     dataUpdatedAt: inventoryUpdatedAt,
     refetch: refetchInventory
-  } = useInventory(10000); // Poll every 10 seconds for faster updates
+  } = useInventory(60000); // Poll every 60 seconds to prevent performance issues
 
   const { 
     isLoading: salesLoading 
-  } = useTodaysSales(30000); // Poll every 30 seconds
+  } = useTodaysSales(60000); // Poll every 60 seconds
 
   const { 
     isLoading: productionLoading 
-  } = useTodaysProduction(30000); // Poll every 30 seconds
+  } = useTodaysProduction(60000); // Poll every 60 seconds
 
   const { refreshAll } = useManualRefresh();
 
-  // Enable auto-refresh on visibility change and network reconnection
-  useAutoRefresh(true);
+  // Disable auto-refresh to prevent potential infinite loops
+  // useAutoRefresh(true);
 
   const isLoading = inventoryLoading || salesLoading || productionLoading;
 
@@ -127,6 +130,7 @@ export default function InventoryDashboardClient({
 
   return (
     <div className="space-y-6">
+      <PageDebugger pageName="InventoryDashboard" />
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
@@ -178,7 +182,7 @@ export default function InventoryDashboardClient({
             <Button 
               variant="outline"
               size="sm"
-              onClick={() => window.location.href = '/dashboard/inventory/logs'}
+              onClick={() => router.push('/dashboard/inventory/logs')}
               className="flex-1 sm:flex-none"
             >
               <span className="sm:hidden">Logs</span>
@@ -399,7 +403,7 @@ export default function InventoryDashboardClient({
       <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
         {(userRole === 'manager' || userRole === 'owner') && (
           <Button 
-            onClick={() => window.location.href = '/dashboard/production'}
+            onClick={() => router.push('/dashboard/production')}
             size="lg"
             className="w-full sm:w-auto min-h-[48px]"
           >
@@ -408,7 +412,7 @@ export default function InventoryDashboardClient({
         )}
         {userRole === 'sales_rep' && (
           <Button 
-            onClick={() => window.location.href = '/dashboard/sales'}
+            onClick={() => router.push('/dashboard/sales')}
             size="lg"
             className="w-full sm:w-auto min-h-[48px]"
           >
@@ -417,7 +421,7 @@ export default function InventoryDashboardClient({
         )}
         <Button 
           variant="outline"
-          onClick={() => window.location.href = '/dashboard/reports'}
+          onClick={() => router.push('/dashboard/reports')}
           size="lg"
           className="w-full sm:w-auto min-h-[48px]"
         >
@@ -452,7 +456,7 @@ export default function InventoryDashboardClient({
           <div className="flex items-center gap-2 text-blue-700 text-sm">
             <Clock className="h-4 w-4" />
             <span>
-              Auto-updates every 10 seconds. Last update: {new Date(inventoryUpdatedAt).toLocaleTimeString()}
+              Auto-updates every 60 seconds. Last update: {new Date(inventoryUpdatedAt).toLocaleTimeString()}
             </span>
           </div>
           <div className="text-xs text-blue-600 space-y-1">

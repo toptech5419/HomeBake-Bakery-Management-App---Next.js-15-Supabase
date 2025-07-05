@@ -5,6 +5,9 @@ import { supabase } from '@/lib/supabase/client';
 import type { Database } from '@/types/supabase';
 import { RealtimePostgresChangesPayload, REALTIME_POSTGRES_CHANGES_LISTEN_EVENT } from '@supabase/supabase-js';
 
+// TEMPORARY: Disable realtime subscriptions to prevent browser freezing
+const DISABLE_REALTIME = true;
+
 type Tables = Database['public']['Tables'];
 type TableName = keyof Tables;
 
@@ -33,7 +36,10 @@ export function useRealtimeData<T = any>(
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   
   const subscriptionRef = useRef<any>(null);
+  const channelRef = useRef<any>(null);
   const isSubscribedRef = useRef(false);
+  const isCleaningUpRef = useRef(false);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch initial data
   const fetchInitialData = useCallback(async () => {
@@ -106,44 +112,75 @@ export function useRealtimeData<T = any>(
 
   // Set up real-time subscription
   const setupSubscription = useCallback(() => {
-    if (isSubscribedRef.current) return;
+    // Check if realtime is disabled
+    if (DISABLE_REALTIME) {
+      console.log(`Realtime subscriptions disabled for ${tableName}`);
+      setConnectionStatus('disconnected');
+      return;
+    }
+    
+    // Prevent multiple simultaneous subscriptions
+    if (isSubscribedRef.current || isCleaningUpRef.current) {
+      console.log(`Skipping subscription setup for ${tableName} - already subscribed or cleaning up`);
+      return;
+    }
+
+    // Clear any pending retry timeout
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
 
     try {
       setConnectionStatus('connecting');
       
-      let subscription = supabase
-        .channel(`realtime-${tableName}`)
-        .on(
-          'postgres_changes' as any,
-          {
-            event: options.event || '*',
-            schema: 'public',
-            table: tableName,
-            ...(options.filter && { filter: options.filter })
-          },
-          handleRealtimeChange
-        )
-        .subscribe((status: string) => {
-          console.log(`Subscription status for ${tableName}:`, status);
+      // Create a unique channel name to avoid conflicts
+      const channelName = `realtime-${tableName}-${Date.now()}`;
+      
+      // Create channel
+      const channel = supabase.channel(channelName);
+      channelRef.current = channel;
+      
+      // Set up listener
+      channel.on(
+        'postgres_changes' as any,
+        {
+          event: options.event || '*',
+          schema: 'public',
+          table: tableName,
+          ...(options.filter && { filter: options.filter })
+        },
+        handleRealtimeChange
+      );
+      
+      // Subscribe to channel
+      const subscription = channel.subscribe((status: string) => {
+        console.log(`Subscription status for ${tableName}:`, status);
+        
+        if (status === 'SUBSCRIBED') {
+          setConnectionStatus('connected');
+          isSubscribedRef.current = true;
+          setError(null);
+        } else if (status === 'CHANNEL_ERROR') {
+          setConnectionStatus('error');
+          isSubscribedRef.current = false;
           
-          if (status === 'SUBSCRIBED') {
-            setConnectionStatus('connected');
-            isSubscribedRef.current = true;
-          } else if (status === 'CHANNEL_ERROR') {
-            setConnectionStatus('error');
-            isSubscribedRef.current = false;
-          } else if (status === 'TIMED_OUT') {
-            setConnectionStatus('disconnected');
-            isSubscribedRef.current = false;
-            
-            // Retry connection after delay
-            setTimeout(() => {
-              if (!isSubscribedRef.current) {
-                setupSubscription();
-              }
-            }, 5000);
-          }
-        });
+          // Schedule retry with exponential backoff
+          const retryDelay = Math.min(5000 * Math.pow(2, 0), 30000); // Max 30 seconds
+          console.log(`Will retry subscription for ${tableName} in ${retryDelay}ms`);
+          
+          retryTimeoutRef.current = setTimeout(() => {
+            cleanupSubscription();
+            setupSubscription();
+          }, retryDelay);
+        } else if (status === 'TIMED_OUT') {
+          setConnectionStatus('disconnected');
+          isSubscribedRef.current = false;
+        } else if (status === 'CLOSED') {
+          setConnectionStatus('disconnected');
+          isSubscribedRef.current = false;
+        }
+      });
 
       subscriptionRef.current = subscription;
 
@@ -151,17 +188,39 @@ export function useRealtimeData<T = any>(
       console.error('Error setting up subscription:', err);
       setConnectionStatus('error');
       setError(err instanceof Error ? err : new Error('Subscription error'));
-    }
-  }, [tableName, options, handleRealtimeChange, supabase]);
-
-  // Cleanup subscription
-  const cleanupSubscription = useCallback(() => {
-    if (subscriptionRef.current) {
-      console.log(`Cleaning up subscription for ${tableName}`);
-      subscriptionRef.current.unsubscribe();
-      subscriptionRef.current = null;
       isSubscribedRef.current = false;
     }
+  }, [tableName, options, handleRealtimeChange]);
+
+  // Cleanup subscription
+  const cleanupSubscription = useCallback(async () => {
+    if (isCleaningUpRef.current) {
+      console.log(`Already cleaning up subscription for ${tableName}`);
+      return;
+    }
+    
+    isCleaningUpRef.current = true;
+    
+    // Clear any pending retry timeout
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+    
+    // Unsubscribe from channel
+    if (channelRef.current) {
+      console.log(`Cleaning up subscription for ${tableName}`);
+      try {
+        await supabase.removeChannel(channelRef.current);
+      } catch (err) {
+        console.error(`Error removing channel for ${tableName}:`, err);
+      }
+      channelRef.current = null;
+    }
+    
+    subscriptionRef.current = null;
+    isSubscribedRef.current = false;
+    isCleaningUpRef.current = false;
   }, [tableName]);
 
   // Refetch data manually
@@ -194,22 +253,35 @@ export function useRealtimeData<T = any>(
     };
   }, [setupSubscription, refetch]);
 
-  // Initial setup
+  // Initial setup and cleanup
   useEffect(() => {
-    fetchInitialData();
-    setupSubscription();
-
-    return () => {
-      cleanupSubscription();
+    let mounted = true;
+    
+    const init = async () => {
+      if (!mounted) return;
+      
+      // Fetch initial data
+      await fetchInitialData();
+      
+      // Set up subscription only if component is still mounted
+      if (mounted && !DISABLE_REALTIME) {
+        setupSubscription();
+      } else if (DISABLE_REALTIME) {
+        console.log(`[${tableName}] Realtime subscriptions temporarily disabled`);
+        setConnectionStatus('disconnected');
+      }
     };
-  }, [fetchInitialData, setupSubscription, cleanupSubscription]);
+    
+    init();
 
-  // Cleanup on unmount
-  useEffect(() => {
+    // Cleanup function
     return () => {
-      cleanupSubscription();
+      mounted = false;
+      if (!DISABLE_REALTIME) {
+        cleanupSubscription();
+      }
     };
-  }, [cleanupSubscription]);
+  }, []); // Empty dependency array - only run on mount/unmount
 
   return {
     data,

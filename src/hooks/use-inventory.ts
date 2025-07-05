@@ -58,21 +58,28 @@ async function fetchCurrentInventory(): Promise<InventoryItem[]> {
   // Get all bread types first
   const breadTypes = await fetchBreadTypes();
   
-  // MODIFIED: Get ALL production logs (not just today's) to show complete inventory
+  // MODIFIED: Get production logs from last 30 days with limit for performance
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
   const { data: productionLogs, error: prodError } = await supabase
     .from('production_logs')
     .select('*')
-    .order('created_at', { ascending: false });
+    .gte('created_at', thirtyDaysAgo.toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1000); // Limit to prevent browser freeze
 
   if (prodError) {
     throw new Error('Failed to fetch production logs');
   }
 
-  // MODIFIED: Get ALL sales logs (not just today's) to match production logs
+  // MODIFIED: Get sales logs from last 30 days with limit for performance
   const { data: salesLogs, error: salesError } = await supabase
     .from('sales_logs')
     .select('*')
-    .order('created_at', { ascending: false });
+    .gte('created_at', thirtyDaysAgo.toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1000); // Limit to prevent browser freeze
 
   if (salesError) {
     throw new Error('Failed to fetch sales logs');
@@ -167,9 +174,11 @@ export function useInventory(pollingInterval = 60000) {
     queryFn: fetchCurrentInventory,
     refetchInterval: pollingInterval,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true, // Let global setting handle this
     refetchOnReconnect: true,
     staleTime: 30000,
+    retry: 2, // Reduce retries to prevent hanging
+    retryDelay: 1000,
   });
 }
 
@@ -180,9 +189,11 @@ export function useTodaysSales(pollingInterval = 60000) {
     queryFn: fetchTodaysSales,
     refetchInterval: pollingInterval,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true, // Let global setting handle this
     refetchOnReconnect: true,
     staleTime: 30000,
+    retry: 2, // Reduce retries to prevent hanging
+    retryDelay: 1000,
   });
 }
 
@@ -193,9 +204,11 @@ export function useTodaysProduction(pollingInterval = 60000) {
     queryFn: fetchTodaysProduction,
     refetchInterval: pollingInterval,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true, // Let global setting handle this
     refetchOnReconnect: true,
     staleTime: 30000,
+    retry: 2, // Reduce retries to prevent hanging
+    retryDelay: 1000,
   });
 }
 

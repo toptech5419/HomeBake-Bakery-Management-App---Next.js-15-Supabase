@@ -1,7 +1,6 @@
 import { createServer } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { UserRole } from '@/types';
-import DashboardClient from './DashboardClient';
 
 export default async function DashboardPage() {
   const supabase = await createServer();
@@ -13,7 +12,7 @@ export default async function DashboardPage() {
     return redirect('/login');
   }
 
-  // ENHANCED: Get user role and profile with proper error handling
+  // Get user role and profile with proper error handling
   let role: UserRole = 'sales_rep'; // Default role
   let displayName = user.email?.split('@')[0] || 'User';
 
@@ -59,9 +58,6 @@ export default async function DashboardPage() {
               }
             });
             
-            displayName = user.email?.split('@')[0] || 'Owner';
-            
-            // Redirect owner to owner dashboard
             return redirect('/dashboard/owner');
           } else {
             // User exists but has no profile - redirect to login with error
@@ -98,9 +94,7 @@ export default async function DashboardPage() {
     case 'sales_rep':
       return redirect('/dashboard/sales');
     default:
-      // Unknown role - show basic dashboard
-      break;
+      // Fallback to sales dashboard for unknown roles
+      return redirect('/dashboard/sales');
   }
-
-  return <DashboardClient displayName={displayName} role={role} />;
 } 

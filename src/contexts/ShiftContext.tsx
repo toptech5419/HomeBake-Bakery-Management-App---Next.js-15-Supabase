@@ -23,19 +23,59 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
   const [isAutoMode, setIsAutoMode] = useState(true);
   const [currentShift, setCurrentShift] = useState<ShiftType>(getAutoShift());
 
-  // Update shift automatically - OPTIMIZED with less frequent polling
+  // Update shift automatically - OPTIMIZED with smart checking
   useEffect(() => {
     if (!isAutoMode) return;
 
-    const interval = setInterval(() => {
-      const newShift = getAutoShift();
-      // Only update if shift actually changed to prevent unnecessary re-renders
-      setCurrentShift(prevShift => {
-        return newShift !== prevShift ? newShift : prevShift;
-      });
-    }, 300000); // Check every 5 minutes instead of every minute
+    // Calculate time until next shift change
+    const calculateTimeUntilShiftChange = () => {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentSeconds = now.getSeconds();
+      
+      let hoursUntilChange: number;
+      
+      if (currentHour >= 6 && currentHour < 18) {
+        // Currently morning shift, calculate time until 6 PM
+        hoursUntilChange = 18 - currentHour - 1;
+      } else {
+        // Currently night shift, calculate time until 6 AM
+        if (currentHour >= 18) {
+          hoursUntilChange = (24 - currentHour) + 6 - 1;
+        } else {
+          hoursUntilChange = 6 - currentHour - 1;
+        }
+      }
+      
+      const minutesUntilChange = 60 - currentMinutes;
+      const secondsUntilChange = 60 - currentSeconds;
+      
+      return (hoursUntilChange * 60 * 60 + minutesUntilChange * 60 + secondsUntilChange) * 1000;
+    };
 
-    return () => clearInterval(interval);
+    // Set a timeout for the exact time of shift change
+    const timeUntilChange = calculateTimeUntilShiftChange();
+    
+    const timeout = setTimeout(() => {
+      setCurrentShift(getAutoShift());
+      
+      // After the shift change, set up regular checking every 12 hours
+      const interval = setInterval(() => {
+        setCurrentShift(getAutoShift());
+      }, 12 * 60 * 60 * 1000); // Check every 12 hours
+      
+      // Store interval ID for cleanup
+      (window as any).__shiftInterval = interval;
+    }, timeUntilChange);
+
+    return () => {
+      clearTimeout(timeout);
+      if ((window as any).__shiftInterval) {
+        clearInterval((window as any).__shiftInterval);
+        delete (window as any).__shiftInterval;
+      }
+    };
   }, [isAutoMode]);
 
   // Set shift to auto-detected value when switching to auto mode
