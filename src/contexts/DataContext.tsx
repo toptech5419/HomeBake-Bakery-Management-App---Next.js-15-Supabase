@@ -77,17 +77,33 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       
+      console.log('🔄 Fetching production logs...');
+      
       const { data, error } = await supabase
         .from('production_logs')
         .select('*')
         .gte('created_at', sevenDaysAgo.toISOString())
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Production logs fetched:', data?.length || 0, 'records');
       setProductionLogs(data || []);
     } catch (err) {
-      console.error('Error fetching production logs:', err);
-      setError('Failed to load production data');
+      console.error('💥 Error fetching production logs:', err);
+      
+      // Enhanced error handling for connection issues
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+        setError('Connection failed. Please check your internet connection and try again.');
+      } else if (errorMessage.includes('Invalid API key')) {
+        setError('Database configuration issue. Please contact support.');
+      } else {
+        setError('Failed to load production data. Please try again.');
+      }
     }
   }, []);
 
@@ -97,17 +113,33 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       
+      console.log('🔄 Fetching sales logs...');
+      
       const { data, error } = await supabase
         .from('sales_logs')
         .select('*')
         .gte('created_at', sevenDaysAgo.toISOString())
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Sales logs fetched:', data?.length || 0, 'records');
       setSalesLogs(data || []);
     } catch (err) {
-      console.error('Error fetching sales logs:', err);
-      setError('Failed to load sales data');
+      console.error('💥 Error fetching sales logs:', err);
+      
+      // Enhanced error handling for connection issues
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+        setError('Connection failed. Please check your internet connection and try again.');
+      } else if (errorMessage.includes('Invalid API key')) {
+        setError('Database configuration issue. Please contact support.');
+      } else {
+        setError('Failed to load sales data. Please try again.');
+      }
     }
   }, []);
 

@@ -13,11 +13,13 @@ import {
   Plus,
   Download,
   Bell,
-  Zap
+  Zap,
+  Wifi
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import Link from 'next/link';
+import { ConnectionDiagnostics } from '@/components/ui/connection-diagnostics';
 
 interface OwnerQuickActionsProps {
   alerts?: {
@@ -283,6 +285,17 @@ export function OwnerQuickActions({ alerts }: OwnerQuickActionsProps) {
             </motion.div>
           ))}
         </div>
+      </motion.div>
+
+      {/* Connection Diagnostics */}
+      <motion.div 
+        className="space-y-4"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <h3 className="text-lg font-semibold text-gray-900">System Diagnostics</h3>
+        <ConnectionDiagnostics />
       </motion.div>
 
       {/* Quick Create Actions */}
