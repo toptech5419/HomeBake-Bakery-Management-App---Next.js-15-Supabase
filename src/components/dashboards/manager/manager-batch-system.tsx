@@ -8,8 +8,6 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useRealtimeProduction } from '@/hooks/use-realtime-data';
-import { formatNigeriaDate } from '@/lib/utils/timezone';
 import { 
   Clock,
   Play,
@@ -49,7 +47,6 @@ interface BatchSystemProps {
 }
 
 export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: BatchSystemProps) {
-  const { data: productionData } = useRealtimeProduction();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [showCreateBatch, setShowCreateBatch] = useState(false);
   const [newBatch, setNewBatch] = useState({
@@ -60,41 +57,6 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
     assignedStaff: [] as string[],
     notes: ''
   });
-
-  // Simulate real-time batch updates - OPTIMIZED with less frequent updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBatches(currentBatches => {
-        let hasChanges = false;
-        const updatedBatches = currentBatches.map(batch => {
-          if (batch.status === 'in-progress' && batch.startTime) {
-            const startTime = new Date(batch.startTime);
-            const now = new Date();
-            const elapsedMinutes = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60));
-            const newProgress = Math.min((elapsedMinutes / batch.estimatedDuration) * 100, 100);
-            
-            // Only update if progress actually changed
-            if (Math.abs(newProgress - batch.progress) > 1) {
-              hasChanges = true;
-              
-              // Auto-transition to quality check when near completion
-              if (newProgress >= 95 && batch.status === 'in-progress') {
-                return { ...batch, progress: newProgress, status: 'quality-check' as const };
-              }
-              
-              return { ...batch, progress: newProgress };
-            }
-          }
-          return batch;
-        });
-        
-        // Only update state if there are actual changes
-        return hasChanges ? updatedBatches : currentBatches;
-      });
-    }, 60000); // Reduced frequency: Update every 60 seconds instead of 30
-
-    return () => clearInterval(interval);
-  }, []); // No dependencies to prevent recreation
 
   // Initialize with sample batches - OPTIMIZED to prevent infinite re-renders
   useEffect(() => {
@@ -269,7 +231,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
                     <div>
                       <div className="font-medium">{batch.batchNumber} - {batch.breadType}</div>
                       <div className="text-sm text-muted-foreground">
-                        {batch.quantity} units • Started {batch.startTime && formatNigeriaDate(batch.startTime, 'h:mm a')}
+                        {batch.quantity} units • Started {batch.startTime && new Date(batch.startTime).toLocaleTimeString()}
                       </div>
                     </div>
                     <Badge className={getStatusColor(batch.status)}>

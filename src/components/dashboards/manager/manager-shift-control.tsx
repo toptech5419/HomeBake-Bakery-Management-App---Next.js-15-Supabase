@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 
 import { Textarea } from '@/components/ui/textarea';
 import { useShift } from '@/contexts/ShiftContext';
-import { useRealtimeProduction } from '@/hooks/use-realtime-data';
+import { useData } from '@/contexts/DataContext';
 import { nigeriaTime, formatNigeriaDate } from '@/lib/utils/timezone';
 import { 
   Clock, 
@@ -37,17 +37,17 @@ interface ShiftSummary {
 
 export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps) {
   const { currentShift, isAutoMode, setIsAutoMode, toggleShift } = useShift();
-  const { data: productionData } = useRealtimeProduction();
+  const { productionLogs } = useData();
   const [showHandover, setShowHandover] = useState(false);
   const [handoverNotes, setHandoverNotes] = useState('');
   const [previousShiftSummary, setPreviousShiftSummary] = useState<ShiftSummary | null>(null);
 
   // Calculate current shift metrics
   const currentShiftData = React.useMemo(() => {
-    if (!productionData) return null;
+    if (!productionLogs) return null;
 
     const today = new Date().toISOString().split('T')[0];
-    const currentShiftLogs = productionData.filter(log => 
+    const currentShiftLogs = productionLogs.filter(log => 
       log.shift === currentShift && 
       log.created_at.startsWith(today)
     );
@@ -61,12 +61,12 @@ export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps)
       activeTime: 'Active',
       efficiency: completedBatches > 0 ? Math.round((totalProduction / completedBatches) * 100) / 100 : 0
     };
-  }, [productionData, currentShift]);
+  }, [productionLogs, currentShift]);
 
   // Load previous shift summary
   useEffect(() => {
     const loadPreviousShiftSummary = () => {
-      if (!productionData) return;
+      if (!productionLogs) return;
 
       const today = new Date().toISOString().split('T')[0];
       const previousShift = currentShift === 'morning' ? 'night' : 'morning';
@@ -77,12 +77,12 @@ export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps)
         ? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Yesterday
         : today; // Same day
 
-      const previousShiftLogs = productionData.filter(log => 
-        log.shift === previousShift && 
-        log.created_at.startsWith(targetDate)
-      );
+              const previousShiftLogs = productionLogs.filter(log => 
+          log.shift === previousShift && 
+          log.created_at.startsWith(targetDate)
+        );
 
-      const totalProduction = previousShiftLogs.reduce((sum, log) => sum + log.quantity, 0);
+        const totalProduction = previousShiftLogs.reduce((sum: number, log) => sum + log.quantity, 0);
       const completedBatches = previousShiftLogs.length;
 
       setPreviousShiftSummary({
@@ -98,7 +98,7 @@ export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps)
     };
 
     loadPreviousShiftSummary();
-  }, [productionData, currentShift]);
+  }, [productionLogs, currentShift]);
 
   const handleShiftHandover = async () => {
     try {

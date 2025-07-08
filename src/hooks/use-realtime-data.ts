@@ -5,8 +5,11 @@ import { supabase } from '@/lib/supabase/client';
 import type { Database } from '@/types/supabase';
 import { RealtimePostgresChangesPayload, REALTIME_POSTGRES_CHANGES_LISTEN_EVENT } from '@supabase/supabase-js';
 
-// TEMPORARY: Disable realtime subscriptions to prevent browser freezing
-const DISABLE_REALTIME = true;
+// REALTIME SUBSCRIPTIONS TEMPORARILY DISABLED
+// This hook is kept for future use when realtime subscriptions are re-enabled
+// Currently using DataContext with polling for better stability
+
+const DISABLE_REALTIME = true; // Keep disabled until connection issues are resolved
 
 type Tables = Database['public']['Tables'];
 type TableName = keyof Tables;
