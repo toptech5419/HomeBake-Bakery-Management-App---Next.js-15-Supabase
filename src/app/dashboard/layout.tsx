@@ -1,8 +1,7 @@
 import { createServer } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { UserRole } from '@/types';
-import { Header } from '@/components/layout/header';
-import { Sidebar } from '@/components/layout/sidebar';
+import { DashboardLayoutClient } from '@/components/layout/dashboard-layout-client';
 import { ShiftProvider } from '@/contexts/ShiftContext';
 import { OfflineSyncIndicator } from '@/components/offline-sync-indicator';
 import { DataProvider } from '@/contexts/DataContext';
@@ -48,23 +47,19 @@ export default async function DashboardLayout({
     <DataProvider>
       <ToastProvider>
         <ShiftProvider>
-          <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <Header user={user} displayName={displayName} role={role} />
-            
+          <DashboardLayoutClient 
+            user={user}
+            displayName={displayName}
+            role={role}
+          >
             {/* Offline Sync Indicator */}
             <OfflineSyncIndicator />
             
-            <div className="flex">
-              {/* Sidebar */}
-              <Sidebar role={role} />
-              
-              {/* Main Content */}
-              <main className="flex-1 p-4 md:p-6 lg:p-8">
-                {children}
-              </main>
-            </div>
-          </div>
+            {/* Main Content */}
+            <main className="flex-1 p-4 md:p-6 lg:p-8">
+              {children}
+            </main>
+          </DashboardLayoutClient>
         </ShiftProvider>
       </ToastProvider>
     </DataProvider>

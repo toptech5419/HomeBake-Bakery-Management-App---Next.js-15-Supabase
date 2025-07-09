@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { UserTable } from '@/components/user-table';
 import { useToast } from '@/components/ui/ToastProvider';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, Users } from 'lucide-react';
 import { updateUserRoleAction, deactivateUserAction, reactivateUserAction, deleteUserAction, refetchUsersAction } from './actions';
 
 interface User {
@@ -16,10 +18,12 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
   const [users, setUsers] = useState(initialUsers);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const toast = useToast();
 
   const refetchUsers = async () => {
     try {
+      setIsRefreshing(true);
       setLoadingId('refetch');
       const result = await refetchUsersAction(user);
       if (result.success && Array.isArray(result.users)) {
@@ -35,6 +39,7 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
       toast.error('An unexpected error occurred while fetching users.');
     } finally {
       setLoadingId(null);
+      setIsRefreshing(false);
     }
   };
 
@@ -50,7 +55,7 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
     try {
       const result = await updateUserRoleAction(user, target.id, newRole);
       if (result.success) {
-        toast.success('Role updated!');
+        toast.success('Role updated successfully!');
         await refetchUsers();
       } else {
         toast.error(result.error || 'Failed to update user role.');
@@ -62,13 +67,14 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
       setLoadingAction(null);
     }
   };
+
   const handleDeactivate = async (target: User) => {
     setLoadingId(target.id);
     setLoadingAction('deactivate');
     try {
       const result = await deactivateUserAction(user, target.id);
       if (result.success) {
-        toast.success('User deactivated!');
+        toast.success('User deactivated successfully!');
         await refetchUsers();
       } else {
         toast.error(result.error || 'Failed to deactivate user.');
@@ -80,13 +86,14 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
       setLoadingAction(null);
     }
   };
+
   const handleReactivate = async (target: User) => {
     setLoadingId(target.id);
     setLoadingAction('reactivate');
     try {
       const result = await reactivateUserAction(user, target.id);
       if (result.success) {
-        toast.success('User reactivated!');
+        toast.success('User reactivated successfully!');
         await refetchUsers();
       } else {
         toast.error(result.error || 'Failed to reactivate user.');
@@ -98,6 +105,7 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
       setLoadingAction(null);
     }
   };
+
   const handleDelete = async (target: User) => {
     if (!window.confirm('Delete this user? This will permanently remove their access.')) return;
     setLoadingId(target.id);
@@ -105,7 +113,7 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
     try {
       const result = await deleteUserAction(user, target.id, target.email);
       if (result.success) {
-        toast.success('User deleted and access removed!');
+        toast.success('User deleted and access removed successfully!');
         await refetchUsers();
       } else {
         toast.error(result.error || 'Failed to delete user.');
@@ -118,9 +126,76 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
     }
   };
 
+  const activeUsers = users.filter(u => u.is_active !== false).length;
+  const inactiveUsers = users.filter(u => u.is_active === false).length;
+
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">User Management</h1>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <Users className="w-6 h-6 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+            <p className="text-sm text-gray-600">
+              {users.length} total users • {activeUsers} active • {inactiveUsers} inactive
+            </p>
+          </div>
+        </div>
+        
+        <Button
+          variant="outline"
+          onClick={refetchUsers}
+          disabled={isRefreshing}
+          className="self-start sm:self-auto"
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh'}
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total Users</p>
+              <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+            </div>
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Users className="w-5 h-5 text-blue-600" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Active Users</p>
+              <p className="text-2xl font-bold text-green-600">{activeUsers}</p>
+            </div>
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Users className="w-5 h-5 text-green-600" />
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Inactive Users</p>
+              <p className="text-2xl font-bold text-red-600">{inactiveUsers}</p>
+            </div>
+            <div className="p-2 bg-red-100 rounded-lg">
+              <Users className="w-5 h-5 text-red-600" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* User Table */}
       <UserTable
         users={users}
         currentUser={user}

@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation';
 
 interface SidebarProps {
   role: UserRole;
+  isMobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
 interface NavigationItem {
@@ -63,8 +65,7 @@ const navigationItems: NavigationItem[] = [
   },
 ];
 
-export function Sidebar({ role }: SidebarProps) {
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarProps) {
   const [isNavigating, setIsNavigating] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -85,12 +86,12 @@ export function Sidebar({ role }: SidebarProps) {
     
     // Don't navigate if already on the same page
     if (isActiveLink(href)) {
-      setIsMobileOpen(false);
+      onMobileClose?.();
       return;
     }
     
     setIsNavigating(true);
-    setIsMobileOpen(false);
+    onMobileClose?.();
     
     try {
       await router.push(href);
@@ -104,36 +105,11 @@ export function Sidebar({ role }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="p-2"
-        >
-          <span className="sr-only">Open sidebar</span>
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </Button>
-      </div>
-
       {/* Mobile overlay */}
       {isMobileOpen && (
         <div
           className="lg:hidden fixed inset-0 z-40 bg-gray-600 bg-opacity-75"
-          onClick={() => setIsMobileOpen(false)}
+          onClick={onMobileClose}
         />
       )}
 
@@ -153,14 +129,14 @@ export function Sidebar({ role }: SidebarProps) {
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full pt-16 lg:pt-0">
           {/* Sidebar header */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsMobileOpen(false)}
+              onClick={onMobileClose}
               className="lg:hidden"
             >
               <svg
