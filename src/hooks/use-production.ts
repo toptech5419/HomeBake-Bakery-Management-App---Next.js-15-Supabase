@@ -1,37 +1,20 @@
+"use client";
+
 import { useState } from 'react';
-import { ProductionEntry } from '@/lib/validations/production';
+import type { ProductionEntry } from '@/types';
 
 export function useProduction() {
   const [entries, setEntries] = useState<ProductionEntry[]>([]);
-  const [filters, setFilters] = useState<{ 
-    bread_type_id?: string; 
-    shift?: 'morning' | 'night';
+  const [filters, setFilters] = useState<{
+    breadType?: string;
+    shift?: string;
     date?: string;
   }>({});
 
-  const addEntry = (entry: ProductionEntry) => {
-    setEntries(prev => [...prev, entry]);
-  };
-
-  const removeEntry = (index: number) => {
-    setEntries(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const clearEntries = () => {
-    setEntries([]);
-  };
-
-  const updateFilters = (newFilters: Partial<typeof filters>) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-  };
-
   return {
     entries,
-    addEntry,
-    removeEntry,
-    clearEntries,
+    setEntries,
     filters,
-    updateFilters,
     setFilters,
   };
 } 

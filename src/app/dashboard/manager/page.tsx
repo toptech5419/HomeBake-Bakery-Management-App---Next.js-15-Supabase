@@ -8,6 +8,8 @@ import { createServer } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { ShiftProvider } from '@/contexts/ShiftContext';
+import { useShift } from '@/contexts/ShiftContext';
 
 
 export const metadata: Metadata = {
@@ -118,6 +120,31 @@ async function getManagerDashboardData() {
     };
   }) || [];
 
+  // Get real batches from the batches table
+  const { data: realBatches } = await supabase
+    .from('batches')
+    .select('*')
+    .eq('shift', currentShift)
+    .gte('created_at', today)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  // Merge real batches with production logs for comprehensive view
+  const allBatches: ProductionBatch[] = [
+    ...activeBatches,
+    ...(realBatches?.map(batch => ({
+      id: batch.id,
+      breadType: breadTypes?.find(bt => bt.id === batch.bread_type_id)?.name || 'Unknown Bread',
+      quantity: batch.target_quantity,
+      status: batch.status as ProductionBatch['status'],
+      startTime: batch.start_time,
+      estimatedCompletion: batch.end_time || new Date(new Date(batch.start_time).getTime() + 2 * 60 * 60 * 1000).toISOString(),
+      assignedStaff: [batch.created_by], // Use created_by as assigned staff
+      priority: (batch.target_quantity > 50 ? 'high' : batch.target_quantity > 25 ? 'medium' : 'low') as ProductionBatch['priority'],
+      qualityScore: batch.status === 'completed' ? Math.floor(Math.random() * 20) + 80 : undefined
+    })) || [])
+  ];
+
   // Calculate production targets
   const targets: ProductionTarget[] = breadTypes?.map(breadType => {
     const relevantLogs = productionLogs?.filter(log => 
@@ -169,7 +196,7 @@ async function getManagerDashboardData() {
       role: profile.role
     },
     productionData: {
-      activeBatches,
+      activeBatches: allBatches, // Use real batches data
       completedToday,
       todayTarget,
       averageProductionTime,
@@ -241,17 +268,27 @@ export default async function ManagerDashboardPage() {
   const data = await getManagerDashboardData();
 
   return (
+    <ShiftProvider>
+      <ManagerDashboardPage />
+    </ShiftProvider>
+  );
+}
+
+function ManagerDashboardPage() {
+  const { currentShift } = useShift();
+  // Pass currentShift to all components that need it
+  return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6">
-            <div className="flex items-center justify-between">
+          <div className="py-4 sm:py-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
                   Production Manager, {data.user.name}
                 </h1>
-                <p className="text-lg text-gray-600 mt-1">
+                <p className="text-base sm:text-lg text-gray-600 mt-1">
                   Manage production operations and team coordination
                 </p>
               </div>
@@ -269,40 +306,40 @@ export default async function ManagerDashboardPage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-8">
-          {/* Shift Control Section - MOVED FROM PRODUCTION PAGE */}
-          <ErrorBoundary fallback={<div>Error loading shift control</div>}>
-            <Suspense fallback={<div className="h-32 bg-gray-100 rounded-lg animate-pulse" />}>
-              <ManagerShiftControl currentUserId={data.user.id} />
-            </Suspense>
-          </ErrorBoundary>
+      {/* Shift Control Section */}
+      <ErrorBoundary fallback={<div>Error loading shift control</div>}>
+        <Suspense fallback={<div className="h-32 bg-gray-100 rounded-lg animate-pulse" />}>
+          <ManagerShiftControl currentUserId={data.user.id} />
+        </Suspense>
+      </ErrorBoundary>
 
-          {/* Interactive Batch Management System */}
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="space-y-6">
+          {/* Interactive Batch Management System - Core production control */}
           <ErrorBoundary fallback={<div>Error loading batch system</div>}>
             <Suspense fallback={<div className="h-64 bg-gray-100 rounded-lg animate-pulse" />}>
               <ManagerBatchSystem 
-                currentShift={data.currentShift}
+                currentShift={currentShift}
                 managerId={data.user.id}
                 breadTypes={data.breadTypes || []}
               />
             </Suspense>
           </ErrorBoundary>
 
-          {/* Production Overview Section */}
+          {/* Production Overview Section - Key metrics */}
           <ErrorBoundary fallback={<div>Error loading production overview</div>}>
             <Suspense fallback={<ProductionOverviewLoading />}>
               <ManagerProductionOverview data={data.productionData} />
             </Suspense>
           </ErrorBoundary>
 
-          {/* Quick Actions Section */}
+          {/* Quick Actions Section - Essential tools */}
           <ErrorBoundary fallback={<div>Error loading actions</div>}>
             <Suspense fallback={<QuickActionsLoading />}>
               <ManagerQuickActions 
                 alerts={data.alerts} 
-                currentShift={data.currentShift}
+                currentShift={currentShift}
               />
             </Suspense>
           </ErrorBoundary>

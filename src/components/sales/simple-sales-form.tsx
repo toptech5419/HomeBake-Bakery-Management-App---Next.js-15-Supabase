@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { ShoppingCart, Save, Percent } from 'lucide-react';
 import { insertSalesLog } from '@/lib/sales/actions';
+import { useToast } from '@/components/ui/toast-provider';
 
 interface BreadType {
   id: string;
@@ -20,6 +21,7 @@ interface SalesFormProps {
 }
 
 export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: SalesFormProps) {
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [shift, setShift] = useState<'morning' | 'night'>('morning');
   const [formData, setFormData] = useState<Record<string, { quantity: number; discount: number }>>({});
@@ -52,7 +54,11 @@ export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: Sales
         }));
 
       if (validEntries.length === 0) {
-        alert('Please enter at least one quantity sold greater than 0.');
+        toast({
+          title: 'Validation Error',
+          description: 'Please enter at least one quantity sold greater than 0.',
+          variant: 'destructive'
+        });
         setLoading(false);
         return;
       }
@@ -69,17 +75,28 @@ export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: Sales
       }
 
       if (successCount > 0) {
-        alert(`Successfully saved ${successCount} sales entries!`);
+        toast({
+          title: 'Success!',
+          description: `Successfully saved ${successCount} sales entries!`
+        });
         setFormData({});
         onSuccess?.();
         // Refresh the page to show updated data
         window.location.reload();
       } else {
-        alert('Failed to save any sales entries. Please try again.');
+        toast({
+          title: 'Error',
+          description: 'Failed to save any sales entries. Please try again.',
+          variant: 'destructive'
+        });
       }
     } catch (err) {
       console.error('Error saving sales:', err);
-      alert('Failed to save sales log. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'Failed to save sales log. Please try again.',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }

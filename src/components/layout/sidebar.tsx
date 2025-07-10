@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserRole } from '@/types';
-import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 
 interface SidebarProps {
@@ -133,11 +132,9 @@ export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarPr
           {/* Sidebar header */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={onMobileClose}
-              className="lg:hidden"
+              className="lg:hidden p-2 hover:bg-gray-50 rounded-md transition-colors"
             >
               <svg
                 className="h-6 w-6"
@@ -152,7 +149,7 @@ export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarPr
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            </Button>
+            </button>
           </div>
 
           {/* Navigation menu */}
@@ -185,7 +182,6 @@ export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarPr
           <div className="p-4 border-t border-gray-200">
             <div className="text-xs text-gray-500">
               <p>Role: {role}</p>
-              <p>HomeBake v2.0</p>
             </div>
           </div>
         </div>

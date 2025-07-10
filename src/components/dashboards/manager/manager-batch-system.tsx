@@ -18,27 +18,14 @@ import {
   Users,
   Package,
   Star,
-  ChefHat
+  ChefHat,
+  AlertCircle,
+  Loader2,
+  XCircle
 } from 'lucide-react';
-
-interface Batch {
-  id: string;
-  batchNumber: string;
-  breadType: string;
-  quantity: number;
-  status: 'planning' | 'in-progress' | 'quality-check' | 'completed' | 'paused';
-  startTime?: string;
-  endTime?: string;
-  estimatedDuration: number; // minutes
-  actualDuration?: number; // minutes
-  progress: number; // 0-100
-  assignedStaff: string[];
-  priority: 'low' | 'medium' | 'high';
-  qualityScore?: number;
-  notes?: string;
-  shift: 'morning' | 'night';
-  managerId: string;
-}
+import { useBatches } from '@/hooks/use-batches';
+import { Batch as BatchType } from '@/lib/batches/actions';
+import { useToast } from '@/components/ui/toast-provider';
 
 interface BatchSystemProps {
   currentShift: 'morning' | 'night';
@@ -47,131 +34,234 @@ interface BatchSystemProps {
 }
 
 export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: BatchSystemProps) {
-  const [batches, setBatches] = useState<Batch[]>([]);
+  const { toast } = useToast();
+  const {
+    batches,
+    activeBatches,
+    batchStats,
+    isLoadingBatches,
+    isLoadingActiveBatches,
+    isLoadingStats,
+    isCreatingBatch,
+    isUpdatingBatch,
+    isCompletingBatch,
+    isCancellingBatch,
+    createNewBatch,
+    updateExistingBatch,
+    completeExistingBatch,
+    cancelExistingBatch,
+    generateBatchNumber,
+    batchesError,
+    createBatchError,
+    updateBatchError,
+    completeBatchError,
+    cancelBatchError,
+  } = useBatches();
+
   const [showCreateBatch, setShowCreateBatch] = useState(false);
   const [newBatch, setNewBatch] = useState({
-    breadType: '',
-    quantity: '',
-    priority: 'medium' as 'low' | 'medium' | 'high',
-    estimatedDuration: '120', // 2 hours default
-    assignedStaff: [] as string[],
+    breadTypeId: '',
+    batchNumber: '',
+    targetQuantity: '',
     notes: ''
   });
+  const [isGeneratingBatchNumber, setIsGeneratingBatchNumber] = useState(false);
 
-  // Initialize with sample batches - OPTIMIZED to prevent infinite re-renders
-  useEffect(() => {
-    if (breadTypes.length > 0 && batches.length === 0) {
-      const sampleBatches: Batch[] = [
-        {
-          id: '1',
-          batchNumber: 'B001',
-          breadType: breadTypes[0]?.name || 'White Bread',
-          quantity: 50,
-          status: 'planning', // Changed from 'in-progress' to reduce processing
-          estimatedDuration: 120,
-          progress: 0,
-          assignedStaff: ['John Doe', 'Jane Smith'],
-          priority: 'high',
-          shift: currentShift,
-          managerId,
-        },
-        {
-          id: '2',
-          batchNumber: 'B002',
-          breadType: breadTypes[1]?.name || 'Brown Bread',
-          quantity: 30,
-          status: 'planning', // Simplified initial state
-          estimatedDuration: 100,
-          progress: 0,
-          assignedStaff: ['Mike Johnson'],
-          priority: 'medium',
-          shift: currentShift,
-          managerId,
-        }
-      ];
-      setBatches(sampleBatches);
-    }
-  }, [breadTypes.length]); // Simplified dependencies to prevent re-renders
+  const formRef = React.useRef<HTMLDivElement>(null);
+  const topRef = React.useRef<HTMLDivElement>(null);
 
-  const createBatch = () => {
-    if (!newBatch.breadType || !newBatch.quantity) return;
+  const handleShowCreateBatch = () => {
+    setShowCreateBatch(true);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100); // Wait for form to render
+  };
 
-    const batch: Batch = {
-      id: Date.now().toString(),
-      batchNumber: `B${String(batches.length + 1).padStart(3, '0')}`,
-      breadType: newBatch.breadType,
-      quantity: parseInt(newBatch.quantity),
-      status: 'planning',
-      estimatedDuration: parseInt(newBatch.estimatedDuration),
-      progress: 0,
-      assignedStaff: newBatch.assignedStaff,
-      priority: newBatch.priority,
-      notes: newBatch.notes,
-      shift: currentShift,
-      managerId,
-    };
-
-    setBatches(prev => [...prev, batch]);
-    setNewBatch({
-      breadType: '',
-      quantity: '',
-      priority: 'medium',
-      estimatedDuration: '120',
-      assignedStaff: [],
-      notes: ''
-    });
+  const handleCancelCreateBatch = () => {
     setShowCreateBatch(false);
+    setTimeout(() => {
+      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
-  const updateBatchStatus = (batchId: string, newStatus: Batch['status']) => {
-    setBatches(prev => prev.map(batch => {
-      if (batch.id === batchId) {
-        const updates: Partial<Batch> = { status: newStatus };
-        
-        if (newStatus === 'in-progress' && !batch.startTime) {
-          updates.startTime = new Date().toISOString();
-          updates.progress = 0;
-        } else if (newStatus === 'completed') {
-          updates.endTime = new Date().toISOString();
-          updates.progress = 100;
-          if (batch.startTime) {
-            const duration = Math.floor((new Date().getTime() - new Date(batch.startTime).getTime()) / (1000 * 60));
-            updates.actualDuration = duration;
-          }
-        }
-        
-        return { ...batch, ...updates };
-      }
-      return batch;
-    }));
+  // Generate batch number when bread type is selected
+  useEffect(() => {
+    if (newBatch.breadTypeId && !newBatch.batchNumber) {
+      setIsGeneratingBatchNumber(true);
+      generateBatchNumber(newBatch.breadTypeId)
+        .then(batchNumber => {
+          setNewBatch(prev => ({ ...prev, batchNumber }));
+        })
+        .catch(error => {
+          console.error('Error generating batch number:', error);
+          toast({
+            title: "Error",
+            description: "Failed to generate batch number",
+            variant: "destructive",
+          });
+        })
+        .finally(() => {
+          setIsGeneratingBatchNumber(false);
+        });
+    }
+  }, [newBatch.breadTypeId, generateBatchNumber]);
+
+  const handleCreateBatch = async () => {
+    if (!newBatch.breadTypeId || !newBatch.batchNumber || !newBatch.targetQuantity) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await createNewBatch({
+        bread_type_id: newBatch.breadTypeId,
+        batch_number: newBatch.batchNumber,
+        target_quantity: parseInt(newBatch.targetQuantity),
+        notes: newBatch.notes || undefined,
+      });
+
+      toast({
+        title: "Success",
+        description: "Batch created successfully",
+      });
+
+      setNewBatch({
+        breadTypeId: '',
+        batchNumber: '',
+        targetQuantity: '',
+        notes: ''
+      });
+      setShowCreateBatch(false);
+    } catch (error) {
+      console.error('Error creating batch:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create batch",
+        variant: "destructive",
+      });
+    }
   };
 
-  const getStatusColor = (status: Batch['status']) => {
+  const handleStartBatch = async (batchId: string) => {
+    try {
+      await updateExistingBatch(batchId, { status: 'active' });
+      toast({
+        title: "Success",
+        description: "Batch started successfully",
+      });
+    } catch (error) {
+      console.error('Error starting batch:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start batch",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCompleteBatch = async (batchId: string, actualQuantity: number) => {
+    try {
+      await completeExistingBatch(batchId, actualQuantity);
+      toast({
+        title: "Success",
+        description: "Batch completed successfully",
+      });
+    } catch (error) {
+      console.error('Error completing batch:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete batch",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelBatch = async (batchId: string) => {
+    try {
+      await cancelExistingBatch(batchId);
+      toast({
+        title: "Success",
+        description: "Batch cancelled successfully",
+      });
+    } catch (error) {
+      console.error('Error cancelling batch:', error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel batch",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusColor = (status: BatchType['status']) => {
     switch (status) {
-      case 'planning': return 'bg-gray-100 text-gray-800';
-      case 'in-progress': return 'bg-blue-100 text-blue-800';
-      case 'quality-check': return 'bg-yellow-100 text-yellow-800';
+      case 'active': return 'bg-blue-100 text-blue-800';
       case 'completed': return 'bg-green-100 text-green-800';
-      case 'paused': return 'bg-orange-100 text-orange-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getPriorityColor = (priority: Batch['priority']) => {
-    switch (priority) {
-      case 'high': return 'border-red-500';
-      case 'medium': return 'border-yellow-500';
-      case 'low': return 'border-green-500';
-      default: return 'border-gray-300';
+  const getStatusDisplay = (status: BatchType['status']) => {
+    switch (status) {
+      case 'active': return 'In Progress';
+      case 'completed': return 'Completed';
+      case 'cancelled': return 'Cancelled';
+      default: return 'Unknown';
     }
   };
 
-  const activeBatches = batches.filter(batch => ['in-progress', 'quality-check'].includes(batch.status));
-  const upcomingBatches = batches.filter(batch => batch.status === 'planning');
+  const formatDuration = (startTime: string, endTime?: string) => {
+    const start = new Date(startTime);
+    const end = endTime ? new Date(endTime) : new Date();
+    const duration = Math.floor((end.getTime() - start.getTime()) / (1000 * 60));
+    return `${duration} min`;
+  };
+
+  const calculateProgress = (batch: BatchType) => {
+    if (batch.status === 'completed') return 100;
+    if (batch.status === 'cancelled') return 0;
+    
+    // Calculate progress based on time elapsed vs estimated time
+    const start = new Date(batch.start_time);
+    const now = new Date();
+    const elapsed = now.getTime() - start.getTime();
+    const estimated = batch.target_quantity * 2; // Rough estimate: 2 minutes per unit
+    return Math.min(Math.floor((elapsed / (estimated * 60 * 1000)) * 100), 95);
+  };
+
+  const activeBatchesList = batches.filter(batch => batch.status === 'active');
+  const planningBatches = batches.filter(batch => batch.status === 'active' && !batch.start_time);
   const completedBatches = batches.filter(batch => batch.status === 'completed');
 
+  if (isLoadingBatches) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <span className="ml-2 text-muted-foreground">Loading batches...</span>
+        </div>
+      </Card>
+    );
+  }
+
+  if (batchesError) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center py-8 text-red-600">
+          <AlertCircle className="h-8 w-8 mr-2" />
+          <span>Error loading batches. Please try again.</span>
+        </div>
+      </Card>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={topRef}>
       {/* Batch Overview */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
@@ -184,8 +274,16 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
               {currentShift} shift - Real-time batch management
             </p>
           </div>
-          <Button onClick={() => setShowCreateBatch(true)} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
+          <Button 
+            onClick={handleShowCreateBatch} 
+            className="flex items-center gap-2"
+            disabled={isCreatingBatch}
+          >
+            {isCreatingBatch ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
             New Batch
           </Button>
         </div>
@@ -193,11 +291,11 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">{activeBatches.length}</div>
+            <div className="text-2xl font-bold text-blue-600">{activeBatchesList.length}</div>
             <div className="text-xs text-blue-800">Active Batches</div>
           </div>
           <div className="text-center p-4 bg-yellow-50 rounded-lg">
-            <div className="text-2xl font-bold text-yellow-600">{upcomingBatches.length}</div>
+            <div className="text-2xl font-bold text-yellow-600">{planningBatches.length}</div>
             <div className="text-xs text-yellow-800">Planning Stage</div>
           </div>
           <div className="text-center p-4 bg-green-50 rounded-lg">
@@ -206,7 +304,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
           </div>
           <div className="text-center p-4 bg-purple-50 rounded-lg">
             <div className="text-2xl font-bold text-purple-600">
-              {completedBatches.reduce((sum, batch) => sum + batch.quantity, 0)}
+              {completedBatches.reduce((sum, batch) => sum + batch.actual_quantity, 0)}
             </div>
             <div className="text-xs text-purple-800">Total Units</div>
           </div>
@@ -214,117 +312,138 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
       </Card>
 
       {/* Active Batches */}
-      {activeBatches.length > 0 && (
+      {activeBatchesList.length > 0 && (
         <Card className="p-6">
           <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Timer className="h-5 w-5 text-blue-600" />
-            Active Batches ({activeBatches.length})
+            Active Batches ({activeBatchesList.length})
           </h4>
           <div className="space-y-4">
-            {activeBatches.map(batch => (
-              <div
-                key={batch.id}
-                className={`p-4 border-l-4 bg-white rounded-lg shadow-sm ${getPriorityColor(batch.priority)}`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <div className="font-medium">{batch.batchNumber} - {batch.breadType}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {batch.quantity} units • Started {batch.startTime && new Date(batch.startTime).toLocaleTimeString()}
+            {activeBatchesList.map(batch => {
+              const progress = calculateProgress(batch);
+              const breadTypeName = batch.bread_type?.name || 'Unknown';
+              const createdBy = batch.created_by_user?.email || 'Unknown';
+              
+              return (
+                <div
+                  key={batch.id}
+                  className="p-4 border-l-4 border-blue-500 bg-white rounded-lg shadow-sm"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <div className="font-medium">{batch.batch_number} - {breadTypeName}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {batch.target_quantity} units • Started {new Date(batch.start_time).toLocaleTimeString()}
+                        </div>
                       </div>
+                      <Badge className={getStatusColor(batch.status)}>
+                        {getStatusDisplay(batch.status)}
+                      </Badge>
                     </div>
-                    <Badge className={getStatusColor(batch.status)}>
-                      {batch.status.replace('-', ' ')}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {batch.status === 'in-progress' && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleCompleteBatch(batch.id, batch.target_quantity)}
+                        disabled={isCompletingBatch}
+                      >
+                        {isCompletingBatch ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4" />
+                        )}
+                        Complete
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => updateBatchStatus(batch.id, 'paused')}
+                        onClick={() => handleCancelBatch(batch.id)}
+                        disabled={isCancellingBatch}
                       >
-                        <Pause className="h-4 w-4" />
+                        {isCancellingBatch ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Pause className="h-4 w-4" />
+                        )}
+                        Cancel
                       </Button>
-                    )}
-                    {batch.status === 'quality-check' && (
-                      <Button
-                        size="sm"
-                        onClick={() => updateBatchStatus(batch.id, 'completed')}
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        Complete
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>Progress</span>
-                    <span>{Math.round(batch.progress)}%</span>
-                  </div>
-                  <Progress value={batch.progress} className="h-2" />
-                  
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      {batch.assignedStaff.join(', ') || 'Unassigned'}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {batch.estimatedDuration}min estimated
                     </div>
                   </div>
-                </div>
 
-                {batch.qualityScore && (
-                  <div className="mt-2 flex items-center gap-2 text-sm">
-                    <Star className="h-4 w-4 text-yellow-500" />
-                    Quality Score: {batch.qualityScore}%
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Progress</span>
+                      <span>{progress}%</span>
+                    </div>
+                    <Progress value={progress} className="h-2" />
+                    
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {createdBy}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDuration(batch.start_time, batch.end_time)}
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {batch.notes && (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      <strong>Notes:</strong> {batch.notes}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </Card>
       )}
 
-      {/* Upcoming Batches */}
-      {upcomingBatches.length > 0 && (
+      {/* Planning Batches */}
+      {planningBatches.length > 0 && (
         <Card className="p-6">
           <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Package className="h-5 w-5 text-yellow-600" />
-            Upcoming Batches ({upcomingBatches.length})
+            Planning Batches ({planningBatches.length})
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {upcomingBatches.map(batch => (
-              <div key={batch.id} className="p-4 border rounded-lg bg-gray-50">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-medium">{batch.batchNumber} - {batch.breadType}</div>
-                  <Badge className={getStatusColor(batch.status)}>Planning</Badge>
+            {planningBatches.map(batch => {
+              const breadTypeName = batch.bread_type?.name || 'Unknown';
+              
+              return (
+                <div key={batch.id} className="p-4 border rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium">{batch.batch_number} - {breadTypeName}</div>
+                    <Badge className={getStatusColor(batch.status)}>Planning</Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground mb-3">
+                    {batch.target_quantity} units • Target quantity
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleStartBatch(batch.id)}
+                    className="w-full flex items-center gap-2"
+                    disabled={isUpdatingBatch}
+                  >
+                    {isUpdatingBatch ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
+                    Start Production
+                  </Button>
                 </div>
-                <div className="text-sm text-muted-foreground mb-3">
-                  {batch.quantity} units • {batch.estimatedDuration}min estimated
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => updateBatchStatus(batch.id, 'in-progress')}
-                  className="w-full flex items-center gap-2"
-                >
-                  <Play className="h-4 w-4" />
-                  Start Production
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       )}
 
       {/* Batch Creation Modal */}
       {showCreateBatch && (
-        <Card className="p-6 border-orange-200 bg-orange-50">
+        <Card className="p-6 border-orange-200 bg-orange-50" ref={formRef}>
           <div className="flex items-center gap-2 mb-4">
             <Plus className="h-5 w-5 text-orange-600" />
             <h3 className="text-lg font-semibold text-orange-900">Create New Batch</h3>
@@ -334,13 +453,16 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">Bread Type</label>
-                <Select value={newBatch.breadType} onValueChange={(value) => setNewBatch(prev => ({ ...prev, breadType: value }))}>
+                <Select 
+                  value={newBatch.breadTypeId} 
+                  onValueChange={(value) => setNewBatch(prev => ({ ...prev, breadTypeId: value, batchNumber: '' }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select bread type" />
                   </SelectTrigger>
                   <SelectContent>
                     {breadTypes.map(type => (
-                      <SelectItem key={type.id} value={type.name}>
+                      <SelectItem key={type.id} value={type.id}>
                         {type.name}
                       </SelectItem>
                     ))}
@@ -349,68 +471,85 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Quantity</label>
-                                 <Input
-                   type="number"
-                   inputMode="numeric"
-                   pattern="[0-9]*"
-                   value={newBatch.quantity}
-                   onChange={(e) => setNewBatch(prev => ({ ...prev, quantity: e.target.value }))}
-                   placeholder="Enter quantity"
-                   className="text-lg" // Larger text for mobile
-                 />
+                <label className="text-sm font-medium mb-2 block">Batch Number</label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newBatch.batchNumber}
+                    onChange={(e) => setNewBatch(prev => ({ ...prev, batchNumber: e.target.value }))}
+                    placeholder={isGeneratingBatchNumber ? "Generating..." : "Batch number"}
+                    disabled={isGeneratingBatchNumber}
+                    className="text-lg"
+                  />
+                  {isGeneratingBatchNumber && (
+                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                  )}
+                </div>
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Priority</label>
-                <Select value={newBatch.priority} onValueChange={(value: 'low' | 'medium' | 'high') => setNewBatch(prev => ({ ...prev, priority: value }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low Priority</SelectItem>
-                    <SelectItem value="medium">Medium Priority</SelectItem>
-                    <SelectItem value="high">High Priority</SelectItem>
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium mb-2 block">Target Quantity</label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={newBatch.targetQuantity}
+                  onChange={(e) => setNewBatch(prev => ({ ...prev, targetQuantity: e.target.value }))}
+                  placeholder="Enter quantity"
+                  className="text-lg"
+                />
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Estimated Duration (minutes)</label>
-                                 <Input
-                   type="number"
-                   inputMode="numeric"
-                   pattern="[0-9]*"
-                   value={newBatch.estimatedDuration}
-                   onChange={(e) => setNewBatch(prev => ({ ...prev, estimatedDuration: e.target.value }))}
-                   placeholder="120"
-                   className="text-lg" // Larger text for mobile
-                 />
+                <label className="text-sm font-medium mb-2 block">Notes (Optional)</label>
+                <Input
+                  value={newBatch.notes}
+                  onChange={(e) => setNewBatch(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Special instructions..."
+                  className="text-lg"
+                />
               </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Notes (Optional)</label>
-              <Textarea
-                value={newBatch.notes}
-                onChange={(e) => setNewBatch(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="Special instructions or notes for this batch..."
-                rows={3}
-              />
             </div>
 
             <div className="flex gap-2 pt-2">
-              <Button onClick={createBatch} className="flex-1">
-                Create Batch
+              <Button 
+                onClick={handleCreateBatch} 
+                className="flex-1"
+                disabled={isCreatingBatch || !newBatch.breadTypeId || !newBatch.batchNumber || !newBatch.targetQuantity}
+              >
+                {isCreatingBatch ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Batch'
+                )}
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => setShowCreateBatch(false)}
-                className="flex-1"
+                onClick={handleCancelCreateBatch}
+                className="flex-1 flex items-center justify-center gap-2"
+                disabled={isCreatingBatch}
               >
-                Cancel
+                <XCircle className="h-6 w-6 sm:h-7 sm:w-7 text-red-500" />
+                <span className="hidden xs:inline">Cancel</span>
               </Button>
             </div>
+          </div>
+        </Card>
+      )}
+
+      {/* No batches message */}
+      {batches.length === 0 && !isLoadingBatches && (
+        <Card className="p-6">
+          <div className="text-center py-8">
+            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No batches yet</h3>
+            <p className="text-gray-500 mb-4">Create your first batch to get started with production management.</p>
+            <Button onClick={handleShowCreateBatch}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create First Batch
+            </Button>
           </div>
         </Card>
       )}

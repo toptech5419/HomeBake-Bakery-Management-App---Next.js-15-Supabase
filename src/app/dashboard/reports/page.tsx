@@ -2,7 +2,7 @@ import { createServer } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { UserRole } from '@/types';
 import ReportsClient from './ReportsClient';
-import { getReportData, getBreadTypes } from '@/lib/reports/queries';
+import { getReportData, getBreadTypes, ReportFilters } from '@/lib/reports/queries';
 
 export default async function ReportsPage({
   searchParams
@@ -35,19 +35,24 @@ export default async function ReportsPage({
     return redirect('/login');
   }
 
-  // Only owners and managers can access reports
-  if (user.role !== 'owner' && user.role !== 'manager') {
+  // Allow owners, managers, and sales reps to access reports
+  if (user.role !== 'owner' && user.role !== 'manager' && user.role !== 'sales_rep') {
     return redirect('/dashboard');
   }
 
   // Parse search params for filters
   const params = await searchParams;
-  const filters = {
+  const filters: ReportFilters = {
     startDate: typeof params.startDate === 'string' ? params.startDate : undefined,
     endDate: typeof params.endDate === 'string' ? params.endDate : undefined,
     shift: typeof params.shift === 'string' ? params.shift as 'morning' | 'night' : undefined,
     breadTypeId: typeof params.breadTypeId === 'string' ? params.breadTypeId : undefined,
   };
+
+  // Restrict manager and sales rep to only their data
+  if (user.role === 'manager' || user.role === 'sales_rep') {
+    filters.recordedBy = user.id;
+  }
 
   // Fetch data in parallel
   const [reportData, breadTypes] = await Promise.all([

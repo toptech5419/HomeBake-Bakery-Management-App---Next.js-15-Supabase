@@ -50,6 +50,7 @@ interface ManagerProductionOverviewProps {
     lastUpdate: string;
   };
   loading?: boolean;
+  breadTypes?: Array<{ id: string; name: string; unit_price: number }>;
 }
 
 export function ManagerProductionOverview({ data, loading = false }: ManagerProductionOverviewProps) {

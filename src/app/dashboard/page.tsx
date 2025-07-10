@@ -1,6 +1,7 @@
 import { createServer } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { UserRole } from '@/types';
+import DashboardClient from './DashboardClient';
 
 export default async function DashboardPage() {
   const supabase = await createServer();
@@ -92,9 +93,8 @@ export default async function DashboardPage() {
     case 'manager':
       return redirect('/dashboard/manager');
     case 'sales_rep':
-      return redirect('/dashboard/sales');
     default:
-      // Fallback to sales dashboard for unknown roles
-      return redirect('/dashboard/sales');
+      // Show the main dashboard for sales reps
+      return <DashboardClient userRole={role} displayName={displayName} />;
   }
 } 

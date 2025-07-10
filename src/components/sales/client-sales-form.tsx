@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { ShoppingCart, Save, Percent } from 'lucide-react';
+import { useToast } from '@/components/ui/toast-provider';
 
 interface BreadType {
   id: string;
@@ -13,6 +14,7 @@ interface BreadType {
 }
 
 export default function ClientSalesForm() {
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [shift, setShift] = useState<'morning' | 'night'>('morning');
   const [formData, setFormData] = useState<Record<string, { quantity: number; discount: number }>>({});
@@ -54,7 +56,11 @@ export default function ClientSalesForm() {
         }));
 
       if (validEntries.length === 0) {
-        alert('Please enter at least one quantity sold greater than 0.');
+        toast({
+          title: 'Validation Error',
+          description: 'Please enter at least one quantity sold greater than 0.',
+          variant: 'destructive'
+        });
         setLoading(false);
         return;
       }
@@ -68,14 +74,21 @@ export default function ClientSalesForm() {
         return sum + (entry.quantity_sold * unitPrice * discountMultiplier);
       }, 0);
 
-      alert(`Sales logged successfully!\n\nTotal Items: ${totalQuantity}\nTotal Revenue: $${totalRevenue.toFixed(2)}\nShift: ${shift}`);
+      toast({
+        title: 'Sales Logged Successfully!',
+        description: `Total Items: ${totalQuantity}\nTotal Revenue: $${totalRevenue.toFixed(2)}\nShift: ${shift}`
+      });
       
       // Reset form
       setFormData({});
       
     } catch (err) {
       console.error('Error saving sales:', err);
-      alert('Failed to save sales log. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'Failed to save sales log. Please try again.',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }
@@ -87,7 +100,7 @@ export default function ClientSalesForm() {
         <span className="text-lg font-semibold">Log Sales</span>
         <div className="flex items-center gap-2">
           <Button
-            variant={shift === 'morning' ? 'default' : 'outline'}
+            variant={shift === 'morning' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setShift('morning')}
             disabled={loading}
@@ -95,7 +108,7 @@ export default function ClientSalesForm() {
             Morning
           </Button>
           <Button
-            variant={shift === 'night' ? 'default' : 'outline'}
+            variant={shift === 'night' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setShift('night')}
             disabled={loading}

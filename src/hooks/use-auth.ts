@@ -12,7 +12,7 @@ export function useAuth() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          // Fetch role from users table for consistency with RLS policies
+          // Fetch role from users table
           const { data: userProfile } = await supabase
             .from('users')
             .select('role, name')
@@ -37,7 +37,7 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
-          // Fetch role from users table for consistency with RLS policies
+          // Fetch role from users table
           const { data: userProfile } = await supabase
             .from('users')
             .select('role, name')

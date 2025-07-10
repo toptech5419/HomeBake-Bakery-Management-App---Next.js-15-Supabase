@@ -28,6 +28,9 @@ export function BreadTypeForm({ initialValues, onSubmit, loading }: BreadTypeFor
     defaultValues: initialValues,
   });
 
+  // Determine if this is a new bread type or editing
+  const isEdit = Boolean(initialValues && initialValues.name);
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 bg-white rounded shadow p-4 w-full max-w-md mx-auto">
       <div>
@@ -80,13 +83,13 @@ export function BreadTypeForm({ initialValues, onSubmit, loading }: BreadTypeFor
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-primary text-white py-2 rounded hover:bg-primary/90 transition flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
         aria-busy={loading}
       >
         {loading ? (
           <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-2"></span>
         ) : null}
-        {loading ? 'Saving...' : 'Save Bread Type'}
+        {loading ? (isEdit ? 'Saving...' : 'Adding...') : (isEdit ? 'Update Bread Type' : 'Add Bread Type')}
       </button>
     </form>
   );

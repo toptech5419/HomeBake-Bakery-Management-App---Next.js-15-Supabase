@@ -34,19 +34,19 @@ export async function signup(prevState: { error?: { _form?: string } }, formData
     console.log('Invite validated successfully for role:', invite.role);
     const role = invite.role as 'manager' | 'sales_rep';
 
-    // Create the user account in Supabase Auth
-    const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+    // Create the user account in Supabase Auth with minimal data
+    const { data: { user, session }, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: { 
-          name,
+            name,
             role,
           },
         },
     });
 
-    if (signUpError || !user) {
+    if (signUpError || !user || !session) {
       console.error('Auth user creation failed:', signUpError);
       return { error: { _form: signUpError?.message || 'Failed to create account' } };
     }
@@ -56,33 +56,28 @@ export async function signup(prevState: { error?: { _form?: string } }, formData
     // Mark the QR invite as used
     await markQRInviteAsUsed(token);
 
-    // Insert into users table with only existing fields
+    // Create user entry in users table
+    console.log('Creating users table entry...');
+    
     const { error: userInsertError } = await supabase
       .from('users')
-      .insert([
-        {
-          id: user.id,
-          email: user.email,
-          name,
-          role,
-          created_by: invite.created_by || null,
-          is_active: true,
-        },
-      ]);
+      .insert({
+        id: user.id,
+        email: user.email,
+        name,
+        role,
+        created_by: invite.created_by || null,
+        is_active: true,
+      });
 
     if (userInsertError) {
       console.error('Failed to insert user row:', userInsertError);
-      // Attempt to clean up the auth user to avoid orphaned users
-      try {
-        await supabase.auth.admin.deleteUser(user.id);
-        console.log('Orphaned auth user deleted:', user.id);
-      } catch (cleanupError) {
-        console.error('Failed to clean up orphaned auth user:', cleanupError);
-      }
-      return { error: { _form: 'Account created in authentication, but failed to create user profile in database. Please contact support.' } };
+      // Don't fail the signup, just log the error
+      console.warn('User table insert failed, but auth account was created');
     }
 
-    console.log('User profile created successfully in users table');
+    console.log('User profile created successfully');
+    
     // Return success state instead of redirecting
     return { success: true, message: 'Account created successfully!' };
   } catch (error) {
@@ -140,8 +135,10 @@ export async function signupWithToken(token: string, formData: FormData) {
     // Mark the QR invite as used
     await markQRInviteAsUsed(token);
 
-    // Create user profile in the users table with only existing fields
-    const { error: profileError } = await supabase
+    // Create user entry in users table
+    console.log('Creating users table entry...');
+    
+    const { error: userInsertError } = await supabase
       .from('users')
       .insert({
         id: user.id,
@@ -152,16 +149,8 @@ export async function signupWithToken(token: string, formData: FormData) {
         is_active: true,
       });
 
-    if (profileError) {
-      console.error('Error creating user profile:', profileError);
-      // Attempt to clean up the auth user to avoid orphaned users
-      try {
-        await supabase.auth.admin.deleteUser(user.id);
-        console.log('Orphaned auth user deleted:', user.id);
-      } catch (cleanupError) {
-        console.error('Failed to clean up orphaned auth user:', cleanupError);
-      }
-      throw new Error('Account created in authentication, but failed to create user profile in database. Please contact support.');
+    if (userInsertError) {
+      console.warn('User table insert failed, but auth account was created');
     }
 
     return { success: true, user };

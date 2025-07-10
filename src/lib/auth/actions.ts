@@ -27,7 +27,7 @@ export async function login(prevState: { error?: string }, formData: FormData) {
     return { error: 'Authentication failed. Please try again.' }
   }
 
-  // Fetch or create user profile
+  // Fetch user profile from users table
   let userRole: UserRole = 'sales_rep'; // Default role
   let displayName = authData.user.email?.split('@')[0] || 'User';
 
@@ -52,23 +52,8 @@ export async function login(prevState: { error?: string }, formData: FormData) {
             .select('*', { count: 'exact', head: true });
 
           if (count === 0 || count === null) {
-            // First user gets owner role
+            // First user gets owner role - trigger will handle creation
             userRole = 'owner';
-            
-            // Create profile for first user
-            const { error: insertError } = await supabase
-              .from('users')
-              .insert({
-                id: authData.user.id,
-                email: authData.user.email!,
-                name: authData.user.email?.split('@')[0] || 'Owner',
-                role: 'owner'
-              });
-
-            if (insertError) {
-              console.warn('Failed to create owner profile:', insertError);
-            }
-            
             displayName = authData.user.email?.split('@')[0] || 'Owner';
           } else {
             return { error: 'User profile not found. Please contact your bakery owner for access.' }

@@ -2,6 +2,9 @@ import { createServer } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { UserRole } from '@/types';
 import SalesNewClient from './SalesNewClient';
+import dynamic from 'next/dynamic';
+
+const SalesNewPageClient = dynamic(() => import('./SalesNewPageClient'), { ssr: false });
 
 export default async function SalesNewPage() {
   const supabase = await createServer();
@@ -15,7 +18,6 @@ export default async function SalesNewPage() {
 
   // Get user role
   let role = user.user_metadata?.role as UserRole;
-  
   if (!role) {
     try {
       const { data: profile } = await supabase
@@ -23,7 +25,6 @@ export default async function SalesNewPage() {
         .select('role')
         .eq('id', user.id)
         .single();
-      
       role = profile?.role as UserRole;
     } catch {
       role = 'sales_rep'; // Default role
@@ -44,19 +45,19 @@ export default async function SalesNewPage() {
   // Fetch current inventory by calculating from production and sales
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const { data: todayProduction = [] } = await supabase
     .from('production_logs')
     .select('bread_type_id, quantity')
     .gte('created_at', today.toISOString());
-    
+
   const { data: todaySales = [] } = await supabase
     .from('sales_logs')
     .select('bread_type_id, quantity')
     .gte('created_at', today.toISOString());
 
   return (
-    <SalesNewClient 
+    <SalesNewPageClient
       breadTypes={breadTypes}
       todayProduction={todayProduction}
       todaySales={todaySales}

@@ -11,6 +11,7 @@ export * from './use-production';
 export * from './use-sales';
 export * from './use-shift';
 export * from './use-inventory';
+export * from './use-batches';
 
 // Offline functionality hooks
 export * from './use-offline';

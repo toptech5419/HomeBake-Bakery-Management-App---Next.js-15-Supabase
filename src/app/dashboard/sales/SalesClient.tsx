@@ -6,7 +6,7 @@ import { MobileLoading } from '@/components/ui/mobile-loading';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, RefreshCw, Plus, DollarSign } from 'lucide-react';
+import { ShoppingCart, RefreshCw, Plus, DollarSign, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/components/ui/toast-provider';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import Link from 'next/link';
 
 interface SalesClientProps {
   userRole: string;
@@ -159,9 +160,16 @@ export function SalesClient({ userRole, userId }: SalesClientProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Sales</h1>
-          <p className="text-muted-foreground">Record bread sales</p>
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard">
+            <Button variant="outline" size="icon" className="h-8 w-8">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold">Sales</h1>
+            <p className="text-muted-foreground">Record bread sales</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button

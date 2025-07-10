@@ -284,13 +284,13 @@ export default async function OwnerDashboardPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6">
-            <div className="flex items-center justify-between">
+          <div className="py-4 sm:py-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
                   Welcome back, {data.user.name}
                 </h1>
-                <p className="text-lg text-gray-600 mt-1">
+                <p className="text-base sm:text-lg text-gray-600 mt-1">
                   Here&apos;s your bakery&apos;s performance overview
                 </p>
               </div>
@@ -306,26 +306,19 @@ export default async function OwnerDashboardPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-8">
-          {/* Metrics Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="space-y-6">
+          {/* Metrics Section - Core business overview */}
           <ErrorBoundary fallback={<div>Error loading metrics</div>}>
             <Suspense fallback={<MetricsLoading />}>
               <OwnerMetrics data={data.metrics} />
             </Suspense>
           </ErrorBoundary>
 
-          {/* Quick Actions Section */}
+          {/* Quick Actions Section - Essential management tools */}
           <ErrorBoundary fallback={<div>Error loading actions</div>}>
             <Suspense fallback={<QuickActionsLoading />}>
               <OwnerQuickActions alerts={data.alerts} />
-            </Suspense>
-          </ErrorBoundary>
-
-          {/* Activity Feed Section */}
-          <ErrorBoundary fallback={<div>Error loading activity feed</div>}>
-            <Suspense fallback={<ActivityFeedLoading />}>
-              <OwnerActivityFeed activities={data.activities} />
             </Suspense>
           </ErrorBoundary>
         </div>

@@ -4,9 +4,10 @@ import React, { createContext, useContext, useState, useCallback, useRef } from 
 import { Toast, ToastMessage } from "./Toast";
 
 interface ToastContextType {
-  success: (message: string) => void;
-  error: (message: string) => void;
-  info: (message: string) => void;
+  success: (message: string, title?: string, duration?: number) => void;
+  error: (message: string, title?: string, duration?: number) => void;
+  info: (message: string, title?: string, duration?: number) => void;
+  warning: (message: string, title?: string, duration?: number) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -23,27 +24,48 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const addToast = useCallback((type: ToastMessage["type"], message: string) => {
+  const addToast = useCallback((
+    type: ToastMessage["type"], 
+    message: string, 
+    title?: string, 
+    duration?: number
+  ) => {
     const id = Math.random().toString(36).slice(2);
-    setToasts((toasts) => [...toasts, { id, type, message }]);
-    timers.current[id] = setTimeout(() => removeToast(id), 3000);
+    const toast: ToastMessage = { 
+      id, 
+      type, 
+      message, 
+      title, 
+      duration: duration || 4000 
+    };
+    
+    setToasts((toasts) => [...toasts, toast]);
+    
+    // Auto-remove after duration (handled by Toast component)
+    if (duration !== 0) { // 0 means persistent
+      timers.current[id] = setTimeout(() => removeToast(id), duration || 4000);
+    }
   }, [removeToast]);
 
   const contextValue: ToastContextType = {
-    success: (msg) => addToast("success", msg),
-    error: (msg) => addToast("error", msg),
-    info: (msg) => addToast("info", msg),
+    success: (msg, title, duration) => addToast("success", msg, title, duration),
+    error: (msg, title, duration) => addToast("error", msg, title, duration),
+    info: (msg, title, duration) => addToast("info", msg, title, duration),
+    warning: (msg, title, duration) => addToast("warning", msg, title, duration),
   };
 
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
-      <div className="fixed z-50 top-6 right-6 flex flex-col gap-2">
+      {/* Mobile-first positioning: bottom on mobile, top-right on desktop */}
+      <div className="fixed z-50 bottom-4 left-4 right-4 sm:bottom-auto sm:top-4 sm:right-4 sm:left-auto flex flex-col gap-3 max-w-sm">
         {toasts.map((toast) => (
           <Toast
             key={toast.id}
             message={toast.message}
             type={toast.type}
+            title={toast.title}
+            duration={toast.duration}
             onClose={() => removeToast(toast.id)}
           />
         ))}

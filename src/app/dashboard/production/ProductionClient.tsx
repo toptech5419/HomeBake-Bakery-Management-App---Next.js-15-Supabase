@@ -6,7 +6,7 @@ import { MobileLoading, SkeletonCard } from '@/components/ui/mobile-loading';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Package, TrendingUp, RefreshCw, Plus } from 'lucide-react';
+import { Package, TrendingUp, RefreshCw, Plus, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/components/ui/toast-provider';
 import { cn } from '@/lib/utils';
@@ -144,9 +144,16 @@ export function ProductionClient({ userRole, userId }: ProductionClientProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Production</h1>
-          <p className="text-muted-foreground">Track bread production</p>
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard">
+            <Button variant="outline" size="icon" className="h-8 w-8">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold">Production</h1>
+            <p className="text-muted-foreground">Track bread production</p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button

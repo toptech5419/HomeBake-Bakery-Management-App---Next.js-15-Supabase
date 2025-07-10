@@ -1,18 +1,10 @@
-'use client';
+"use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { fetchDashboardData, getRoleBasedMetrics } from '@/lib/dashboard/actions';
-import { DashboardMetrics } from '@/lib/dashboard/queries';
+import { supabase } from '@/lib/supabase/client';
+import type { DashboardMetrics } from '@/types';
 
-interface UseDashboardReturn {
-  metrics: DashboardMetrics | null;
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-  refreshMetrics: () => Promise<void>;
-}
-
-export function useDashboard(): UseDashboardReturn {
+export function useDashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,35 +13,40 @@ export function useDashboard(): UseDashboardReturn {
     try {
       setIsLoading(true);
       setError(null);
-      
-      const result = await fetchDashboardData();
-      
-      if (result.success && result.data) {
-        setMetrics(result.data);
-      } else {
-        setError(result.error || 'Failed to fetch dashboard data');
-      }
+
+      // Fetch sales metrics
+      const { data: salesData, error: salesError } = await supabase
+        .from('sales_logs')
+        .select('quantity, unit_price, discount')
+        .gte('created_at', new Date().toISOString().split('T')[0]);
+
+      if (salesError) throw salesError;
+
+      const totalSales = salesData?.reduce((sum, sale) => {
+        const revenue = (sale.unit_price || 0) * sale.quantity - (sale.discount || 0);
+        return sum + revenue;
+      }, 0) || 0;
+
+      // Fetch production metrics
+      const { data: productionData, error: productionError } = await supabase
+        .from('production_logs')
+        .select('quantity')
+        .gte('created_at', new Date().toISOString().split('T')[0]);
+
+      if (productionError) throw productionError;
+
+      const totalProduction = productionData?.reduce((sum, prod) => sum + prod.quantity, 0) || 0;
+
+      setMetrics({
+        totalSales,
+        totalProduction,
+        salesCount: salesData?.length || 0,
+        productionCount: productionData?.length || 0,
+      });
     } catch (err) {
-      setError('An unexpected error occurred');
-      console.error('Error fetching dashboard metrics:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch metrics');
     } finally {
       setIsLoading(false);
-    }
-  }, []);
-
-  const refetch = useCallback(async () => {
-    await fetchMetrics();
-  }, [fetchMetrics]);
-
-  const refreshMetrics = useCallback(async () => {
-    // Quick refresh without full loading state
-    try {
-      const result = await fetchDashboardData();
-      if (result.success && result.data) {
-        setMetrics(result.data);
-      }
-    } catch (err) {
-      console.error('Error refreshing metrics:', err);
     }
   }, []);
 
@@ -57,59 +54,51 @@ export function useDashboard(): UseDashboardReturn {
     fetchMetrics();
   }, [fetchMetrics]);
 
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isLoading) {
-        refreshMetrics();
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [isLoading, refreshMetrics]);
-
-  return {
-    metrics,
-    isLoading,
-    error,
-    refetch,
-    refreshMetrics,
-  };
+  return { metrics, isLoading, error, refetch: fetchMetrics };
 }
 
-export function useRoleMetrics(role: string) {
+export function useManagerDashboard() {
   const [metrics, setMetrics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRoleMetrics = useCallback(async () => {
+  const fetchMetrics = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      const result = await getRoleBasedMetrics(role);
-      
-      if (result.success && result.data) {
-        setMetrics(result.data);
-      } else {
-        setError(result.error || 'Failed to fetch role metrics');
-      }
+
+      // Fetch manager-specific metrics
+      const { data: productionData, error: productionError } = await supabase
+        .from('production_logs')
+        .select('quantity, shift')
+        .gte('created_at', new Date().toISOString().split('T')[0]);
+
+      if (productionError) throw productionError;
+
+      const morningProduction = productionData
+        ?.filter(prod => prod.shift === 'morning')
+        .reduce((sum, prod) => sum + prod.quantity, 0) || 0;
+
+      const nightProduction = productionData
+        ?.filter(prod => prod.shift === 'night')
+        .reduce((sum, prod) => sum + prod.quantity, 0) || 0;
+
+      setMetrics({
+        totalProduction: morningProduction + nightProduction,
+        morningProduction,
+        nightProduction,
+        productionCount: productionData?.length || 0,
+      });
     } catch (err) {
-      setError('An unexpected error occurred');
-      console.error('Error fetching role metrics:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch metrics');
     } finally {
       setIsLoading(false);
     }
-  }, [role]);
+  }, []);
 
   useEffect(() => {
-    fetchRoleMetrics();
-  }, [fetchRoleMetrics]);
+    fetchMetrics();
+  }, [fetchMetrics]);
 
-  return {
-    metrics,
-    isLoading,
-    error,
-    refetch: fetchRoleMetrics,
-  };
+  return { metrics, isLoading, error, refetch: fetchMetrics };
 }
