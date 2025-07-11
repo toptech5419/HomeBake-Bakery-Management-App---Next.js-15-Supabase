@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "sonner";
 import PWAWrapper from "@/components/pwa/pwa-wrapper";
 import { Providers } from "@/providers/providers";
 import { cn } from "@/lib/utils";
+import { EnhancedErrorBoundary } from "@/components/ui/error-boundary-enhanced";
+import { OptimizedToastProvider } from "@/components/ui/toast-optimized";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -97,19 +98,15 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className={cn(geistSans.variable, geistMono.variable, "font-sans antialiased")}>
-        <Providers>
-          <PWAWrapper>
-            {children}
-          </PWAWrapper>
-        </Providers>
-        <Toaster 
-          position="top-right"
-          richColors
-          closeButton
-          toastOptions={{
-            duration: 4000,
-          }}
-        />
+        <EnhancedErrorBoundary componentName="RootLayout" showDetails={process.env.NODE_ENV === 'development'}>
+          <OptimizedToastProvider>
+            <Providers>
+              <PWAWrapper>
+                {children}
+              </PWAWrapper>
+            </Providers>
+          </OptimizedToastProvider>
+        </EnhancedErrorBoundary>
       </body>
     </html>
   );

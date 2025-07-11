@@ -6,15 +6,17 @@ import { ConnectionStatus } from '@/components/ui/connection-status';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, RefreshCw, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { Package, RefreshCw, TrendingUp, TrendingDown, Clock, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { useData } from '@/contexts/DataContext';
+import { useAuth } from '@/hooks/use-auth'; // Use the existing auth hook
 
 export function InventoryClient() {
   const { inventory, totalValue, totalAvailable, lastUpdated } = useInventory();
   const { isLoading, error, refreshData, connectionStatus } = useData();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { user } = useAuth(); // Add this to get user role
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -56,6 +58,38 @@ export function InventoryClient() {
   const lowStockItems = inventory.filter(item => item.available > 0 && item.available < 20);
   const outOfStockItems = inventory.filter(item => item.available <= 0);
 
+  // Role-based quick actions
+  const getQuickActions = () => {
+    const actions = [];
+    
+    if (user?.role === 'manager' || user?.role === 'owner') {
+      actions.push({
+        label: 'Log Production',
+        href: '/dashboard/production',
+        variant: 'default' as const,
+        icon: <TrendingUp className="h-4 w-4" />
+      });
+    }
+    
+    if (user?.role === 'sales_rep') {
+      actions.push({
+        label: 'Record Sale',
+        href: '/dashboard/sales/new',
+        variant: 'default' as const,
+        icon: <TrendingDown className="h-4 w-4" />
+      });
+    }
+    
+    actions.push({
+      label: 'View Reports',
+      href: '/dashboard/reports',
+      variant: 'outline' as const,
+      icon: <Clock className="h-4 w-4" />
+    });
+    
+    return actions;
+  };
+
   return (
     <div className="space-y-4 pb-6">
       {/* Connection Status */}
@@ -92,130 +126,120 @@ export function InventoryClient() {
       </div>
 
       {/* Enhanced Summary Cards */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4">
-          <div className="text-2xl font-bold text-green-600">₦{totalValue.toLocaleString()}</div>
-          <div className="text-sm text-muted-foreground">Total Value</div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Total Stock</p>
+              <p className="text-2xl font-bold">{totalAvailable}</p>
+            </div>
+            <Package className="h-8 w-8 text-blue-600" />
+          </div>
         </Card>
+        
         <Card className="p-4">
-          <div className="text-2xl font-bold">{totalAvailable}</div>
-          <div className="text-sm text-muted-foreground">Units Available</div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Total Value</p>
+              <p className="text-2xl font-bold">₦{totalValue.toLocaleString()}</p>
+            </div>
+            <TrendingUp className="h-8 w-8 text-green-600" />
+          </div>
         </Card>
+        
         <Card className="p-4">
-          <div className="text-2xl font-bold text-orange-600">{lowStockItems.length}</div>
-          <div className="text-sm text-muted-foreground">Low Stock</div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Low Stock</p>
+              <p className="text-2xl font-bold text-orange-600">{lowStockItems.length}</p>
+            </div>
+            <AlertTriangle className="h-8 w-8 text-orange-600" />
+          </div>
         </Card>
+        
         <Card className="p-4">
-          <div className="text-2xl font-bold text-red-600">{outOfStockItems.length}</div>
-          <div className="text-sm text-muted-foreground">Out of Stock</div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Out of Stock</p>
+              <p className="text-2xl font-bold text-red-600">{outOfStockItems.length}</p>
+            </div>
+            <TrendingDown className="h-8 w-8 text-red-600" />
+          </div>
         </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="flex flex-wrap gap-2">
+        {getQuickActions().map((action, index) => (
+          <Button
+            key={index}
+            variant={action.variant}
+            size="sm"
+            onClick={() => window.location.href = action.href}
+            className="flex items-center gap-2"
+          >
+            {action.icon}
+            {action.label}
+          </Button>
+        ))}
       </div>
 
       {/* Inventory List */}
-      <Card>
-        <div className="p-4 border-b">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold">Stock Levels</h3>
-              <p className="text-sm text-muted-foreground">Based on production and sales</p>
-            </div>
-            {inventory.length > 0 && (
-              <Badge className="text-xs bg-gray-100 text-gray-800">
-                {inventory.length} types
-              </Badge>
-            )}
-          </div>
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Stock Levels</h2>
+          <Badge variant="secondary">
+            {inventory.length} items
+          </Badge>
         </div>
-        <div className="divide-y">
-          {sortedInventory.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
-              <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium mb-2">No inventory data available</p>
-              <p className="text-sm">Production and sales data will appear here once recorded</p>
-            </div>
-          ) : (
-            sortedInventory.map((item) => {
-              const stockStatus = item.available <= 0 ? 'out' : item.available < 20 ? 'low' : 'good';
-              const trend = item.produced > item.sold ? 'up' : 'down';
-              
-              return (
-                <div key={item.breadType.id} className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-medium truncate">{item.breadType.name}</h4>
-                        {stockStatus === 'out' && (
-                          <Badge className="bg-red-100 text-red-800 text-xs shrink-0">Out of Stock</Badge>
-                        )}
-                        {stockStatus === 'low' && (
-                          <Badge className="bg-orange-100 text-orange-800 text-xs shrink-0">Low Stock</Badge>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-3 gap-3 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Produced:</span>
-                          <div className="font-medium">{item.produced}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Sold:</span>
-                          <div className="font-medium">{item.sold}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Value:</span>
-                          <div className="font-medium">₦{item.value.toLocaleString()}</div>
-                        </div>
-                      </div>
+        
+        <div className="space-y-3">
+          {sortedInventory.map((item) => {
+            const stockStatus = item.available <= 0 ? 'out' : item.available < 20 ? 'low' : 'good';
+            const trend = item.produced > item.sold ? 'up' : 'down';
+            
+            return (
+              <div key={item.breadType.id} className="p-4 border rounded-lg">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-medium truncate">{item.breadType.name}</h4>
+                      {stockStatus === 'out' && (
+                        <Badge className="bg-red-100 text-red-800 text-xs shrink-0">Out of Stock</Badge>
+                      )}
+                      {stockStatus === 'low' && (
+                        <Badge className="bg-orange-100 text-orange-800 text-xs shrink-0">Low Stock</Badge>
+                      )}
                     </div>
-                    <div className="text-right ml-4">
-                      <div className={cn(
-                        "text-2xl font-bold",
-                        stockStatus === 'out' ? 'text-red-600' : 
-                        stockStatus === 'low' ? 'text-orange-600' : 
-                        'text-green-600'
-                      )}>
-                        {item.available}
+                    <div className="grid grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Available:</span>
+                        <div className="font-medium">{item.available}</div>
                       </div>
-                      <div className="flex items-center justify-end gap-1 text-sm text-muted-foreground">
-                        {trend === 'up' ? (
-                          <TrendingUp className="h-3 w-3 text-green-600" />
-                        ) : (
-                          <TrendingDown className="h-3 w-3 text-red-600" />
-                        )}
-                        <span className="text-xs">Available</span>
+                      <div>
+                        <span className="text-muted-foreground">Produced:</span>
+                        <div className="font-medium">{item.produced}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Value:</span>
+                        <div className="font-medium">₦{item.value.toLocaleString()}</div>
                       </div>
                     </div>
                   </div>
+                  
+                  <div className="flex items-center gap-2 ml-4">
+                    {trend === 'up' ? (
+                      <TrendingUp className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4 text-red-600" />
+                    )}
+                  </div>
                 </div>
-              );
-            })
-          )}
+              </div>
+            );
+          })}
         </div>
       </Card>
-
-      {/* Quick Stats Footer for Mobile */}
-      <div className="md:hidden bg-gray-50 rounded-lg p-4">
-        <div className="text-center">
-          <div className="text-sm text-muted-foreground mb-1">
-            {lowStockItems.length > 0 && (
-              <span className="text-orange-600">⚠️ {lowStockItems.length} items low</span>
-            )}
-            {outOfStockItems.length > 0 && (
-              <>
-                {lowStockItems.length > 0 && <span className="mx-2">•</span>}
-                <span className="text-red-600">🚫 {outOfStockItems.length} out of stock</span>
-              </>
-            )}
-            {lowStockItems.length === 0 && outOfStockItems.length === 0 && (
-              <span className="text-green-600">✅ All items in stock</span>
-            )}
-          </div>
-          {lastUpdated && (
-            <div className="text-xs text-muted-foreground">
-              Last synced: {lastUpdated.toLocaleString()}
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

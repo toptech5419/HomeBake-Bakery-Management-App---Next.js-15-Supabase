@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useBatches } from '@/hooks/use-batches';
 import { Batch as BatchType } from '@/lib/batches/actions';
-import { useToast } from '@/components/ui/toast-provider';
+import { useOptimizedToast } from '@/components/ui/toast-optimized';
 
 interface BatchSystemProps {
   currentShift: 'morning' | 'night';
@@ -34,7 +34,7 @@ interface BatchSystemProps {
 }
 
 export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: BatchSystemProps) {
-  const { toast } = useToast();
+  const { toast } = useOptimizedToast();
   const {
     batches,
     activeBatches,
@@ -97,21 +97,21 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
           toast({
             title: "Error",
             description: "Failed to generate batch number",
-            variant: "destructive",
+            type: "error"
           });
         })
         .finally(() => {
           setIsGeneratingBatchNumber(false);
         });
     }
-  }, [newBatch.breadTypeId, generateBatchNumber]);
+  }, [newBatch.breadTypeId, generateBatchNumber, toast]);
 
   const handleCreateBatch = async () => {
     if (!newBatch.breadTypeId || !newBatch.batchNumber || !newBatch.targetQuantity) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
-        variant: "destructive",
+        type: "error"
       });
       return;
     }
@@ -127,6 +127,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
       toast({
         title: "Success",
         description: "Batch created successfully",
+        type: "success"
       });
 
       setNewBatch({
@@ -141,7 +142,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create batch",
-        variant: "destructive",
+        type: "error"
       });
     }
   };
@@ -152,13 +153,14 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
       toast({
         title: "Success",
         description: "Batch started successfully",
+        type: "success"
       });
     } catch (error) {
       console.error('Error starting batch:', error);
       toast({
         title: "Error",
         description: "Failed to start batch",
-        variant: "destructive",
+        type: "error"
       });
     }
   };
@@ -169,13 +171,14 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
       toast({
         title: "Success",
         description: "Batch completed successfully",
+        type: "success"
       });
     } catch (error) {
       console.error('Error completing batch:', error);
       toast({
         title: "Error",
         description: "Failed to complete batch",
-        variant: "destructive",
+        type: "error"
       });
     }
   };
@@ -186,13 +189,14 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
       toast({
         title: "Success",
         description: "Batch cancelled successfully",
+        type: "success"
       });
     } catch (error) {
       console.error('Error cancelling batch:', error);
       toast({
         title: "Error",
         description: "Failed to cancel batch",
-        variant: "destructive",
+        type: "error"
       });
     }
   };
@@ -384,7 +388,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {formatDuration(batch.start_time, batch.end_time)}
+                        {formatDuration(batch.start_time, batch.end_time || undefined)}
                       </div>
                     </div>
                   </div>
@@ -556,3 +560,5 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
     </div>
   );
 }
+
+export default ManagerBatchSystem;

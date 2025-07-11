@@ -15,13 +15,12 @@ export function isSalesRep(user?: User) {
   return user?.role === 'sales_rep';
 }
 export function canViewUsers(user?: User) {
-  return isOwner(user) || isManager(user);
+  // Only owners can view users
+  return isOwner(user);
 }
 export function canEditUser(user?: User, target?: User) {
-  // Owners can edit anyone, managers can edit sales reps
-  if (isOwner(user)) return true;
-  if (isManager(user) && target?.role === 'sales_rep') return true;
-  return false;
+  // Only owners can edit users
+  return isOwner(user);
 }
 export function canInvite(user?: User) {
   return isOwner(user);

@@ -344,3 +344,5 @@ export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps)
     </div>
   );
 }
+
+export default ManagerShiftControl;

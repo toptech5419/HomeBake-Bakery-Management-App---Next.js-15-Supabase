@@ -1,6 +1,6 @@
 'use server';
 
-import { createServerClient } from '@/lib/supabase/server';
+import { createServer } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -44,7 +44,7 @@ export interface UpdateBatchData {
 
 // Fetch all batches with related data
 export async function getBatches(): Promise<Batch[]> {
-  const supabase = createServerClient();
+  const supabase = await createServer();
   
   const { data: batches, error } = await supabase
     .from('batches')
@@ -65,7 +65,7 @@ export async function getBatches(): Promise<Batch[]> {
 
 // Fetch batches by bread type
 export async function getBatchesByBreadType(breadTypeId: string): Promise<Batch[]> {
-  const supabase = createServerClient();
+  const supabase = await createServer();
   
   const { data: batches, error } = await supabase
     .from('batches')
@@ -87,7 +87,7 @@ export async function getBatchesByBreadType(breadTypeId: string): Promise<Batch[
 
 // Fetch active batches
 export async function getActiveBatches(): Promise<Batch[]> {
-  const supabase = createServerClient();
+  const supabase = await createServer();
   
   const { data: batches, error } = await supabase
     .from('batches')
@@ -109,7 +109,7 @@ export async function getActiveBatches(): Promise<Batch[]> {
 
 // Create a new batch
 export async function createBatch(data: CreateBatchData): Promise<Batch> {
-  const supabase = createServerClient();
+  const supabase = await createServer();
   
   // Get current user
   const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -159,7 +159,7 @@ export async function createBatch(data: CreateBatchData): Promise<Batch> {
 
 // Update a batch
 export async function updateBatch(batchId: string, data: UpdateBatchData): Promise<Batch> {
-  const supabase = createServerClient();
+  const supabase = await createServer();
   
   const updateData: any = { ...data };
   
@@ -207,7 +207,7 @@ export async function cancelBatch(batchId: string): Promise<Batch> {
 
 // Delete a batch
 export async function deleteBatch(batchId: string): Promise<void> {
-  const supabase = createServerClient();
+  const supabase = await createServer();
   
   const { error } = await supabase
     .from('batches')
@@ -224,37 +224,38 @@ export async function deleteBatch(batchId: string): Promise<void> {
 
 // Get batch statistics
 export async function getBatchStats() {
-  const supabase = createServerClient();
+  const supabase = await createServer();
   
   const { data: stats, error } = await supabase
     .from('batches')
-    .select('status, target_quantity, actual_quantity')
-    .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()); // Last 30 days
+    .select('status, target_quantity, actual_quantity');
 
   if (error) {
     console.error('Error fetching batch stats:', error);
-    throw new Error('Failed to fetch batch statistics');
+    return {
+      activeBatches: 0,
+      completedBatches: 0,
+      totalTargetQuantity: 0,
+      totalActualQuantity: 0,
+    };
   }
 
-  const totalBatches = stats?.length || 0;
-  const activeBatches = stats?.filter(b => b.status === 'active').length || 0;
-  const completedBatches = stats?.filter(b => b.status === 'completed').length || 0;
-  const totalTargetQuantity = stats?.reduce((sum, b) => sum + (b.target_quantity || 0), 0) || 0;
-  const totalActualQuantity = stats?.reduce((sum, b) => sum + (b.actual_quantity || 0), 0) || 0;
+  const activeBatches = stats?.filter((b: any) => b.status === 'active').length || 0;
+  const completedBatches = stats?.filter((b: any) => b.status === 'completed').length || 0;
+  const totalTargetQuantity = stats?.reduce((sum: number, b: any) => sum + (b.target_quantity || 0), 0) || 0;
+  const totalActualQuantity = stats?.reduce((sum: number, b: any) => sum + (b.actual_quantity || 0), 0) || 0;
 
   return {
-    totalBatches,
     activeBatches,
     completedBatches,
     totalTargetQuantity,
     totalActualQuantity,
-    efficiency: totalTargetQuantity > 0 ? (totalActualQuantity / totalTargetQuantity) * 100 : 0,
   };
 }
 
 // Generate next batch number for a bread type
 export async function generateNextBatchNumber(breadTypeId: string): Promise<string> {
-  const supabase = createServerClient();
+  const supabase = await createServer();
   
   const { data: lastBatch, error } = await supabase
     .from('batches')
@@ -270,15 +271,10 @@ export async function generateNextBatchNumber(breadTypeId: string): Promise<stri
   }
 
   if (!lastBatch) {
-    return 'B001';
+    return '001';
   }
 
-  // Extract number from batch number (e.g., "B001" -> 1)
-  const match = lastBatch.batch_number.match(/B(\d+)/);
-  if (!match) {
-    return 'B001';
-  }
-
-  const nextNumber = parseInt(match[1]) + 1;
-  return `B${nextNumber.toString().padStart(3, '0')}`;
+  const lastNumber = parseInt(lastBatch.batch_number);
+  const nextNumber = lastNumber + 1;
+  return nextNumber.toString().padStart(3, '0');
 } 

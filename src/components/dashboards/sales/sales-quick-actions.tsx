@@ -68,11 +68,11 @@ export function SalesQuickActions({
       urgent: false
     },
     {
-      id: 'customers',
-      title: 'Customer Log',
-      description: 'Manage customers',
+      id: 'customer-orders',
+      title: 'Customer Orders',
+      description: 'Track customer orders',
       icon: <Users className="w-5 h-5" />,
-      href: '/dashboard/users',
+      href: '/dashboard/sales',
       color: 'purple',
       badge: alerts.customerFollow,
       shortcut: '⌘C',

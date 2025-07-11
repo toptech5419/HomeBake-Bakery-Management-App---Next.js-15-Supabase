@@ -25,7 +25,7 @@ export async function updateSession(request: NextRequest) {
         remove(name: string, options) {
           // If the cookie is removed, update the request and response cookies.
           request.cookies.set({ name, value: '', ...options })
-          response.cookies.remove(name, options)
+          response.cookies.delete(name, options)
         },
       },
     }

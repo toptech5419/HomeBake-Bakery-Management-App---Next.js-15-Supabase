@@ -8,11 +8,14 @@ export async function getUsersClient(currentUser: User) {
   return data;
 }
 
-export async function updateUserRoleClient(currentUser: User, targetId: string, newRole: string) {
-  if (!isOwner(currentUser)) throw new Error('Unauthorized');
+export async function updateUserRole(targetId: string, newRole: 'owner' | 'manager' | 'sales_rep') {
   const { error } = await supabase.from('users').update({ role: newRole }).eq('id', targetId);
-  if (error) throw error;
-  return true;
+
+  if (error) {
+    throw new Error(`Failed to update user role: ${error.message}`);
+  }
+
+  return { success: true };
 }
 
 export async function deactivateUserClient(currentUser: User, targetId: string) {

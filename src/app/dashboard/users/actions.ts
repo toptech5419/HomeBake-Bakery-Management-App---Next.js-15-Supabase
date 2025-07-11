@@ -1,69 +1,143 @@
 'use server';
-import { updateUserRole, deactivateUser, deleteUser, getUsers } from '@/lib/auth/user-actions';
-import { revalidatePath } from 'next/cache';
-import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-);
+import { createServer } from '@/lib/supabase/server';
+import type { User } from '@/types';
 
-export async function updateUserRoleAction(user, targetId, newRole) {
-  try {
-    await updateUserRole(user, targetId, newRole);
-    revalidatePath('/dashboard/users');
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: 'Failed to update user role. Please check the role and try again.' };
+export async function updateUserRoleAction(
+  user: User, 
+  targetId: string, 
+  newRole: 'owner' | 'manager' | 'sales_rep'
+) {
+  const supabase = await createServer();
+
+  // Check if user has permission
+  if (user.role !== 'owner') {
+    return { success: false, error: 'Insufficient permissions' };
   }
-}
 
-export async function deactivateUserAction(user, targetId) {
   try {
-    await deactivateUser(user, targetId);
-    revalidatePath('/dashboard/users');
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: 'Failed to deactivate user. Please try again.' };
-  }
-}
+    const { error } = await supabase
+      .from('users')
+      .update({ role: newRole })
+      .eq('id', targetId);
 
-export async function reactivateUserAction(user, targetId) {
-  try {
-    await deactivateUser(user, targetId, true);
-    revalidatePath('/dashboard/users');
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: 'Failed to reactivate user. Please try again.' };
-  }
-}
-
-export async function deleteUserAction(user, targetId, targetEmail) {
-  try {
-    await deleteUser(user, targetId);
-    // Also delete from Supabase Auth
-    if (targetEmail) {
-      const { data: userList, error: fetchError } = await supabaseAdmin.auth.admin.listUsers({ email: targetEmail });
-      if (fetchError) throw fetchError;
-      const authUser = userList.users.find(u => u.email === targetEmail);
-      if (authUser) {
-        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(authUser.id);
-        if (deleteError) throw deleteError;
-      }
+    if (error) {
+      console.error('Error updating user role:', error);
+      return { success: false, error: 'Failed to update user role' };
     }
-    revalidatePath('/dashboard/users');
+
     return { success: true };
   } catch (err) {
-    return { success: false, error: 'Failed to fully delete user. Please try again or contact support.' };
+    console.error('Error in updateUserRoleAction:', err);
+    return { success: false, error: 'Internal server error' };
   }
 }
 
-export async function refetchUsersAction(user) {
+export async function deactivateUserAction(user: User, targetId: string) {
+  const supabase = await createServer();
+
+  // Check if user has permission
+  if (user.role !== 'owner') {
+    return { success: false, error: 'Insufficient permissions' };
+  }
+
   try {
-    const users = await getUsers(user);
-    return { success: true, users };
+    const { error } = await supabase
+      .from('users')
+      .update({ is_active: false })
+      .eq('id', targetId);
+
+    if (error) {
+      console.error('Error deactivating user:', error);
+      return { success: false, error: 'Failed to deactivate user' };
+    }
+
+    return { success: true };
   } catch (err) {
-    return { success: false, error: 'Failed to fetch users. Please refresh the page.' };
+    console.error('Error in deactivateUserAction:', err);
+    return { success: false, error: 'Internal server error' };
+  }
+}
+
+export async function reactivateUserAction(user: User, targetId: string) {
+  const supabase = await createServer();
+
+  // Check if user has permission
+  if (user.role !== 'owner') {
+    return { success: false, error: 'Insufficient permissions' };
+  }
+
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({ is_active: true })
+      .eq('id', targetId);
+
+    if (error) {
+      console.error('Error reactivating user:', error);
+      return { success: false, error: 'Failed to reactivate user' };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error in reactivateUserAction:', err);
+    return { success: false, error: 'Internal server error' };
+  }
+}
+
+export async function deleteUserAction(
+  user: User, 
+  targetId: string, 
+  targetEmail: string
+) {
+  const supabase = await createServer();
+
+  // Check if user has permission
+  if (user.role !== 'owner') {
+    return { success: false, error: 'Insufficient permissions' };
+  }
+
+  try {
+    // Delete from users table
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', targetId);
+
+    if (error) {
+      console.error('Error deleting user:', error);
+      return { success: false, error: 'Failed to delete user' };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error in deleteUserAction:', err);
+    return { success: false, error: 'Internal server error' };
+  }
+}
+
+export async function refetchUsersAction(user: User) {
+  const supabase = await createServer();
+
+  // Check if user has permission - only owners can view users
+  if (user.role !== 'owner') {
+    return { success: false, error: 'Insufficient permissions' };
+  }
+
+  try {
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('id, name, role, is_active, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching users:', error);
+      return { success: false, error: 'Failed to fetch users' };
+    }
+
+    return { success: true, users: users || [] };
+  } catch (err) {
+    console.error('Error in refetchUsersAction:', err);
+    return { success: false, error: 'Internal server error' };
   }
 } 

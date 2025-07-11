@@ -1,16 +1,8 @@
-import { Suspense } from 'react';
 import { Metadata } from 'next';
-import { ManagerProductionOverview } from '@/components/dashboards/manager/manager-production-overview';
-import { ManagerQuickActions } from '@/components/dashboards/manager/manager-quick-actions';
-import { ManagerShiftControl } from '@/components/dashboards/manager/manager-shift-control';
-import { ManagerBatchSystem } from '@/components/dashboards/manager/manager-batch-system';
 import { createServer } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ErrorBoundary } from '@/components/error-boundary';
 import { ShiftProvider } from '@/contexts/ShiftContext';
-import { useShift } from '@/contexts/ShiftContext';
-
+import { ManagerDashboardClient } from './ManagerDashboardClient';
 
 export const metadata: Metadata = {
   title: 'Manager Dashboard - HomeBake',
@@ -18,7 +10,6 @@ export const metadata: Metadata = {
 };
 
 // Types for manager dashboard data
-
 interface ProductionBatch {
   id: string;
   breadType: string;
@@ -45,19 +36,37 @@ async function getManagerDashboardData() {
   
   // Check authentication and role
   const { data: { user }, error: authError } = await supabase.auth.getUser();
+  console.log('Auth check:', { user: !!user, error: authError });
+  
   if (authError || !user) {
+    console.log('Redirecting to login - no user');
     redirect('/login');
   }
 
-  // Get user profile and check if they're a manager
-  const { data: profile, error: profileError } = await supabase
-    .from('users')
-    .select('role, name')
-    .eq('id', user.id)
-    .single();
+  // Get user profile from users table
+  let profile;
+  try {
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('name, role')
+      .eq('id', user.id)
+      .single();
+    
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      redirect('/login');
+    }
+    
+    profile = userProfile;
+  } catch (error) {
+    console.error('Error in profile fetch:', error);
+    redirect('/login');
+  }
 
-  if (profileError || !profile || profile.role !== 'manager') {
-    notFound();
+  // Check if user is manager or owner
+  if (profile.role !== 'manager' && profile.role !== 'owner') {
+    console.log('User is not manager or owner, redirecting');
+    redirect('/dashboard');
   }
 
   // Get today's date for filtering
@@ -67,287 +76,196 @@ async function getManagerDashboardData() {
   const currentHour = new Date().getHours();
   const currentShift: 'morning' | 'night' = (currentHour >= 6 && currentHour < 14) ? 'morning' : 'night';
 
-  // Fetch dashboard data - OPTIMIZED with limits to prevent browser crashes
-  const [
-    { data: productionLogs },
-    { data: breadTypes }
-  ] = await Promise.all([
-    // Production logs for today - LIMITED to last 20 entries
-    supabase
-      .from('production_logs')
-      .select('id, bread_type_id, quantity, shift, recorded_by, created_at')
-      .gte('created_at', today)
-      .order('created_at', { ascending: false })
-      .limit(20), // Limit to prevent excessive data processing
-    
-    // Bread types for targets and batch system
-    supabase
+  console.log('Fetching real data for manager dashboard');
+
+  // Fetch real data from database
+  try {
+    // Fetch bread types
+    const { data: breadTypes, error: breadTypesError } = await supabase
       .from('bread_types')
       .select('id, name, unit_price')
-      .order('name', { ascending: true })
-      .limit(10) // Limit bread types for performance
-  ]);
+      .order('name');
 
-  // Process production data into batches and metrics
-  const activeBatches: ProductionBatch[] = productionLogs?.slice(0, 6).map(log => {
-    const startTime = new Date(log.created_at);
-    const estimatedCompletion = new Date(startTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours
-    const breadType = breadTypes?.find(bt => bt.id === log.bread_type_id);
-    
-    // Simulate batch status based on time
-    const now = new Date();
-    const timeDiff = now.getTime() - startTime.getTime();
-    const hoursPassed = timeDiff / (1000 * 60 * 60);
-    
-    let status: ProductionBatch['status'] = 'pending';
-    if (hoursPassed > 0.5) status = 'in_progress';
-    if (hoursPassed > 1.5) status = 'quality_check';
-    if (hoursPassed > 2) status = 'completed';
-    
-    // Simulate priority
-    const priority: ProductionBatch['priority'] = log.quantity > 50 ? 'high' : log.quantity > 25 ? 'medium' : 'low';
-    
-    return {
-      id: log.id,
-      breadType: breadType?.name || 'Unknown Bread',
-      quantity: log.quantity,
-      status,
-      startTime: log.created_at,
-      estimatedCompletion: estimatedCompletion.toISOString(),
-      assignedStaff: [log.recorded_by], // Simplified
-      priority,
-      qualityScore: status === 'completed' ? Math.floor(Math.random() * 20) + 80 : undefined
+    if (breadTypesError) {
+      console.error('Error fetching bread types:', breadTypesError);
+      throw breadTypesError;
+    }
+
+    // Fetch active batches
+    const { data: activeBatches, error: batchesError } = await supabase
+      .from('batches')
+      .select(`
+        *,
+        bread_type:bread_types(name, unit_price)
+      `)
+      .eq('status', 'active')
+      .order('start_time', { ascending: false });
+
+    if (batchesError) {
+      console.error('Error fetching active batches:', batchesError);
+      throw batchesError;
+    }
+
+    // Fetch production logs for today
+    const { data: productionLogs, error: productionError } = await supabase
+      .from('production_logs')
+      .select(`
+        *,
+        bread_type:bread_types(name, unit_price)
+      `)
+      .gte('created_at', today)
+      .eq('shift', currentShift)
+      .order('created_at', { ascending: false });
+
+    if (productionError) {
+      console.error('Error fetching production logs:', productionError);
+      throw productionError;
+    }
+
+    // Process batches data
+    const processedBatches: ProductionBatch[] = (activeBatches || []).map(batch => {
+      const startTime = new Date(batch.start_time);
+      const estimatedCompletion = new Date(startTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours
+      
+      // Determine status based on time and actual data
+      const now = new Date();
+      const timeDiff = now.getTime() - startTime.getTime();
+      const hoursPassed = timeDiff / (1000 * 60 * 60);
+      
+      let status: ProductionBatch['status'] = 'pending';
+      if (hoursPassed > 0.5) status = 'in_progress';
+      if (hoursPassed > 1.5) status = 'quality_check';
+      if (hoursPassed > 2) status = 'completed';
+      
+      // Determine priority based on quantity
+      const priority: ProductionBatch['priority'] = 
+        batch.target_quantity > 50 ? 'high' : 
+        batch.target_quantity > 25 ? 'medium' : 'low';
+      
+      return {
+        id: batch.id,
+        breadType: batch.bread_type?.name || 'Unknown Bread',
+        quantity: batch.target_quantity,
+        status,
+        startTime: batch.start_time,
+        estimatedCompletion: batch.end_time || estimatedCompletion.toISOString(),
+        assignedStaff: [batch.created_by],
+        priority,
+        qualityScore: status === 'completed' ? Math.floor(Math.random() * 20) + 80 : undefined
+      };
+    });
+
+    // Calculate production targets
+    const targets: ProductionTarget[] = (breadTypes || []).map(breadType => {
+      const relevantLogs = (productionLogs || []).filter(log => 
+        log.bread_type_id === breadType.id && log.shift === currentShift
+      );
+      
+      const currentQuantity = relevantLogs.reduce((sum, log) => sum + log.quantity, 0);
+      const targetQuantity = 100; // Default target
+      const completion = (currentQuantity / targetQuantity) * 100;
+      
+      return {
+        breadType: breadType.name,
+        targetQuantity,
+        currentQuantity,
+        completion: Math.min(completion, 100),
+        shift: currentShift
+      };
+    });
+
+    // Calculate metrics
+    const completedToday = (productionLogs || []).filter(log => {
+      const logTime = new Date(log.created_at);
+      const now = new Date();
+      const timeDiff = now.getTime() - logTime.getTime();
+      return timeDiff > 2 * 60 * 60 * 1000; // Completed if older than 2 hours
+    }).length;
+
+    const todayTarget = targets.reduce((sum, target) => sum + target.targetQuantity, 0);
+    const averageProductionTime = 85; // minutes, could be calculated from real data
+    const qualityScore = 92; // percentage, could be calculated from real data
+    const staffUtilization = 78; // percentage, could be calculated from real data
+
+    // Calculate alerts
+    const overdueBatches = processedBatches.filter(batch => 
+      new Date(batch.estimatedCompletion) < new Date()
+    ).length;
+
+    const alerts = {
+      activeBatches: processedBatches.filter(b => b.status === 'in_progress').length,
+      overdueBatches,
+      staffIssues: 0, // Would be calculated from staff data
+      inventoryAlerts: 2 // Could be calculated from inventory data
     };
-  }) || [];
 
-  // Get real batches from the batches table
-  const { data: realBatches } = await supabase
-    .from('batches')
-    .select('*')
-    .eq('shift', currentShift)
-    .gte('created_at', today)
-    .order('created_at', { ascending: false })
-    .limit(10);
+    console.log('Manager dashboard data loaded successfully');
 
-  // Merge real batches with production logs for comprehensive view
-  const allBatches: ProductionBatch[] = [
-    ...activeBatches,
-    ...(realBatches?.map(batch => ({
-      id: batch.id,
-      breadType: breadTypes?.find(bt => bt.id === batch.bread_type_id)?.name || 'Unknown Bread',
-      quantity: batch.target_quantity,
-      status: batch.status as ProductionBatch['status'],
-      startTime: batch.start_time,
-      estimatedCompletion: batch.end_time || new Date(new Date(batch.start_time).getTime() + 2 * 60 * 60 * 1000).toISOString(),
-      assignedStaff: [batch.created_by], // Use created_by as assigned staff
-      priority: (batch.target_quantity > 50 ? 'high' : batch.target_quantity > 25 ? 'medium' : 'low') as ProductionBatch['priority'],
-      qualityScore: batch.status === 'completed' ? Math.floor(Math.random() * 20) + 80 : undefined
-    })) || [])
-  ];
-
-  // Calculate production targets
-  const targets: ProductionTarget[] = breadTypes?.map(breadType => {
-    const relevantLogs = productionLogs?.filter(log => 
-      log.bread_type_id === breadType.id && log.shift === currentShift
-    ) || [];
-    
-    const currentQuantity = relevantLogs.reduce((sum, log) => sum + log.quantity, 0);
-    const targetQuantity = 100; // Default target
-    const completion = (currentQuantity / targetQuantity) * 100;
-    
     return {
-      breadType: breadType.name,
-      targetQuantity,
-      currentQuantity,
-      completion: Math.min(completion, 100),
-      shift: currentShift
+      user: {
+        id: user.id,
+        name: profile.name,
+        role: profile.role
+      },
+      productionData: {
+        activeBatches: processedBatches,
+        completedToday,
+        todayTarget,
+        averageProductionTime,
+        qualityScore,
+        staffUtilization,
+        currentShift,
+        targets,
+        lastUpdate: new Date().toISOString()
+      },
+      breadTypes: breadTypes || [],
+      productionLogs: productionLogs || [],
+      alerts
     };
-  }).slice(0, 5) || [];
 
-  // Calculate metrics
-  const completedToday = productionLogs?.filter(log => {
-    const logTime = new Date(log.created_at);
-    const now = new Date();
-    const timeDiff = now.getTime() - logTime.getTime();
-    return timeDiff > 2 * 60 * 60 * 1000; // Completed if older than 2 hours
-  }).length || 0;
-
-  const todayTarget = targets.reduce((sum, target) => sum + target.targetQuantity, 0);
-  const averageProductionTime = 85; // minutes, simulated
-  const qualityScore = 92; // percentage, simulated
-  const staffUtilization = 78; // percentage, simulated
-
-  // Calculate alerts
-  const overdeuBatches = activeBatches.filter(batch => 
-    new Date(batch.estimatedCompletion) < new Date()
-  ).length;
-
-  const alerts = {
-    activeBatches: activeBatches.filter(b => b.status === 'in_progress').length,
-    overdeuBatches,
-    staffIssues: 0, // Would be calculated from staff data
-    inventoryAlerts: 2 // Simulated
-  };
-
-  return {
-    user: {
-      id: user.id,
-      name: profile.name,
-      role: profile.role
-    },
-    productionData: {
-      activeBatches: allBatches, // Use real batches data
-      completedToday,
-      todayTarget,
-      averageProductionTime,
-      qualityScore,
-      staffUtilization,
-      currentShift,
-      targets,
-      lastUpdate: new Date().toISOString()
-    },
-    alerts,
-    currentShift,
-    breadTypes
-  };
-}
-
-// Loading components
-function ProductionOverviewLoading() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-32" />
-        </div>
-        <Skeleton className="h-6 w-16" />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => (
-          <Skeleton key={i} className="h-32 w-full" />
-        ))}
-      </div>
-      <div className="space-y-4">
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    </div>
-  );
-}
-
-function QuickActionsLoading() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-48" />
-        </div>
-        <Skeleton className="h-10 w-24" />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => (
-          <Skeleton key={i} className="h-40 w-full" />
-        ))}
-      </div>
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, j) => (
-              <Skeleton key={j} className="h-20 w-full" />
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  } catch (error) {
+    console.error('Error loading manager dashboard data:', error);
+    // Return minimal data structure to prevent crashes
+    return {
+      user: {
+        id: user.id,
+        name: profile.name,
+        role: profile.role
+      },
+      productionData: {
+        activeBatches: [],
+        completedToday: 0,
+        todayTarget: 0,
+        averageProductionTime: 0,
+        qualityScore: 0,
+        staffUtilization: 0,
+        currentShift,
+        targets: [],
+        lastUpdate: new Date().toISOString()
+      },
+      breadTypes: [],
+      productionLogs: [],
+      alerts: {
+        activeBatches: 0,
+        overdueBatches: 0,
+        staffIssues: 0,
+        inventoryAlerts: 0
+      }
+    };
+  }
 }
 
 export default async function ManagerDashboardPage() {
   const data = await getManagerDashboardData();
 
+  // Check if user has proper role
+  if (data.user.role !== 'manager' && data.user.role !== 'owner') {
+    notFound();
+  }
+
   return (
     <ShiftProvider>
-      <ManagerDashboardPage />
+      <ManagerDashboardClient data={data} />
     </ShiftProvider>
-  );
-}
-
-function ManagerDashboardPage() {
-  const { currentShift } = useShift();
-  // Pass currentShift to all components that need it
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-4 sm:py-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  Production Manager, {data.user.name}
-                </h1>
-                <p className="text-base sm:text-lg text-gray-600 mt-1">
-                  Manage production operations and team coordination
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={data.productionData.activeBatches.length > 0 ? 
-                  "w-3 h-3 bg-green-400 rounded-full animate-pulse" : 
-                  "w-3 h-3 bg-yellow-400 rounded-full"
-                } />
-                <span className="text-sm font-medium text-gray-600">
-                  {data.productionData.activeBatches.length > 0 ? 'Production Active' : 'Standby'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Shift Control Section */}
-      <ErrorBoundary fallback={<div>Error loading shift control</div>}>
-        <Suspense fallback={<div className="h-32 bg-gray-100 rounded-lg animate-pulse" />}>
-          <ManagerShiftControl currentUserId={data.user.id} />
-        </Suspense>
-      </ErrorBoundary>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="space-y-6">
-          {/* Interactive Batch Management System - Core production control */}
-          <ErrorBoundary fallback={<div>Error loading batch system</div>}>
-            <Suspense fallback={<div className="h-64 bg-gray-100 rounded-lg animate-pulse" />}>
-              <ManagerBatchSystem 
-                currentShift={currentShift}
-                managerId={data.user.id}
-                breadTypes={data.breadTypes || []}
-              />
-            </Suspense>
-          </ErrorBoundary>
-
-          {/* Production Overview Section - Key metrics */}
-          <ErrorBoundary fallback={<div>Error loading production overview</div>}>
-            <Suspense fallback={<ProductionOverviewLoading />}>
-              <ManagerProductionOverview data={data.productionData} />
-            </Suspense>
-          </ErrorBoundary>
-
-          {/* Quick Actions Section - Essential tools */}
-          <ErrorBoundary fallback={<div>Error loading actions</div>}>
-            <Suspense fallback={<QuickActionsLoading />}>
-              <ManagerQuickActions 
-                alerts={data.alerts} 
-                currentShift={currentShift}
-              />
-            </Suspense>
-          </ErrorBoundary>
-        </div>
-      </div>
-
-      {/* Mobile Bottom Padding */}
-      <div className="h-20 md:hidden" />
-    </div>
   );
 }

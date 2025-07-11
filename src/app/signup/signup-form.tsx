@@ -22,7 +22,12 @@ interface SignupState {
 const initialState: SignupState = {};
 
 export default function SignupForm() {
-  const [state, formAction, isPending] = React.useActionState(signup, initialState);
+  const [state, formAction, isPending] = React.useActionState(
+    async (prevState: SignupState, formData: FormData) => {
+      return await signup(prevState, formData);
+    },
+    initialState
+  );
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token');
@@ -65,22 +70,30 @@ export default function SignupForm() {
         <div>
           <Label htmlFor="name">Full Name</Label>
           <Input id="name" name="name" type="text" placeholder="John Doe" required />
-          {state?.error?.name && <p className="text-sm text-destructive">{state.error.name[0]}</p>}
+          {state?.error && typeof state.error === 'object' && 'name' in state.error && Array.isArray(state.error.name) && state.error.name[0] && (
+            <p className="text-sm text-destructive">{state.error.name[0]}</p>
+          )}
         </div>
 
         <div>
           <Label htmlFor="email">Email</Label>
           <Input id="email" name="email" type="email" placeholder="me@example.com" required />
-          {state?.error?.email && <p className="text-sm text-destructive">{state.error.email[0]}</p>}
+          {state?.error && typeof state.error === 'object' && 'email' in state.error && Array.isArray(state.error.email) && state.error.email[0] && (
+            <p className="text-sm text-destructive">{state.error.email[0]}</p>
+          )}
         </div>
 
         <div>
           <Label htmlFor="password">Password</Label>
           <Input id="password" name="password" type="password" required />
-          {state?.error?.password && <p className="text-sm text-destructive">{state.error.password[0]}</p>}
+          {state?.error && typeof state.error === 'object' && 'password' in state.error && Array.isArray(state.error.password) && state.error.password[0] && (
+            <p className="text-sm text-destructive">{state.error.password[0]}</p>
+          )}
         </div>
 
-        {state?.error?._form && <p className="text-sm text-destructive">{state.error._form}</p>}
+        {state?.error && typeof state.error === 'object' && '_form' in state.error && typeof state.error._form === 'string' && (
+          <p className="text-sm text-destructive">{state.error._form}</p>
+        )}
         
         {state?.success && (
           <div className="p-3 bg-green-50 border border-green-200 rounded-md">

@@ -170,3 +170,88 @@ export async function getShiftMetrics(shift: ShiftType, date?: string) {
     return { produced: 0, sold: 0, revenue: 0, remaining: 0 };
   }
 }
+
+// Get production logs for a specific date range
+export async function getProductionLogs(startDate?: string, endDate?: string, shift?: ShiftType) {
+  const supabase = await createServer();
+  const today = formatDate(new Date());
+  
+  let query = supabase
+    .from('production_logs')
+    .select(`
+      *,
+      bread_types (
+        id,
+        name,
+        unit_price
+      ),
+      users (
+        id,
+        name,
+        role
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  if (startDate) {
+    query = query.gte('created_at', `${startDate}T00:00:00`);
+  }
+  
+  if (endDate) {
+    query = query.lte('created_at', `${endDate}T23:59:59`);
+  }
+  
+  if (shift) {
+    query = query.eq('shift', shift);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching production logs:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+// Get today's sales data
+export async function getTodaysSales(shift?: ShiftType) {
+  const supabase = await createServer();
+  const today = formatDate(new Date());
+  
+  let query = supabase
+    .from('sales_logs')
+    .select(`
+      *,
+      bread_types (
+        id,
+        name,
+        unit_price
+      ),
+      users (
+        id,
+        name,
+        role
+      )
+    `)
+    .gte('created_at', `${today}T00:00:00`)
+    .lt('created_at', `${today}T23:59:59`)
+    .eq('returned', false)
+    .order('created_at', { ascending: false });
+
+  if (shift) {
+    query = query.eq('shift', shift);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching today\'s sales:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export { getBreadTypes } from '@/lib/reports/queries';

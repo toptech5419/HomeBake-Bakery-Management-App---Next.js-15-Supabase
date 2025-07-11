@@ -16,6 +16,7 @@ import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { MetricCard } from '@/components/ui/card';
 import { formatNigeriaDate, getRelativeTime } from '@/lib/utils/timezone';
+import { cn } from '@/lib/utils';
 
 interface ProductionBatch {
   id: string;
@@ -202,193 +203,157 @@ export function ManagerProductionOverview({ data, loading = false }: ManagerProd
             }}
             icon={<CheckCircle2 className="w-5 h-5" />}
             loading={loading}
-            hover="glow"
+            hover="pulse"
           />
         </motion.div>
       </motion.div>
 
-      {/* Production Targets */}
-      <motion.div 
-        className="bg-white rounded-lg border border-gray-200 shadow-sm p-6"
-        variants={itemVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Production Targets</h3>
-            <p className="text-sm text-gray-500 mt-1">Today's production goals by bread type</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-gray-400" />
-            <span className="text-sm font-medium text-gray-600">Live Progress</span>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {data.targets.map((target, index) => (
-            <div key={target.breadType} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 bg-orange-500 rounded-full" />
-                  <span className="font-medium text-gray-900">{target.breadType}</span>
-                  <span className={cn(
-                    "px-2 py-1 text-xs font-medium rounded-full",
-                    target.shift === 'morning' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'
-                  )}>
-                    {target.shift}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span className="font-semibold text-gray-900">
-                    {target.currentQuantity}/{target.targetQuantity}
-                  </span>
-                  <div className="text-sm text-gray-500">
-                    {target.completion.toFixed(0)}% complete
-                  </div>
-                </div>
-              </div>
-              
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className={cn(
-                    "h-2 rounded-full transition-all duration-500",
-                    target.completion >= 100 ? "bg-green-500" :
-                    target.completion >= 75 ? "bg-orange-500" :
-                    target.completion >= 50 ? "bg-yellow-500" : "bg-red-500"
-                  )}
-                  style={{ width: `${Math.min(target.completion, 100)}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
-
       {/* Active Batches */}
       <motion.div 
-        className="bg-white rounded-lg border border-gray-200 shadow-sm"
-        variants={itemVariants}
+        className="space-y-4"
+        variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Active Production Batches</h3>
-              <p className="text-sm text-gray-500 mt-1">Currently running production operations</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-orange-500" />
-              <span className="text-sm font-medium text-orange-600">Real-time</span>
-            </div>
-          </div>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Active Production Batches</h3>
+          <span className="text-sm text-gray-500">
+            {data.activeBatches.length} active
+          </span>
         </div>
 
-        <div className="p-6">
-          {loading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gray-200 rounded-lg" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-3/4" />
-                      <div className="h-3 bg-gray-200 rounded w-1/2" />
-                    </div>
-                    <div className="w-20 h-6 bg-gray-200 rounded" />
-                  </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {data.activeBatches.slice(0, 6).map((batch, index) => (
+            <motion.div
+              key={batch.id}
+              variants={itemVariants}
+              className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h4 className="font-medium text-gray-900">{batch.breadType}</h4>
+                  <p className="text-sm text-gray-500">Quantity: {batch.quantity}</p>
                 </div>
-              ))}
-            </div>
-          ) : data.activeBatches.length > 0 ? (
-            <div className="space-y-4">
-              {data.activeBatches.map((batch) => {
-                const timeRemaining = getTimeRemaining(batch.estimatedCompletion);
-                
-                return (
-                  <div 
-                    key={batch.id}
-                    className="flex items-center gap-4 p-4 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all cursor-pointer group"
-                  >
-                    {/* Status Indicator */}
-                    <div className={cn(
-                      "w-12 h-12 rounded-lg flex items-center justify-center border",
-                      getStatusColor(batch.status)
-                    )}>
-                      <Package className="w-6 h-6" />
-                    </div>
-
-                    {/* Batch Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-gray-900 group-hover:text-gray-700">
-                          {batch.breadType}
-                        </h4>
-                        <span className={cn(
-                          "px-2 py-1 text-xs font-medium rounded-full",
-                          getPriorityColor(batch.priority)
-                        )}>
-                          {batch.priority}
-                        </span>
-                      </div>
-                      
-                      <p className="text-sm text-gray-600 mb-2">
-                        {batch.quantity} units • Started {getRelativeTime(batch.startTime)}
-                      </p>
-                      
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          {batch.assignedStaff.length} staff
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          Est. {new Date(batch.estimatedCompletion).toLocaleTimeString('en-NG', { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            timeZone: 'Africa/Lagos'
-                          })}
-                        </span>
-                        {batch.qualityScore && (
-                          <span className="flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
-                            {batch.qualityScore}% quality
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Time Remaining */}
-                    <div className="text-right">
-                      <div className={cn("font-semibold", timeRemaining.color)}>
-                        {timeRemaining.text}
-                      </div>
-                      <div className="text-sm text-gray-500 capitalize">
-                        {batch.status.replace('_', ' ')}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Package className="w-8 h-8 text-gray-400" />
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    "px-2 py-1 rounded-full text-xs font-medium border",
+                    getStatusColor(batch.status)
+                  )}>
+                    {batch.status.replace('_', ' ')}
+                  </span>
+                  <span className={cn(
+                    "px-2 py-1 rounded-full text-xs font-medium",
+                    getPriorityColor(batch.priority)
+                  )}>
+                    {batch.priority}
+                  </span>
+                </div>
               </div>
-              <h3 className="font-medium text-gray-900 mb-2">No Active Batches</h3>
-              <p className="text-sm text-gray-500">
-                All production is currently on hold or completed
-              </p>
-            </div>
-          )}
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Started</span>
+                  <span className="text-gray-900">
+                    {formatNigeriaDate(batch.startTime)}
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Est. Completion</span>
+                  <span className={cn(
+                    "font-medium",
+                    getTimeRemaining(batch.estimatedCompletion).color
+                  )}>
+                    {getTimeRemaining(batch.estimatedCompletion).text}
+                  </span>
+                </div>
+
+                {batch.qualityScore && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Quality Score</span>
+                    <span className="text-green-600 font-medium">
+                      {batch.qualityScore}%
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Staff</span>
+                  <span className="text-gray-900">
+                    {batch.assignedStaff.length} assigned
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {data.activeBatches.length === 0 && (
+          <motion.div
+            variants={itemVariants}
+            className="text-center py-8 bg-gray-50 rounded-lg"
+          >
+            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Batches</h3>
+            <p className="text-gray-500">Production is currently on standby</p>
+          </motion.div>
+        )}
+      </motion.div>
+
+      {/* Production Targets */}
+      <motion.div 
+        className="space-y-4"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Production Targets</h3>
+          <span className="text-sm text-gray-500">
+            {data.currentShift} shift
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {data.targets.map((target, index) => (
+            <motion.div
+              key={index}
+              variants={itemVariants}
+              className="bg-white rounded-lg border border-gray-200 p-4"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium text-gray-900">{target.breadType}</h4>
+                <span className="text-sm font-medium text-gray-500">
+                  {target.currentQuantity}/{target.targetQuantity}
+                </span>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">Progress</span>
+                  <span className="text-gray-900 font-medium">
+                    {target.completion.toFixed(1)}%
+                  </span>
+                </div>
+                
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className={cn(
+                      "h-2 rounded-full transition-all duration-300",
+                      target.completion >= 100 ? "bg-green-500" :
+                      target.completion >= 75 ? "bg-blue-500" :
+                      target.completion >= 50 ? "bg-yellow-500" : "bg-red-500"
+                    )}
+                    style={{ width: `${Math.min(target.completion, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </motion.div>
     </div>
   );
 }
 
-function cn(...classes: (string | undefined | false)[]): string {
-  return classes.filter(Boolean).join(' ');
-}
+export default ManagerProductionOverview;

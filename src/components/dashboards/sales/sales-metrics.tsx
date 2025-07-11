@@ -52,6 +52,20 @@ interface SalesMetricsProps {
 
 export function SalesMetrics({ data, loading = false }: SalesMetricsProps) {
   const metrics = useMemo(() => {
+    // Add null safety checks
+    if (!data || !data.todaySales) {
+      return {
+        totalRevenue: 0,
+        totalQuantity: 0,
+        hourlyRate: 0,
+        targetProgress: 0,
+        projectedTotal: 0,
+        vsYesterday: 0,
+        vsWeeklyAvg: 0,
+        avgOrderValue: 0
+      };
+    }
+
     const totalRevenue = data.todaySales.reduce((sum, sale) => 
       sum + (sale.quantity * sale.unitPrice) - sale.discount, 0
     );
@@ -85,6 +99,10 @@ export function SalesMetrics({ data, loading = false }: SalesMetricsProps) {
   }, [data]);
 
   const getCustomerTypeStats = useMemo(() => {
+    if (!data || !data.todaySales) {
+      return { individual: 0, bulk: 0, regular: 0 };
+    }
+
     const stats = data.todaySales.reduce((acc, sale) => {
       acc[sale.customerType] = (acc[sale.customerType] || 0) + 1;
       return acc;
@@ -95,7 +113,7 @@ export function SalesMetrics({ data, loading = false }: SalesMetricsProps) {
       bulk: stats.bulk || 0,
       regular: stats.regular || 0
     };
-  }, [data.todaySales]);
+  }, [data?.todaySales]);
 
   const getTargetColor = (progress: number) => {
     if (progress >= 100) return 'text-green-600';

@@ -2,7 +2,7 @@
 
 import { generateQRInvite } from '@/lib/auth/qr';
 import { createServer } from '@/lib/supabase/server';
-import { UserRole } from '@/types';
+import type { UserRole } from '@/types';
 
 export async function generateInviteTokenAction(role: UserRole) {
   const supabase = await createServer();
@@ -46,7 +46,7 @@ export async function generateInviteTokenAction(role: UserRole) {
       } else {
         userRole = profile?.role as UserRole;
       }
-    } catch (error) {
+    } catch {
       throw new Error('Could not verify user role. Please contact support.');
     }
   }

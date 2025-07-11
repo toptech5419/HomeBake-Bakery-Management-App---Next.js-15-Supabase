@@ -46,9 +46,7 @@ export function LoadingButton({
       {...props}
     >
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-inherit rounded-inherit">
-          <LoadingSpinner className="w-4 h-4" />
-        </div>
+        <LoadingSpinner />
       )}
       <div className={cn(
         "flex items-center space-x-2",

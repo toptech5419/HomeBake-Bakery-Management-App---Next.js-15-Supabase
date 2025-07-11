@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { 
   Package,
-  Users,
   ClipboardList,
   Settings,
   Plus,
@@ -15,11 +14,15 @@ import {
   Timer,
   Target,
   Layers,
-  FileText
+  FileText,
+  TrendingUp,
+  Clock,
+  Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 interface ManagerQuickActionsProps {
   alerts?: {
@@ -58,14 +61,14 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
       urgent: (alerts?.overdeuBatches || 0) > 0
     },
     {
-      id: 'team-status',
-      title: 'Team Management',
-      description: 'Staff coordination',
-      icon: <Users className="w-5 h-5" />,
-      href: '/dashboard/users',
+      id: 'shift-control',
+      title: 'Shift Control',
+      description: 'Manage shift operations',
+      icon: <Clock className="w-5 h-5" />,
+      href: '/dashboard/sales/shift',
       color: 'purple',
       badge: alerts?.staffIssues || 0,
-      shortcut: '⌘T',
+      shortcut: '⌘S',
       urgent: (alerts?.staffIssues || 0) > 0
     },
     {
@@ -124,11 +127,11 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
       description: 'Document shift activities'
     },
     {
-      id: 'schedule-optimization',
-      title: 'Schedule Optimization',
-      icon: <Target className="w-4 h-4" />,
+      id: 'performance-tracking',
+      title: 'Performance Tracking',
+      icon: <TrendingUp className="w-4 h-4" />,
       href: '/dashboard/production',
-      description: 'Optimize production schedule'
+      description: 'Track production metrics'
     }
   ];
 
@@ -194,8 +197,8 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Timer className="w-4 h-4 mr-2" />
+          <Button variant="outline" size="sm" className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+            <Zap className="w-4 h-4 mr-2 text-green-600" />
             Auto Mode
           </Button>
         </div>
@@ -225,7 +228,7 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
                 {/* Badge */}
                 {action.badge > 0 && (
                   <div className={cn(
-                    "absolute -top-2 -right-2 w-6 h-6  text-white text-xs font-bold rounded-full flex items-center justify-center",
+                    "absolute -top-2 -right-2 w-6 h-6 text-white text-xs font-bold rounded-full flex items-center justify-center",
                     action.urgent ? "bg-red-500" : "bg-orange-500"
                   )}>
                     {action.badge > 99 ? '99+' : action.badge}
@@ -384,14 +387,14 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
       </motion.div>
 
       {/* Mobile Action Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 safe-area-bottom">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-50">
         <div className="flex items-center justify-around">
           {primaryActions.slice(0, 4).map((action) => (
             <Link key={action.id} href={action.href}>
               <div className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-gray-100 transition-colors relative">
                 {action.badge > 0 && (
                   <div className={cn(
-                    "absolute -top-1 -right-1 w-4 h-4  text-white text-xs font-bold rounded-full flex items-center justify-center",
+                    "absolute -top-1 -right-1 w-4 h-4 text-white text-xs font-bold rounded-full flex items-center justify-center",
                     action.urgent ? "bg-red-500" : "bg-orange-500"
                   )}>
                     {action.badge > 9 ? '9+' : action.badge}
@@ -415,6 +418,4 @@ export function ManagerQuickActions({ alerts, currentShift = 'morning' }: Manage
   );
 }
 
-function cn(...classes: (string | undefined | false)[]): string {
-  return classes.filter(Boolean).join(' ');
-}
+export default ManagerQuickActions;

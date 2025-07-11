@@ -113,8 +113,12 @@ export const formatNigeriaDate = (
 /**
  * Get relative time (e.g., "2 hours ago") in Nigeria timezone
  */
-export const getRelativeTime = (timestamp: string): string => {
+export const getRelativeTime = (timestamp: string | undefined | null): string => {
   try {
+    if (!timestamp) {
+      return 'Just now';
+    }
+    
     const utcDate = parseISO(timestamp)
     const nigeriaDate = toZonedTime(utcDate, NIGERIA_TIMEZONE)
     const now = toZonedTime(new Date(), NIGERIA_TIMEZONE)
@@ -132,7 +136,7 @@ export const getRelativeTime = (timestamp: string): string => {
     return formatNigeriaDate(timestamp, 'MMM d, yyyy')
   } catch (error) {
     console.error('Error calculating relative time:', error)
-    return timestamp
+    return 'Just now'
   }
 }
 

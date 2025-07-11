@@ -31,8 +31,8 @@ export async function calculateInventoryForShift(shift: 'morning' | 'night') {
     .from('sales_logs')
     .select(`
       bread_type_id, 
-      quantity_sold, 
-      discount_percentage, 
+      quantity, 
+      discount, 
       bread_types(name, unit_price)
     `)
     .eq('shift', shift)
@@ -57,11 +57,11 @@ export async function calculateInventoryForShift(shift: 'morning' | 'night') {
   salesLogs?.forEach(log => {
     const existing = inventoryMap.get(log.bread_type_id);
     if (existing) {
-      const discountMultiplier = (100 - (log.discount_percentage || 0)) / 100;
+      const discountAmount = log.discount || 0;
       const unitPrice = log.bread_types?.unit_price || 0;
-      const saleRevenue = log.quantity_sold * unitPrice * discountMultiplier;
+      const saleRevenue = log.quantity * (unitPrice - discountAmount);
       
-      existing.total_sold += log.quantity_sold;
+      existing.total_sold += log.quantity;
       existing.available_inventory = Math.max(0, existing.total_produced - existing.total_sold);
       existing.unsold_loaves = Math.max(0, existing.total_produced - existing.total_sold);
       existing.revenue += saleRevenue;

@@ -48,7 +48,7 @@ export function Table<T extends { id?: string | number }>({
               <tr key={row.id ?? i} className="hover:bg-gray-200">
                 {columns.map((col) => (
                   <td key={col.key as string} className={`px-4 py-2 border-b border-gray-100 ${col.className || ''}`}>
-                    {col.render ? col.render((row as Record<string, unknown>)[col.key], row) : (row as Record<string, unknown>)[col.key]}
+                    {col.render ? col.render((row as Record<string, unknown>)[col.key as string], row) : String((row as Record<string, unknown>)[col.key as string])}
                   </td>
                 ))}
                 {actions && (

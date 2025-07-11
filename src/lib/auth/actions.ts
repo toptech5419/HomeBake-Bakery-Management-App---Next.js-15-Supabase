@@ -103,4 +103,31 @@ export async function logoutWithoutRedirect() {
   return { error }
 }
 
+// Get current user function
+export async function getCurrentUser() {
+  const supabase = await createServer()
+  
+  const { data: { user }, error } = await supabase.auth.getUser()
+  
+  if (error || !user) {
+    return null
+  }
+
+  // Get user profile from users table
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    return null
+  }
+
+  return {
+    ...user,
+    profile
+  }
+}
+
 // getUsers function moved to user-actions.ts to avoid duplication 

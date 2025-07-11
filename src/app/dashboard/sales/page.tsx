@@ -1,47 +1,74 @@
 import { createServer } from '@/lib/supabase/server';
-import { SalesClient } from './SalesClient';
 import { redirect } from 'next/navigation';
-import ShiftSelector from '@/components/sales/shift-selector';
-import { useShift } from '@/hooks/use-shift';
+import SalesNewClient from './new/SalesNewClient';
 
 export default async function SalesPage() {
   const supabase = await createServer();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
-    redirect('/login');
+    return redirect('/login');
   }
 
-  // Get user profile with role
+  // Get user profile
   const { data: profile } = await supabase
     .from('users')
-    .select('role')
+    .select('name, role')
     .eq('id', user.id)
     .single();
 
-  const userRole = profile?.role || 'sales_rep';
+  if (!profile || profile.role !== 'sales_rep') {
+    return redirect('/dashboard');
+  }
 
-  return <SalesClient userRole={userRole} userId={user.id} />;
-}
+  // Fetch bread types
+  const { data: breadTypesData } = await supabase
+    .from('bread_types')
+    .select('*')
+    .order('name');
 
-function SalesDashboardPage() {
-  const { shift, setShift } = useShift();
+  // Transform bread types to match the expected interface
+  const breadTypes = (breadTypesData || []).map(bt => ({
+    id: bt.id,
+    name: bt.name,
+    size: bt.size,
+    unit_price: bt.unit_price,
+    createdBy: bt.created_by,
+    createdAt: new Date(bt.created_at),
+    isActive: true
+  }));
+
+  // Fetch today's production
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const { data: todayProduction } = await supabase
+    .from('production_logs')
+    .select('bread_type_id, quantity')
+    .gte('created_at', today.toISOString());
+
+  // Fetch today's sales
+  const { data: todaySales } = await supabase
+    .from('sales_logs')
+    .select('bread_type_id, quantity')
+    .gte('created_at', today.toISOString());
+
+  // Determine current shift
+  const currentHour = new Date().getHours();
+  const currentShift = currentHour >= 6 && currentHour < 14 ? 'morning' : 'night';
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      {/* Shift Selector Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-        <ShiftSelector onShiftChange={setShift} />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <SalesNewClient 
+          breadTypes={breadTypes || []}
+          todayProduction={todayProduction || []}
+          todaySales={todaySales || []}
+          userRole="sales_rep"
+          userId={user.id}
+          currentShift={currentShift}
+        />
       </div>
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="space-y-6">
-          {/* Pass shift to all components that need it */}
-          <SalesMetrics data={data.salesData} shift={shift} />
-          {/* ...other sections... */}
-        </div>
-      </div>
-      {/* ...existing code... */}
     </div>
   );
 }

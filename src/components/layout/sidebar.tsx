@@ -54,7 +54,7 @@ const navigationItems: NavigationItem[] = [
     name: 'Inventory',
     href: '/dashboard/inventory',
     icon: '📦',
-    requiredRole: ['owner', 'manager'],
+    requiredRole: ['owner', 'manager', 'sales_rep'],
   },
   {
     name: 'Reports',

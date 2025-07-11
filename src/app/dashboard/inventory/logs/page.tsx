@@ -1,69 +1,35 @@
-import { createServer } from '@/lib/supabase/server';
+import { getProductionLogs } from '@/lib/dashboard/queries';
+import { getCurrentUser } from '@/lib/auth/actions';
 import { redirect } from 'next/navigation';
-import { UserRole } from '@/types';
 import InventoryLogsClient from './InventoryLogsClient';
+import type { ProductionLogWithBreadType } from '@/types/database';
 
 export default async function InventoryLogsPage() {
-  const supabase = await createServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return redirect('/login');
-  }
-
-  // Get user role
-  let role = user.user_metadata?.role as UserRole;
+  const user = await getCurrentUser();
   
-  if (!role) {
-    try {
-      const { data: profile } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      
-      role = profile?.role as UserRole;
-    } catch {
-      role = 'sales_rep'; // Default role
-    }
+  if (!user) {
+    redirect('/login');
   }
 
-  // Fetch recent production and sales logs for audit trail
-  const { data: productionLogsData } = await supabase
-    .from('production_logs')
-    .select(`
-      *,
-      bread_types (
-        id,
-        name,
-        size
-      )
-    `)
-    .order('created_at', { ascending: false })
-    .limit(100);
+  // Only owners and managers can view inventory logs
+  if (user.role !== 'owner' && user.role !== 'manager') {
+    redirect('/dashboard');
+  }
 
-  const { data: salesLogsData } = await supabase
-    .from('sales_logs')
-    .select(`
-      *,
-      bread_types (
-        id,
-        name,
-        size
-      )
-    `)
-    .order('created_at', { ascending: false })
-    .limit(100);
-
-  const productionLogs = productionLogsData || [];
-  const salesLogs = salesLogsData || [];
+  const productionLogs = await getProductionLogs(user);
 
   return (
-    <InventoryLogsClient 
-      productionLogs={productionLogs}
-      salesLogs={salesLogs}
-    />
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Inventory Logs</h1>
+        <p className="text-gray-600 mt-2">
+          Track production and sales data for inventory management
+        </p>
+      </div>
+
+      <InventoryLogsClient 
+        productionLogs={productionLogs as ProductionLogWithBreadType[]}
+      />
+    </div>
   );
 }

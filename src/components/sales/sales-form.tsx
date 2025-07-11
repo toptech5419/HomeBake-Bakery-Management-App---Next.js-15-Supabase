@@ -38,8 +38,8 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
     defaultValues: { 
       entries: breadTypes.map(b => ({ 
         bread_type_id: b.id, 
-        quantity_sold: 0, 
-        discount_percentage: 0, 
+        quantity: 0, 
+        discount: 0, 
         shift 
       })) 
     },
@@ -48,7 +48,7 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
   const onSubmit = async (data: SalesFormData) => {
     setLoading(true);
     try {
-      const validEntries = data.entries.filter(entry => entry.quantity_sold > 0);
+      const validEntries = data.entries.filter(entry => entry.quantity > 0);
       if (validEntries.length === 0) {
         toast.error('Please enter at least one quantity sold greater than 0.');
         setLoading(false);
@@ -59,12 +59,12 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
       for (const entry of validEntries) {
         const breadType = breadTypes.find(b => b.id === entry.bread_type_id);
         const unitPrice = breadType?.unit_price || 0;
-        const discountAmount = (unitPrice * entry.discount_percentage) / 100;
+        const discountAmount = entry.discount || 0;
         const finalPrice = unitPrice - discountAmount;
 
         await offlineSalesMutation.mutateAsync({ 
           bread_type_id: entry.bread_type_id,
-          quantity: entry.quantity_sold,
+          quantity: entry.quantity,
           unit_price: finalPrice,
           discount: discountAmount,
           shift: entry.shift,
@@ -121,7 +121,7 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
                   Quantity Sold
                 </Label>
                 <Controller
-                  name={`entries.${idx}.quantity_sold` as const}
+                  name={`entries.${idx}.quantity` as const}
                   control={control}
                   render={({ field }) => (
                     <Input
@@ -133,13 +133,13 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                       disabled={isSubmitting}
-                      aria-invalid={!!errors.entries?.[idx]?.quantity_sold}
+                      aria-invalid={!!errors.entries?.[idx]?.quantity}
                     />
                   )}
                 />
-                {errors.entries?.[idx]?.quantity_sold && (
+                {errors.entries?.[idx]?.quantity && (
                   <p className="text-xs text-destructive mt-1">
-                    {errors.entries[idx]?.quantity_sold?.message}
+                    {errors.entries[idx]?.quantity?.message}
                   </p>
                 )}
               </div>
@@ -147,29 +147,28 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
               <div>
                 <Label htmlFor={`discount-${bread.id}`} className="text-sm flex items-center">
                   <Percent className="h-3 w-3 mr-1" />
-                  Discount %
+                  Discount Amount
                 </Label>
                 <Controller
-                  name={`entries.${idx}.discount_percentage` as const}
+                  name={`entries.${idx}.discount` as const}
                   control={control}
                   render={({ field }) => (
                     <Input
                       id={`discount-${bread.id}`}
                       type="number"
                       min="0"
-                      max="100"
                       placeholder="0"
                       className="w-full"
                       {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       disabled={isSubmitting}
-                      aria-invalid={!!errors.entries?.[idx]?.discount_percentage}
+                      aria-invalid={!!errors.entries?.[idx]?.discount}
                     />
                   )}
                 />
-                {errors.entries?.[idx]?.discount_percentage && (
+                {errors.entries?.[idx]?.discount && (
                   <p className="text-xs text-destructive mt-1">
-                    {errors.entries[idx]?.discount_percentage?.message}
+                    {errors.entries[idx]?.discount?.message}
                   </p>
                 )}
               </div>
@@ -198,9 +197,7 @@ export default function SalesForm({ breadTypes, userId, onSuccess }: SalesFormPr
         
         {offlineSalesMutation.isPending && (
           <p className="text-sm text-muted-foreground text-center">
-            {isOnline 
-              ? 'Inventory will be updated automatically after saving...' 
-              : 'Saving offline. Will sync when connection is restored...'}
+            Processing sales data...
           </p>
         )}
       </form>

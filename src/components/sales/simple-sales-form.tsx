@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { ShoppingCart, Save, Percent } from 'lucide-react';
-import { insertSalesLog } from '@/lib/sales/actions';
+import { createSalesLog } from '@/lib/sales/actions';
 import { useToast } from '@/components/ui/toast-provider';
 
 interface BreadType {
@@ -47,10 +47,10 @@ export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: Sales
         .filter(([_, data]) => data.quantity > 0)
         .map(([breadId, data]) => ({
           bread_type_id: breadId,
-          quantity_sold: data.quantity,
-          discount_percentage: data.discount,
+          quantity: data.quantity,
+          discount: data.discount,
           shift,
-          user_id: userId
+          recorded_by: userId
         }));
 
       if (validEntries.length === 0) {
@@ -66,7 +66,7 @@ export default function SimpleSalesForm({ breadTypes, userId, onSuccess }: Sales
       // Save each sales entry to the database
       let successCount = 0;
       for (const entry of validEntries) {
-        const result = await insertSalesLog(entry);
+        const result = await createSalesLog(entry);
         if (result.success) {
           successCount++;
         } else {

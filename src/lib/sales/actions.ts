@@ -4,43 +4,33 @@ import { createServer } from '@/lib/supabase/server';
 import { salesEntrySchema } from '@/lib/validations/sales';
 import { revalidatePath } from 'next/cache';
 
-export async function insertSalesLog({ 
-  bread_type_id, 
-  quantity_sold, 
-  discount_percentage = 0, 
-  shift, 
-  user_id 
-}: {
+export async function createSalesLog(data: {
   bread_type_id: string;
-  quantity_sold: number;
-  discount_percentage?: number;
+  quantity: number;
+  unit_price?: number;
+  discount?: number;
+  returned?: boolean;
+  leftover?: number;
   shift: 'morning' | 'night';
-  user_id: string;
+  recorded_by: string;
 }) {
   const supabase = await createServer();
-  const parsed = salesEntrySchema.safeParse({ 
-    bread_type_id, 
-    quantity_sold, 
-    discount_percentage, 
-    shift 
-  });
   
-  if (!parsed.success) {
-    return { error: parsed.error.errors[0].message };
+  const { error } = await supabase.from('sales_logs').insert({
+    bread_type_id: data.bread_type_id,
+    quantity: data.quantity,
+    unit_price: data.unit_price,
+    discount: data.discount,
+    returned: data.returned || false,
+    leftover: data.leftover,
+    shift: data.shift,
+    recorded_by: data.recorded_by,
+  });
+
+  if (error) {
+    throw new Error(`Failed to create sales log: ${error.message}`);
   }
 
-  const { error } = await supabase.from('sales_logs').insert({
-    bread_type_id,
-    quantity_sold,
-    discount_percentage,
-    shift,
-    user_id,
-    created_at: new Date().toISOString(),
-  });
-
-  if (error) return { error: error.message };
-  
-  revalidatePath('/dashboard/sales');
   return { success: true };
 }
 

@@ -1,276 +1,233 @@
-import { OfflineStorage, QueuedAction } from './storage';
-import type { Database } from '@/types/supabase';
+import { OfflineStorage } from './storage';
 
-export type SalesLogInsert = Database['public']['Tables']['sales_logs']['Insert'];
-export type ProductionLogInsert = Database['public']['Tables']['production_logs']['Insert'];
-export type ShiftFeedbackInsert = Database['public']['Tables']['shift_feedback']['Insert'];
-export type BreadTypeInsert = Database['public']['Tables']['bread_types']['Insert'];
-
-export interface QueueableAction {
-  type: QueuedAction['type'];
-  action: QueuedAction['action'];
-  data: SalesLogInsert | ProductionLogInsert | ShiftFeedbackInsert | BreadTypeInsert;
+export interface QueuedAction {
+  id: string;
+  type: 'sales_log' | 'production_log' | 'shift_feedback' | 'bread_type';
+  action: 'insert' | 'update' | 'delete';
+  data: any;
   userId: string;
+  timestamp: number;
+  retryCount: number;
+  lastError?: string;
+  status: 'pending' | 'syncing' | 'completed' | 'failed';
 }
 
-export class OfflineQueue {
-  
-  // Add actions to queue
-  static async addSalesLog(data: SalesLogInsert, userId: string): Promise<number> {
+export interface QueueEvent {
+  type: 'action_completed' | 'action_failed' | 'sync_started' | 'sync_completed';
+  timestamp: number;
+  actionId?: string;
+  error?: string;
+}
+
+class OfflineQueueManager {
+  private static instance: OfflineQueueManager;
+  private listeners: Map<string, Function[]> = new Map();
+
+  static getInstance(): OfflineQueueManager {
+    if (!OfflineQueueManager.instance) {
+      OfflineQueueManager.instance = new OfflineQueueManager();
+    }
+    return OfflineQueueManager.instance;
+  }
+
+  async addSalesAction(salesData: any, userId: string): Promise<string> {
     return await OfflineStorage.addToQueue({
       type: 'sales_log',
       action: 'insert',
-      data,
+      data: salesData,
       userId
     });
   }
 
-  static async addProductionLog(data: ProductionLogInsert, userId: string): Promise<number> {
+  async addProductionAction(productionData: any, userId: string): Promise<string> {
     return await OfflineStorage.addToQueue({
       type: 'production_log',
       action: 'insert',
-      data,
+      data: productionData,
       userId
     });
   }
 
-  static async addShiftFeedback(data: ShiftFeedbackInsert, userId: string): Promise<number> {
+  async addBatchAction(batchData: any, userId: string): Promise<string> {
     return await OfflineStorage.addToQueue({
-      type: 'shift_feedback',
+      type: 'production_log',
       action: 'insert',
-      data,
+      data: batchData,
       userId
     });
   }
 
-  static async addBreadType(data: BreadTypeInsert, userId: string): Promise<number> {
+  async addUpdateBatchAction(batchId: string, updates: any, userId: string): Promise<string> {
+    return await OfflineStorage.addToQueue({
+      type: 'production_log',
+      action: 'update',
+      data: { batchId, updates },
+      userId
+    });
+  }
+
+  async addCompleteBatchAction(batchId: string, actualQuantity: number, userId: string): Promise<string> {
+    return await OfflineStorage.addToQueue({
+      type: 'production_log',
+      action: 'update',
+      data: { batchId, actualQuantity },
+      userId
+    });
+  }
+
+  async addCancelBatchAction(batchId: string, userId: string): Promise<string> {
+    return await OfflineStorage.addToQueue({
+      type: 'production_log',
+      action: 'delete',
+      data: { batchId },
+      userId
+    });
+  }
+
+  async addBreadTypeAction(breadTypeData: any, userId: string): Promise<string> {
     return await OfflineStorage.addToQueue({
       type: 'bread_type',
       action: 'insert',
-      data,
+      data: breadTypeData,
       userId
     });
   }
 
-  static async updateSalesLog(id: string, data: Partial<SalesLogInsert>, userId: string): Promise<number> {
+  async addUpdateBreadTypeAction(breadTypeId: string, updates: any, userId: string): Promise<string> {
     return await OfflineStorage.addToQueue({
-      type: 'sales_log',
+      type: 'bread_type',
       action: 'update',
-      data: { id, ...data },
+      data: { breadTypeId, updates },
       userId
     });
   }
 
-  static async updateProductionLog(id: string, data: Partial<ProductionLogInsert>, userId: string): Promise<number> {
-    return await OfflineStorage.addToQueue({
-      type: 'production_log',
-      action: 'update',
-      data: { id, ...data },
-      userId
-    });
-  }
-
-  static async deleteSalesLog(id: string, userId: string): Promise<number> {
-    return await OfflineStorage.addToQueue({
-      type: 'sales_log',
-      action: 'delete',
-      data: { id },
-      userId
-    });
-  }
-
-  static async deleteProductionLog(id: string, userId: string): Promise<number> {
-    return await OfflineStorage.addToQueue({
-      type: 'production_log',
-      action: 'delete',
-      data: { id },
-      userId
-    });
-  }
-
-  // Queue status and management
-  static async getPendingActions(): Promise<QueuedAction[]> {
-    return await OfflineStorage.getQueuedActions('pending');
-  }
-
-  static async getFailedActions(): Promise<QueuedAction[]> {
-    return await OfflineStorage.getQueuedActions('failed');
-  }
-
-  static async getAllActions(): Promise<QueuedAction[]> {
-    return await OfflineStorage.getQueuedActions();
-  }
-
-  static async markActionAsCompleted(actionId: number): Promise<void> {
+  async markActionAsSyncing(actionId: string): Promise<void> {
     await OfflineStorage.updateQueuedAction(actionId, {
-      status: 'completed'
+      status: 'syncing',
+      timestamp: Date.now()
     });
   }
 
-  static async markActionAsFailed(actionId: number, error: string): Promise<void> {
-    const action = await OfflineStorage.getQueuedActions();
-    const currentAction = action.find(a => a.id === actionId);
+  async markActionAsCompleted(actionId: string): Promise<void> {
+    await OfflineStorage.updateQueuedAction(actionId, {
+      status: 'completed',
+      timestamp: Date.now()
+    });
+  }
+
+  async markActionAsFailed(actionId: string, error: string): Promise<void> {
+    const actions = await OfflineStorage.getQueuedActions();
+    const currentAction = actions.find(a => a.id === actionId);
     
-    await OfflineStorage.updateQueuedAction(actionId, {
-      status: 'failed',
-      lastError: error,
-      retryCount: (currentAction?.retryCount || 0) + 1
-    });
+    if (currentAction) {
+      await OfflineStorage.updateQueuedAction(actionId, {
+        status: 'failed',
+        lastError: error,
+        retryCount: (currentAction.retryCount || 0) + 1,
+        timestamp: Date.now()
+      });
+    }
   }
 
-  static async markActionAsSyncing(actionId: number): Promise<void> {
-    await OfflineStorage.updateQueuedAction(actionId, {
-      status: 'syncing'
-    });
-  }
-
-  static async retryFailedAction(actionId: number): Promise<void> {
+  async markActionAsRetrying(actionId: string): Promise<void> {
     await OfflineStorage.updateQueuedAction(actionId, {
       status: 'pending',
-      lastError: undefined
+      timestamp: Date.now()
     });
   }
 
-  static async removeAction(actionId: number): Promise<void> {
+  async removeQueuedAction(actionId: string): Promise<void> {
     await OfflineStorage.removeQueuedAction(actionId);
   }
 
-  static async clearCompletedActions(): Promise<void> {
-    await OfflineStorage.clearCompletedActions();
+  async getPendingActions(): Promise<QueuedAction[]> {
+    return await OfflineStorage.getQueuedActions();
   }
 
-  // Statistics and monitoring
-  static async getQueueStats(): Promise<{
-    pending: number;
-    syncing: number;
-    completed: number;
-    failed: number;
-    total: number;
-  }> {
+  async getFailedActions(): Promise<QueuedAction[]> {
     const actions = await OfflineStorage.getQueuedActions();
+    return actions.filter(action => action.status === 'failed');
+  }
+
+  async retryFailedAction(actionId: string): Promise<void> {
+    await this.markActionAsRetrying(actionId);
+  }
+
+  async getQueueStats(): Promise<{ total: number; pending: number; failed: number; completed: number }> {
+    const actions = await OfflineStorage.getQueuedActions();
+    const pending = actions.filter(a => a.status === 'pending').length;
+    const failed = actions.filter(a => a.status === 'failed').length;
+    const completed = actions.filter(a => a.status === 'completed').length;
     
-    const stats = {
-      pending: 0,
-      syncing: 0,
-      completed: 0,
-      failed: 0,
-      total: actions.length
+    return {
+      total: actions.length,
+      pending,
+      failed,
+      completed
     };
+  }
 
-    actions.forEach(action => {
-      stats[action.status]++;
+  // Wrapper for legacy compatibility
+  async addSalesLog(salesData: any, userId: string) {
+    return this.addSalesAction(salesData, userId);
+  }
+  async addProductionLog(productionData: any, userId: string) {
+    return this.addProductionAction(productionData, userId);
+  }
+  async addShiftFeedback(feedbackData: any, userId: string) {
+    // Use type: 'shift_feedback', action: 'insert'
+    return await OfflineStorage.addToQueue({
+      type: 'shift_feedback',
+      action: 'insert',
+      data: feedbackData,
+      userId
     });
-
-    return stats;
+  }
+  async updateSalesLog(id: string, data: any, userId: string) {
+    // Use type: 'sales_log', action: 'update'
+    return await OfflineStorage.addToQueue({
+      type: 'sales_log',
+      action: 'update',
+      data: { id, ...data },
+      userId
+    });
+  }
+  async updateProductionLog(id: string, data: any, userId: string) {
+    // Use type: 'production_log', action: 'update'
+    return await OfflineStorage.addToQueue({
+      type: 'production_log',
+      action: 'update',
+      data: { id, ...data },
+      userId
+    });
   }
 
-  static async getOldestPendingAction(): Promise<QueuedAction | null> {
-    const pending = await this.getPendingActions();
-    if (pending.length === 0) return null;
-    
-    return pending.sort((a, b) => a.timestamp - b.timestamp)[0];
-  }
-
-  static async getActionsForUser(userId: string): Promise<QueuedAction[]> {
-    const actions = await OfflineStorage.getQueuedActions();
-    return actions.filter(action => action.userId === userId);
-  }
-
-  // Queue health checks
-  static async isQueueHealthy(): Promise<boolean> {
-    const stats = await this.getQueueStats();
-    
-    // Consider queue unhealthy if:
-    // - More than 50 failed actions
-    // - More than 100 pending actions
-    // - Any action has been retrying for more than 5 times
-    if (stats.failed > 50 || stats.pending > 100) {
-      return false;
+  // Event system
+  on(event: string, callback: Function): void {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, []);
     }
-
-    const actions = await OfflineStorage.getQueuedActions();
-    const hasStuckActions = actions.some(action => action.retryCount > 5);
-    
-    return !hasStuckActions;
+    this.listeners.get(event)!.push(callback);
   }
 
-  static async cleanupOldActions(maxAge: number = 7 * 24 * 60 * 60 * 1000): Promise<number> {
-    const actions = await OfflineStorage.getQueuedActions();
-    const now = Date.now();
-    let cleaned = 0;
-
-    for (const action of actions) {
-      if (action.status === 'completed' && (now - action.timestamp) > maxAge) {
-        await OfflineStorage.removeQueuedAction(action.id!);
-        cleaned++;
-      }
-    }
-
-    return cleaned;
-  }
-
-  // Priority handling
-  static async prioritizeUserActions(userId: string): Promise<QueuedAction[]> {
-    const pending = await this.getPendingActions();
-    const userActions = pending.filter(action => action.userId === userId);
-    const otherActions = pending.filter(action => action.userId !== userId);
-
-    // Return user actions first, then others
-    return [...userActions, ...otherActions];
-  }
-
-  // Batch processing
-  static async getBatchForProcessing(batchSize: number = 10): Promise<QueuedAction[]> {
-    const pending = await this.getPendingActions();
-    return pending.slice(0, batchSize);
-  }
-}
-
-// Event system for queue changes
-export type QueueEventType = 'action_added' | 'action_completed' | 'action_failed' | 'sync_started' | 'sync_completed';
-
-export interface QueueEvent {
-  type: QueueEventType;
-  actionId?: number;
-  error?: string;
-  timestamp: number;
-}
-
-class QueueEventEmitter {
-  private listeners: Map<QueueEventType, Array<(event: QueueEvent) => void>> = new Map();
-
-  on(eventType: QueueEventType, listener: (event: QueueEvent) => void): void {
-    if (!this.listeners.has(eventType)) {
-      this.listeners.set(eventType, []);
-    }
-    this.listeners.get(eventType)!.push(listener);
-  }
-
-  off(eventType: QueueEventType, listener: (event: QueueEvent) => void): void {
-    const listeners = this.listeners.get(eventType);
-    if (listeners) {
-      const index = listeners.indexOf(listener);
+  off(event: string, callback: Function): void {
+    const callbacks = this.listeners.get(event);
+    if (callbacks) {
+      const index = callbacks.indexOf(callback);
       if (index > -1) {
-        listeners.splice(index, 1);
+        callbacks.splice(index, 1);
       }
     }
   }
 
-  emit(eventType: QueueEventType, event: Omit<QueueEvent, 'type' | 'timestamp'>): void {
-    const listeners = this.listeners.get(eventType);
-    if (listeners) {
-      const fullEvent: QueueEvent = {
-        ...event,
-        type: eventType,
-        timestamp: Date.now()
-      };
-      listeners.forEach(listener => listener(fullEvent));
+  emit(event: string, data?: any): void {
+    const callbacks = this.listeners.get(event);
+    if (callbacks) {
+      callbacks.forEach(callback => callback(data));
     }
-  }
-
-  removeAllListeners(): void {
-    this.listeners.clear();
   }
 }
 
-export const queueEvents = new QueueEventEmitter();
+export const OfflineQueue = OfflineQueueManager.getInstance();
+export const queueEvents = OfflineQueue;

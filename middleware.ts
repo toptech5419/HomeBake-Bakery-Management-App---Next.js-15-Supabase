@@ -38,14 +38,13 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url))
       }
 
-      // Check role-based access for specific routes
+      // Check role-based access for owner-only routes
       if (request.nextUrl.pathname.startsWith('/dashboard/users') || 
           request.nextUrl.pathname.startsWith('/dashboard/owner')) {
         // Get user role from metadata or users table
         let userRole = user.user_metadata?.role;
         
-        // If no role in metadata, this will be handled by the page component
-        // For middleware, we'll allow access and let the page handle detailed role checking
+        // If no role in metadata, fetch from users table
         if (!userRole) {
           try {
             const { data: profile } = await supabase

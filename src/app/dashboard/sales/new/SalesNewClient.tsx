@@ -18,6 +18,7 @@ interface SalesNewClientProps {
   todaySales: { bread_type_id: string; quantity: number }[];
   userRole: UserRole;
   userId: string;
+  currentShift?: 'morning' | 'night';
 }
 
 interface SalesEntry {
@@ -33,9 +34,11 @@ export default function SalesNewClient({
   todayProduction,
   todaySales,
   userRole,
-  userId
+  userId,
+  currentShift: propCurrentShift
 }: SalesNewClientProps) {
-  const { currentShift } = useShift();
+  const { currentShift: contextShift } = useShift();
+  const currentShift = propCurrentShift || contextShift;
   const [loading, setLoading] = useState(false);
   const [salesEntries, setSalesEntries] = useState<SalesEntry[]>([]);
   const [notes, setNotes] = useState('');

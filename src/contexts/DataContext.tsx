@@ -86,35 +86,55 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // Optimized data fetchers with better error handling
   const fetchBreadTypes = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('bread_types')
-        .select('*')
-        .order('name');
+      console.log('🔄 Fetching bread types...');
+      setConnectionStatus('connecting');
       
-      if (error) throw error;
-      setBreadTypes(data || []);
+      const { data, error } = await withRetry(async () => {
+        const result = await supabase
+          .from('bread_types')
+          .select('*')
+          .order('name');
+        
+        if (result.error) throw result.error;
+        return result;
+      });
+      
       console.log('✅ Bread types fetched:', data?.length || 0, 'records');
+      setBreadTypes(data || []);
+      setConnectionStatus('connected');
+      
     } catch (err) {
       console.error('❌ Error fetching bread types:', err);
+      setConnectionStatus('error');
       throw err;
     }
-  }, []);
+  }, [withRetry]);
 
   const fetchUsers = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('name');
+      console.log('🔄 Fetching users...');
+      setConnectionStatus('connecting');
       
-      if (error) throw error;
-      setUsers(data || []);
+      const { data, error } = await withRetry(async () => {
+        const result = await supabase
+          .from('users')
+          .select('*')
+          .order('name');
+        
+        if (result.error) throw result.error;
+        return result;
+      });
+      
       console.log('✅ Users fetched:', data?.length || 0, 'records');
+      setUsers(data || []);
+      setConnectionStatus('connected');
+      
     } catch (err) {
       console.error('❌ Error fetching users:', err);
+      setConnectionStatus('error');
       throw err;
     }
-  }, []);
+  }, [withRetry]);
 
   // Optimized production logs fetch (only last 3 days)
   const fetchProductionLogs = useCallback(async () => {

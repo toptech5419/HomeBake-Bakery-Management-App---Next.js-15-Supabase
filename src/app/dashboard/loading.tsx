@@ -1,5 +1,11 @@
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { OptimizedLoadingSpinner } from '@/components/ui/loading-optimized';
  
 export default function Loading() {
-  return <LoadingSpinner message="Loading your dashboard..." />;
+  return (
+    <OptimizedLoadingSpinner 
+      message="Loading your dashboard..." 
+      variant="progressive"
+      size="lg"
+    />
+  );
 } 
