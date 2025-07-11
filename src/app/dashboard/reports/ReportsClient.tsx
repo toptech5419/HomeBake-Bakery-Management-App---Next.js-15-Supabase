@@ -21,7 +21,9 @@ import {
   Clock, 
   BarChart3,
   Eye,
-  ExternalLink
+  ExternalLink,
+  Shield,
+  UserCheck
 } from 'lucide-react';
 
 interface ReportsClientProps {
@@ -67,12 +69,12 @@ export default function ReportsClient({
       } else {
         toast.error(result.error || 'Failed to fetch report data');
       }
-          } catch {
-        toast.error('Failed to update filters');
-      } finally {
+    } catch {
+      toast.error('Failed to update filters');
+    } finally {
       setLoading(false);
     }
-  }, [router, searchParams, toast]);
+  }, [router, searchParams]);
 
   const refreshData = async () => {
     setLoading(true);
@@ -84,9 +86,9 @@ export default function ReportsClient({
       } else {
         toast.error(result.error || 'Failed to refresh data');
       }
-         } catch {
-       toast.error('Failed to refresh report data');
-     } finally {
+    } catch {
+      toast.error('Failed to refresh report data');
+    } finally {
       setLoading(false);
     }
   };
@@ -102,6 +104,45 @@ export default function ReportsClient({
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const getRoleLabel = (role: UserRole) => {
+    switch (role) {
+      case 'owner':
+        return 'Owner';
+      case 'manager':
+        return 'Manager';
+      case 'sales_rep':
+        return 'Sales Rep';
+      default:
+        return 'User';
+    }
+  };
+
+  const getRoleColor = (role: UserRole) => {
+    switch (role) {
+      case 'owner':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'manager':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'sales_rep':
+        return 'bg-green-100 text-green-800 border-green-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getRoleIcon = (role: UserRole) => {
+    switch (role) {
+      case 'owner':
+        return <Shield className="h-4 w-4" />;
+      case 'manager':
+        return <UserCheck className="h-4 w-4" />;
+      case 'sales_rep':
+        return <BarChart3 className="h-4 w-4" />;
+      default:
+        return <Shield className="h-4 w-4" />;
+    }
   };
 
   return (
@@ -127,8 +168,9 @@ export default function ReportsClient({
           </div>
 
           <div className="flex items-center gap-2">
-            <Badge className="bg-blue-100 text-blue-800 border border-blue-200">
-              {userRole.charAt(0).toUpperCase() + userRole.slice(1)} Access
+            <Badge className={`${getRoleColor(userRole)} flex items-center gap-1`}>
+              {getRoleIcon(userRole)}
+              {getRoleLabel(userRole)} Access
             </Badge>
             <Button
               variant="outline"
@@ -149,6 +191,35 @@ export default function ReportsClient({
             />
           </div>
         </div>
+
+        {/* Role-specific context info */}
+        {userRole === 'manager' && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-blue-600" />
+              <div>
+                <h3 className="font-medium text-blue-900">Manager Reports Access</h3>
+                <p className="text-sm text-blue-700">
+                  You have access to production and operational reports for your management responsibilities.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {userRole === 'owner' && (
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-purple-600" />
+              <div>
+                <h3 className="font-medium text-purple-900">Owner Full Access</h3>
+                <p className="text-sm text-purple-700">
+                  You have complete access to all business reports, analytics, and financial data.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Filters */}
         <ReportFiltersComponent
