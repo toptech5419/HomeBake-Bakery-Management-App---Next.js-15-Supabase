@@ -1,43 +1,173 @@
 'use client';
 
-import { useInventory } from '@/contexts/DataContext';
-import { MobileLoading } from '@/components/ui/mobile-loading';
-import { ConnectionStatus } from '@/components/ui/connection-status';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, RefreshCw, TrendingUp, TrendingDown, Clock, AlertTriangle } from 'lucide-react';
+import { Package, RefreshCw, AlertTriangle, Plus, ShoppingCart, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
-import { useData } from '@/contexts/DataContext';
-import { useAuth } from '@/hooks/use-auth'; // Use the existing auth hook
+import { useAuth } from '@/hooks/use-auth';
+
+interface BreadType {
+  id: string;
+  name: string;
+  size: string | null;
+  unit_price: number;
+  created_by: string;
+  created_at: string;
+}
+
+interface RemainingBread {
+  id: string;
+  bread_type_id: string;
+  bread_type: string;
+  quantity: number;
+  unit_price: number;
+  total_value: number;
+  shift: string;
+  recorded_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface InventoryItem {
+  breadType: BreadType;
+  quantity: number;
+  unit_price: number;
+  total_value: number;
+  stockStatus: 'available' | 'low_stock' | 'out_of_stock';
+}
 
 export function InventoryClient() {
-  const { inventory, totalValue, totalAvailable, lastUpdated } = useInventory();
-  const { isLoading, error, refreshData, connectionStatus } = useData();
+  const router = useRouter();
+  const { user } = useAuth();
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { user } = useAuth(); // Add this to get user role
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  console.log('InventoryClient - User:', user);
+  console.log('InventoryClient - Loading state:', isLoading);
+
+  const fetchInventory = async () => {
+    try {
+      console.log('Starting to fetch inventory...');
+      setIsLoading(true);
+      setError(null);
+
+      // Fetch bread types
+      console.log('Fetching bread types...');
+      const { data: breadTypes, error: breadTypesError } = await supabase
+        .from('bread_types')
+        .select('*')
+        .order('name');
+
+      console.log('Bread types result:', breadTypes);
+      console.log('Bread types error:', breadTypesError);
+
+      if (breadTypesError) throw breadTypesError;
+
+      // Fetch remaining bread for the current user (if available)
+      console.log('Fetching remaining bread for user:', user?.id);
+      let remainingBread: any[] = [];
+      
+      if (user?.id) {
+        const { data: remainingData, error: remainingError } = await supabase
+          .from('remaining_bread')
+          .select('*')
+          .eq('recorded_by', user.id)
+          .order('created_at', { ascending: false });
+
+        console.log('Remaining bread result:', remainingData);
+        console.log('Remaining bread error:', remainingError);
+
+        if (remainingError) {
+          console.warn('Error fetching remaining bread:', remainingError);
+        } else {
+          remainingBread = remainingData || [];
+        }
+      } else {
+        console.log('No user ID available, skipping remaining bread fetch');
+      }
+
+      // Combine bread types with remaining bread data
+      const inventoryData: InventoryItem[] = breadTypes.map(breadType => {
+        const remainingData = remainingBread.find(r => r.bread_type_id === breadType.id);
+        const quantity = remainingData?.quantity || 0;
+        const unit_price = breadType.unit_price;
+        const total_value = quantity * unit_price;
+
+        // Determine stock status
+        let stockStatus: 'available' | 'low_stock' | 'out_of_stock';
+        if (quantity === 0) {
+          stockStatus = 'out_of_stock';
+        } else if (quantity <= 10) {
+          stockStatus = 'low_stock';
+        } else {
+          stockStatus = 'available';
+        }
+
+        return {
+          breadType,
+          quantity,
+          unit_price,
+          total_value,
+          stockStatus
+        };
+      });
+
+      console.log('Processed inventory data:', inventoryData);
+      setInventory(inventoryData);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error('Error fetching inventory:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load inventory');
+    } finally {
+      console.log('Setting loading to false');
+      setIsLoading(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refreshData();
+      await fetchInventory();
     } finally {
       setIsRefreshing(false);
     }
   };
 
+  useEffect(() => {
+    console.log('InventoryClient useEffect - User ID:', user?.id);
+    
+    // Always try to fetch real data
+    console.log('Fetching real inventory data...');
+    fetchInventory();
+  }, [user?.id]);
+
+  console.log('InventoryClient render - isLoading:', isLoading, 'error:', error, 'inventory length:', inventory.length);
+
   if (isLoading) {
-    return <MobileLoading message="Loading inventory..." />;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Package className="h-12 w-12 mx-auto mb-4 text-gray-400 animate-pulse" />
+          <p className="text-gray-600">Loading inventory...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md flex flex-col items-center py-12">
-          <Package className="h-12 w-12 mb-4 text-destructive" />
+          <Package className="h-12 w-12 mb-4 text-red-500" />
           <h2 className="text-xl font-semibold mb-2">Error Loading Inventory</h2>
-          <p className="text-muted-foreground mb-4 text-center">{error}</p>
+          <p className="text-gray-600 mb-4 text-center">{error}</p>
           <Button onClick={handleRefresh} disabled={isRefreshing}>
             {isRefreshing ? (
               <>
@@ -53,193 +183,144 @@ export function InventoryClient() {
     );
   }
 
-  // Sort inventory by available quantity (descending)
-  const sortedInventory = [...inventory].sort((a, b) => b.available - a.available);
-  const lowStockItems = inventory.filter(item => item.available > 0 && item.available < 20);
-  const outOfStockItems = inventory.filter(item => item.available <= 0);
+  // Calculate summary statistics
+  const totalItems = inventory.length;
+  const availableItems = inventory.filter(item => item.stockStatus === 'available').length;
+  const lowStockItems = inventory.filter(item => item.stockStatus === 'low_stock').length;
+  const outOfStockItems = inventory.filter(item => item.stockStatus === 'out_of_stock').length;
 
-  // Role-based quick actions
-  const getQuickActions = () => {
-    const actions = [];
-    
-    if (user?.role === 'manager' || user?.role === 'owner') {
-      actions.push({
-        label: 'Log Production',
-        href: '/dashboard/production',
-        variant: 'default' as const,
-        icon: <TrendingUp className="h-4 w-4" />
-      });
-    }
-    
-    if (user?.role === 'sales_rep') {
-      actions.push({
-        label: 'Record Sale',
-        href: '/dashboard/sales/new',
-        variant: 'default' as const,
-        icon: <TrendingDown className="h-4 w-4" />
-      });
-    }
-    
-    actions.push({
-      label: 'View Reports',
-      href: '/dashboard/reports',
-      variant: 'outline' as const,
-      icon: <Clock className="h-4 w-4" />
-    });
-    
-    return actions;
-  };
+  // Check for low stock alert (items with quantity <= 5)
+  const lowStockAlertItems = inventory.filter(item => item.quantity <= 5 && item.quantity > 0);
 
   return (
-    <div className="space-y-4 pb-6">
-      {/* Connection Status */}
-      <ConnectionStatus />
-
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Inventory</h1>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Real-time stock levels</span>
-            {lastUpdated && (
-              <>
-                <span>•</span>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  <span>{lastUpdated.toLocaleTimeString()}</span>
-                </div>
-              </>
-            )}
+      <header className="bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-center">
+        <div className="text-center font-semibold text-base w-full">Inventory</div>
+      </header>
+
+      <main className="p-5">
+        {/* Shift Status */}
+        <div className="bg-white rounded-xl p-5 mb-5 shadow-sm">
+          <div className="flex justify-between items-center">
+            <div className="font-semibold text-base text-gray-900">Morning Shift</div>
+            <div className="text-sm text-gray-500">Started: 04:10 PM</div>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleRefresh}
-          disabled={isRefreshing || connectionStatus === 'connecting'}
-        >
-          <RefreshCw className={cn(
-            "h-4 w-4", 
-            (isRefreshing || connectionStatus === 'connecting') && "animate-spin"
-          )} />
-        </Button>
-      </div>
 
-      {/* Enhanced Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Stock</p>
-              <p className="text-2xl font-bold">{totalAvailable}</p>
+        {/* Low Stock Alert */}
+        {lowStockAlertItems.length > 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-5 flex items-center gap-2">
+            <div className="text-yellow-600 text-lg">⚠️</div>
+            <div className="text-yellow-800 text-sm font-medium flex-1">
+              {lowStockAlertItems.length} items running low
             </div>
-            <Package className="h-8 w-8 text-blue-600" />
+            <button 
+              className="bg-orange-500 text-white px-3 py-2 rounded text-xs font-medium"
+              onClick={() => router.push('/dashboard/sales')}
+            >
+              Update Stock
+            </button>
           </div>
-        </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Value</p>
-              <p className="text-2xl font-bold">₦{totalValue.toLocaleString()}</p>
-            </div>
-            <TrendingUp className="h-8 w-8 text-green-600" />
-          </div>
-        </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Low Stock</p>
-              <p className="text-2xl font-bold text-orange-600">{lowStockItems.length}</p>
-            </div>
-            <AlertTriangle className="h-8 w-8 text-orange-600" />
-          </div>
-        </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Out of Stock</p>
-              <p className="text-2xl font-bold text-red-600">{outOfStockItems.length}</p>
-            </div>
-            <TrendingDown className="h-8 w-8 text-red-600" />
-          </div>
-        </Card>
-      </div>
+        )}
 
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-2">
-        {getQuickActions().map((action, index) => (
-          <Button
-            key={index}
-            variant={action.variant}
-            size="sm"
-            onClick={() => window.location.href = action.href}
-            className="flex items-center gap-2"
-          >
-            {action.icon}
-            {action.label}
-          </Button>
-        ))}
-      </div>
-
-      {/* Inventory List */}
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Stock Levels</h2>
-          <Badge variant="secondary">
-            {inventory.length} items
-          </Badge>
+        {/* Stock Overview */}
+        <div className="bg-white rounded-xl p-5 mb-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="font-semibold text-base text-gray-900">📊 Stock Overview</div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            <div className="bg-gray-50 rounded-lg p-4 text-center border-2 border-transparent">
+              <div className="text-2xl font-bold text-gray-900 mb-1">{totalItems}</div>
+              <div className="text-xs text-gray-500 font-medium">Total Items</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-4 text-center border-2 border-transparent">
+              <div className="text-2xl font-bold text-gray-900 mb-1">{availableItems}</div>
+              <div className="text-xs text-gray-500 font-medium">Available</div>
+            </div>
+            <div className={cn(
+              "rounded-lg p-4 text-center border-2",
+              lowStockItems > 0 
+                ? "border-yellow-300 bg-yellow-50" 
+                : "border-transparent bg-gray-50"
+            )}>
+              <div className={cn(
+                "text-2xl font-bold mb-1",
+                lowStockItems > 0 ? "text-yellow-700" : "text-gray-900"
+              )}>{lowStockItems}</div>
+              <div className="text-xs text-gray-500 font-medium">Low Stock</div>
+            </div>
+            <div className={cn(
+              "rounded-lg p-4 text-center border-2",
+              outOfStockItems > 0 
+                ? "border-red-300 bg-red-50" 
+                : "border-transparent bg-gray-50"
+            )}>
+              <div className={cn(
+                "text-2xl font-bold mb-1",
+                outOfStockItems > 0 ? "text-red-700" : "text-gray-900"
+              )}>{outOfStockItems}</div>
+              <div className="text-xs text-gray-500 font-medium">Out of Stock</div>
+            </div>
+          </div>
         </div>
-        
-        <div className="space-y-3">
-          {sortedInventory.map((item) => {
-            const stockStatus = item.available <= 0 ? 'out' : item.available < 20 ? 'low' : 'good';
-            const trend = item.produced > item.sold ? 'up' : 'down';
-            
-            return (
-              <div key={item.breadType.id} className="p-4 border rounded-lg">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-medium truncate">{item.breadType.name}</h4>
-                      {stockStatus === 'out' && (
-                        <Badge className="bg-red-100 text-red-800 text-xs shrink-0">Out of Stock</Badge>
-                      )}
-                      {stockStatus === 'low' && (
-                        <Badge className="bg-orange-100 text-orange-800 text-xs shrink-0">Low Stock</Badge>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-3 gap-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Available:</span>
-                        <div className="font-medium">{item.available}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Produced:</span>
-                        <div className="font-medium">{item.produced}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Value:</span>
-                        <div className="font-medium">₦{item.value.toLocaleString()}</div>
-                      </div>
-                    </div>
+
+        {/* Inventory List */}
+        <div className="bg-white rounded-xl overflow-hidden shadow-sm">
+          {inventory.length === 0 ? (
+            <div className="p-8 text-center">
+              <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <p className="text-gray-600">No inventory items found</p>
+              <p className="text-sm text-gray-500 mt-2">Try adding some bread types first</p>
+            </div>
+          ) : (
+            inventory.map((item) => (
+              <div key={item.breadType.id} className="flex items-center justify-between p-5 border-b border-gray-100 last:border-b-0">
+                <div className="flex-1">
+                  <div className="font-semibold text-base text-gray-900 mb-1">
+                    {item.breadType.name}
                   </div>
-                  
-                  <div className="flex items-center gap-2 ml-4">
-                    {trend === 'up' ? (
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <TrendingDown className="h-4 w-4 text-red-600" />
-                    )}
+                  <div className="text-sm text-gray-500">
+                    ₦{item.unit_price.toLocaleString()}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="font-semibold text-base text-gray-900 min-w-[40px] text-right">
+                    {item.quantity}
+                  </div>
+                  <div className={cn(
+                    "px-2 py-1 rounded-full text-xs font-medium",
+                    item.stockStatus === 'available' && "bg-green-100 text-green-800",
+                    item.stockStatus === 'low_stock' && "bg-yellow-100 text-yellow-800",
+                    item.stockStatus === 'out_of_stock' && "bg-red-100 text-red-800"
+                  )}>
+                    {item.stockStatus === 'available' && 'Available'}
+                    {item.stockStatus === 'low_stock' && 'Low Stock'}
+                    {item.stockStatus === 'out_of_stock' && 'Out of Stock'}
                   </div>
                 </div>
               </div>
-            );
-          })}
+            ))
+          )}
         </div>
-      </Card>
+      </main>
+
+      {/* Floating Action Button */}
+      <div className="fixed bottom-5 right-5 z-50">
+        <button
+          className="w-14 h-14 rounded-full bg-orange-500 text-white text-2xl shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5"
+          onClick={() => router.push('/dashboard/sales')}
+        >
+          +
+        </button>
+      </div>
+
+      {/* Issue Badge */}
+      {lowStockAlertItems.length > 0 && (
+        <div className="fixed bottom-5 left-5 bg-red-600 text-white px-3 py-2 rounded-full text-xs font-semibold">
+          <span>⚠</span> {lowStockAlertItems.length} Issue{lowStockAlertItems.length > 1 ? 's' : ''}
+        </div>
+      )}
     </div>
   );
 }

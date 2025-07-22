@@ -68,7 +68,7 @@ export async function middleware(request: NextRequest) {
               return NextResponse.redirect(new URL('/dashboard/manager', request.url))
             case 'sales_rep':
             default:
-              return NextResponse.redirect(new URL('/dashboard', request.url))
+              return NextResponse.redirect(new URL('/dashboard/sales', request.url))
           }
         }
       }
@@ -93,7 +93,7 @@ export async function middleware(request: NextRequest) {
         
         // Owners and managers can access manager routes
         if (userRole !== 'owner' && userRole !== 'manager') {
-          return NextResponse.redirect(new URL('/dashboard', request.url))
+          return NextResponse.redirect(new URL('/dashboard/sales', request.url))
         }
       }
     }

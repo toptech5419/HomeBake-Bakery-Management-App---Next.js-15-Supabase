@@ -334,6 +334,113 @@ export interface Database {
           }
         ]
       }
+      remaining_bread: {
+        Row: {
+          id: string
+          shift: string
+          bread_type: string
+          bread_type_id: string | null
+          quantity: number
+          recorded_by: string | null
+          created_at: string
+          updated_at: string
+          unit_price: number
+          total_value: number
+        }
+        Insert: {
+          id?: string
+          shift: string
+          bread_type: string
+          bread_type_id?: string | null
+          quantity: number
+          recorded_by?: string | null
+          created_at?: string
+          updated_at?: string
+          unit_price: number
+          total_value?: number
+        }
+        Update: {
+          id?: string
+          shift?: string
+          bread_type?: string
+          bread_type_id?: string | null
+          quantity?: number
+          recorded_by?: string | null
+          created_at?: string
+          updated_at?: string
+          unit_price?: number
+          total_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remaining_bread_bread_type_id_fkey"
+            columns: ["bread_type_id"]
+            isOneToOne: false
+            referencedRelation: "bread_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remaining_bread_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      shift_reports: {
+        Row: {
+          id: string
+          user_id: string
+          shift: 'morning' | 'night'
+          report_date: string
+          total_revenue: number
+          total_items_sold: number
+          total_remaining: number
+          feedback: string | null
+          sales_data: any[]
+          remaining_breads: any[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          shift: 'morning' | 'night'
+          report_date?: string
+          total_revenue: number
+          total_items_sold: number
+          total_remaining: number
+          feedback?: string | null
+          sales_data?: any[]
+          remaining_breads?: any[]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          shift?: 'morning' | 'night'
+          report_date?: string
+          total_revenue?: number
+          total_items_sold?: number
+          total_remaining?: number
+          feedback?: string | null
+          sales_data?: any[]
+          remaining_breads?: any[]
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_reports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

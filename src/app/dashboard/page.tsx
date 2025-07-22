@@ -94,7 +94,7 @@ export default async function DashboardPage() {
       return redirect('/dashboard/manager');
     case 'sales_rep':
     default:
-      // Show the main dashboard for sales reps
-      return <DashboardClient userRole={role} displayName={displayName} />;
+      // Redirect sales reps to their specialized dashboard
+      return redirect('/dashboard/sales');
   }
 } 

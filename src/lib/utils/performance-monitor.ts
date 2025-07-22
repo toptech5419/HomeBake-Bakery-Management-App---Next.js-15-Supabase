@@ -1,5 +1,7 @@
 'use client';
 
+import React, { forwardRef } from 'react';
+
 interface PerformanceMetric {
   componentName: string;
   renderTime: number;
@@ -170,10 +172,11 @@ export function withPerformanceMonitoring<P extends object>(
   Component: React.ComponentType<P>,
   componentName: string
 ) {
-  const WrappedComponent = React.forwardRef<any, P>((props, ref) => {
+  const WrappedComponent = forwardRef<any, P>((props, ref) => {
     usePerformanceMonitor(componentName);
     
-    return <Component {...props} ref={ref} />;
+    // @ts-ignore - TypeScript has issues with forwardRef and generic components
+    return React.createElement(Component, { ...props, ref });
   });
   
   WrappedComponent.displayName = `withPerformanceMonitoring(${componentName})`;

@@ -34,7 +34,7 @@ export default function DashboardClient({ userRole, displayName }: DashboardClie
             </div>
             <h3 className="text-lg font-semibold mb-2">Record Sales</h3>
             <p className="text-gray-600 mb-4 text-sm">Log bread sales and leftover inventory</p>
-            <a href="/dashboard/sales" className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
+            <a href="/dashboard/sales-management" className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
               Start Recording
             </a>
           </div>

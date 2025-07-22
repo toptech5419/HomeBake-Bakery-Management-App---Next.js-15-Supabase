@@ -11,6 +11,7 @@ import { BreadType, SalesLog, UserRole } from '@/types';
 import { useShift } from '@/hooks/use-shift';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { CheckCircle, ArrowLeft, FileText, Package } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ShiftEndClientProps {
   todaysSales: (SalesLog & { bread_types: BreadType })[];
@@ -69,9 +70,15 @@ export default function ShiftEndClient({
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Show success toast
+      toast.success('Shift report submitted successfully!');
+      
+      // Set submitted state immediately - no delays
       setSubmitted(true);
+      
     } catch (error) {
       console.error('Failed to submit shift report:', error);
+      toast.error('Failed to submit shift report. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

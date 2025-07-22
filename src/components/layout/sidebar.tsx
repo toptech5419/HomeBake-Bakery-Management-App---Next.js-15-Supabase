@@ -24,7 +24,13 @@ const navigationItems: NavigationItem[] = [
     name: 'Dashboard',
     href: '/dashboard',
     icon: '📊',
-    requiredRole: ['owner', 'manager', 'sales_rep'],
+    requiredRole: ['owner', 'manager'],
+  },
+  {
+    name: 'Dashboard',
+    href: '/dashboard/sales',
+    icon: '📊',
+    requiredRole: ['sales_rep'],
   },
   {
     name: 'Users',
@@ -46,7 +52,7 @@ const navigationItems: NavigationItem[] = [
   },
   {
     name: 'Sales',
-    href: '/dashboard/sales',
+    href: '/dashboard/sales-management',
     icon: '💰',
     requiredRole: ['sales_rep'],
   },
@@ -76,6 +82,9 @@ export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarPr
   const isActiveLink = (href: string) => {
     if (href === '/dashboard') {
       return pathname === '/dashboard';
+    }
+    if (href === '/dashboard/sales') {
+      return pathname === '/dashboard/sales';
     }
     return pathname.startsWith(href);
   };

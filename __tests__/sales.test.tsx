@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 
 // Import component and utilities
-import SalesForm from '@/components/sales/sales-form'
+import { SalesModal } from '@/components/dashboards/sales/SalesModal'
 import { salesFormSchema } from '@/lib/validations/sales'
 
 // Mock dependencies
@@ -59,18 +59,19 @@ describe('Sales Functionality', () => {
     mockUseOfflineStatus.mockReturnValue({ isOnline: true })
   })
 
-  describe('Sales Form Component', () => {
-    it('renders sales form with bread types', () => {
+  describe('Sales Modal Component', () => {
+    it('renders sales modal with bread types', () => {
       render(
-        <SalesForm 
-          breadTypes={mockBreadTypes} 
+        <SalesModal 
+          isOpen={true}
+          onClose={jest.fn()}
           userId={mockUserId}
-          onSuccess={mockOnSuccess}
+          currentShift="morning"
+          onSalesRecorded={mockOnSuccess}
         />
       )
 
-      expect(screen.getByText('Log Sales')).toBeInTheDocument()
-      expect(screen.getByText('Morning Shift')).toBeInTheDocument()
+      expect(screen.getByText('Record Sales')).toBeInTheDocument()
       
       // Check all bread types are displayed
       expect(screen.getByText('Sourdough')).toBeInTheDocument()
@@ -83,10 +84,12 @@ describe('Sales Functionality', () => {
 
     it('shows empty state when no bread types available', () => {
       render(
-        <SalesForm 
-          breadTypes={[]} 
+        <SalesModal 
+          isOpen={true}
+          onClose={jest.fn()}
           userId={mockUserId}
-          onSuccess={mockOnSuccess}
+          currentShift="morning"
+          onSalesRecorded={mockOnSuccess}
         />
       )
 
@@ -96,10 +99,12 @@ describe('Sales Functionality', () => {
     it('allows input of sales quantities', async () => {
       const user = userEvent.setup()
       render(
-        <SalesForm 
-          breadTypes={mockBreadTypes} 
+        <SalesModal 
+          isOpen={true}
+          onClose={jest.fn()}
           userId={mockUserId}
-          onSuccess={mockOnSuccess}
+          currentShift="morning"
+          onSalesRecorded={mockOnSuccess}
         />
       )
 
@@ -115,10 +120,12 @@ describe('Sales Functionality', () => {
     it('allows input of discount percentages', async () => {
       const user = userEvent.setup()
       render(
-        <SalesForm 
-          breadTypes={mockBreadTypes} 
+        <SalesModal 
+          isOpen={true}
+          onClose={jest.fn()}
           userId={mockUserId}
-          onSuccess={mockOnSuccess}
+          currentShift="morning"
+          onSalesRecorded={mockOnSuccess}
         />
       )
 

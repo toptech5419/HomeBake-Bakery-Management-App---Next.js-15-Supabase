@@ -50,7 +50,7 @@ export function SalesQuickActions({
       title: 'Record Sale',
       description: 'Add new transaction',
       icon: <Plus className="w-5 h-5" />,
-      href: '/dashboard/sales/new',
+      href: '/dashboard/sales-management',
       color: 'green',
       badge: 0,
       shortcut: '⌘N',
@@ -96,7 +96,7 @@ export function SalesQuickActions({
       id: 'common-bread',
       title: 'Common Breads',
       icon: <Package className="w-4 h-4" />,
-      href: '/dashboard/sales/new',
+      href: '/dashboard/sales-management',
       description: 'Quick sale shortcuts',
       items: ['White Bread', 'Brown Bread', 'Agege Bread']
     },
@@ -104,7 +104,7 @@ export function SalesQuickActions({
       id: 'bulk-sale',
       title: 'Bulk Sale',
       icon: <ShoppingCart className="w-4 h-4" />,
-      href: '/dashboard/sales/new',
+      href: '/dashboard/sales-management',
       description: 'Large quantity orders',
       items: ['Wholesale', 'Events', 'Retailers']
     },
@@ -112,7 +112,7 @@ export function SalesQuickActions({
       id: 'customer-sale',
       title: 'Regular Customer',
       icon: <Users className="w-4 h-4" />,
-      href: '/dashboard/sales/new',
+      href: '/dashboard/sales-management',
       description: 'Frequent customer orders',
       items: ['Saved Orders', 'Preferences', 'Discounts']
     }

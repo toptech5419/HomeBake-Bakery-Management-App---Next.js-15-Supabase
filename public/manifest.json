@@ -84,7 +84,7 @@
       "name": "Sales Log",
       "short_name": "Sales",
       "description": "Quick access to sales logging",
-      "url": "/dashboard/sales/new",
+              "url": "/dashboard/sales-management",
       "icons": [
         {
           "src": "/icons/icon-96x96.png",

@@ -1,6 +1,7 @@
 import { createServer } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import SalesNewClient from './new/SalesNewClient';
+import { SalesRepDashboard } from '@/components/dashboards/sales/SalesRepDashboard';
+import { EndShiftProvider } from '@/contexts/EndShiftContext';
 
 export default async function SalesPage() {
   const supabase = await createServer();
@@ -17,58 +18,33 @@ export default async function SalesPage() {
     .eq('id', user.id)
     .single();
 
-  if (!profile || profile.role !== 'sales_rep') {
-    return redirect('/dashboard');
+  if (!profile) {
+    return redirect('/login');
   }
 
-  // Fetch bread types
-  const { data: breadTypesData } = await supabase
-    .from('bread_types')
-    .select('*')
-    .order('name');
-
-  // Transform bread types to match the expected interface
-  const breadTypes = (breadTypesData || []).map(bt => ({
-    id: bt.id,
-    name: bt.name,
-    size: bt.size,
-    unit_price: bt.unit_price,
-    createdBy: bt.created_by,
-    createdAt: new Date(bt.created_at),
-    isActive: true
-  }));
-
-  // Fetch today's production
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const { data: todayProduction } = await supabase
-    .from('production_logs')
-    .select('bread_type_id, quantity')
-    .gte('created_at', today.toISOString());
-
-  // Fetch today's sales
-  const { data: todaySales } = await supabase
-    .from('sales_logs')
-    .select('bread_type_id, quantity')
-    .gte('created_at', today.toISOString());
-
-  // Determine current shift
-  const currentHour = new Date().getHours();
-  const currentShift = currentHour >= 6 && currentHour < 14 ? 'morning' : 'night';
+  // Redirect based on role
+  switch (profile.role) {
+    case 'owner':
+      return redirect('/dashboard/owner');
+    case 'manager':
+      return redirect('/dashboard/manager');
+    case 'sales_rep':
+      // Continue to sales dashboard
+      break;
+    default:
+      return redirect('/dashboard/sales');
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <SalesNewClient 
-          breadTypes={breadTypes || []}
-          todayProduction={todayProduction || []}
-          todaySales={todaySales || []}
-          userRole="sales_rep"
-          userId={user.id}
-          currentShift={currentShift}
-        />
+    <EndShiftProvider>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <SalesRepDashboard 
+            userId={user.id}
+            userName={profile.name}
+          />
+        </div>
       </div>
-    </div>
+    </EndShiftProvider>
   );
 }

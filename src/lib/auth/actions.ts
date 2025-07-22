@@ -87,7 +87,7 @@ export async function login(prevState: { error?: string }, formData: FormData) {
       redirect('/dashboard/manager')
     case 'sales_rep':
     default:
-      redirect('/dashboard')
+      redirect('/dashboard/sales')
   }
 }
 
