@@ -9,6 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { BreadType, ShiftType } from '@/types';
 import { ReportFilters } from '@/lib/reports/queries';
 import { Filter, RotateCcw, Search, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import ReactDatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { parseISO } from 'date-fns';
 
 interface ReportFiltersProps {
   breadTypes: BreadType[];
@@ -52,6 +55,9 @@ export default function ReportFiltersComponent({
     date.setDate(date.getDate() - 7);
     return date.toISOString().split('T')[0];
   };
+
+  // Helper to parse date string to Date object
+  const parseDate = (dateStr?: string) => (dateStr ? parseISO(dateStr) : undefined);
 
   return (
     <Card className="w-full">
@@ -97,33 +103,75 @@ export default function ReportFiltersComponent({
 
         {/* Quick Date and Shift Filters - Always Visible */}
         <div className="space-y-4 mb-4">
-          {/* Date Range */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="startDate" className="text-sm font-medium text-gray-700">
-                Start Date
+          {/* Date Range - mobile first responsive */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <div className="flex-1 flex flex-col">
+              <Label htmlFor="startDate" className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <Calendar className="w-4 h-4 inline-block text-blue-500" /> Start Date
               </Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={localFilters.startDate || getDefaultStartDate()}
-                onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                disabled={loading}
-                className="mt-1"
-              />
+              <div className="relative">
+                <ReactDatePicker
+                  id="startDate"
+                  selected={parseDate(localFilters.startDate) || parseDate(getDefaultStartDate())}
+                  onChange={(date: Date | null) => handleFilterChange('startDate', date ? date.toISOString().split('T')[0] : undefined)}
+                  disabled={loading}
+                  dateFormat="yyyy-MM-dd"
+                  className="pr-10 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                  placeholderText="Select start date"
+                  popperPlacement="bottom"
+                  popperClassName="z-[9999]"
+                  calendarClassName="!w-full !max-w-xs sm:!max-w-sm"
+                  wrapperClassName="w-full"
+                  showPopperArrow={false}
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 flex items-center justify-center bg-transparent border-0 p-0"
+                  tabIndex={-1}
+                  onClick={e => {
+                    e.preventDefault();
+                    const input = document.getElementById('startDate');
+                    if (input) input.focus();
+                  }}
+                >
+                  <Calendar className="w-5 h-5 pointer-events-none" />
+                </button>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="endDate" className="text-sm font-medium text-gray-700">
-                End Date
+            <div className="flex-1 flex flex-col mt-2 sm:mt-0">
+              <Label htmlFor="endDate" className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                <Calendar className="w-4 h-4 inline-block text-blue-500" /> End Date
               </Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={localFilters.endDate || getDefaultEndDate()}
-                onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                disabled={loading}
-                className="mt-1"
-              />
+              <div className="relative">
+                <ReactDatePicker
+                  id="endDate"
+                  selected={parseDate(localFilters.endDate) || parseDate(getDefaultEndDate())}
+                  onChange={(date: Date | null) => handleFilterChange('endDate', date ? date.toISOString().split('T')[0] : undefined)}
+                  disabled={loading}
+                  dateFormat="yyyy-MM-dd"
+                  className="pr-10 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                  placeholderText="Select end date"
+                  popperPlacement="bottom"
+                  popperClassName="z-[9999]"
+                  calendarClassName="!w-full !max-w-xs sm:!max-w-sm"
+                  wrapperClassName="w-full"
+                  showPopperArrow={false}
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 flex items-center justify-center bg-transparent border-0 p-0"
+                  tabIndex={-1}
+                  onClick={e => {
+                    e.preventDefault();
+                    const input = document.getElementById('endDate');
+                    if (input) input.focus();
+                  }}
+                >
+                  <Calendar className="w-5 h-5 pointer-events-none" />
+                </button>
+              </div>
             </div>
           </div>
 

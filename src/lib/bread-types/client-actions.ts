@@ -51,3 +51,22 @@ export async function updateBreadTypeClient(user: User, id: string, input: Bread
   if (error) throw error;
   return true;
 } 
+
+export async function getBreadTypesClient() {
+  const { data, error } = await supabase
+    .from('bread_types')
+    .select('id, name, size, unit_price, created_by, created_at')
+    .order('name');
+  if (error) {
+    console.error('Error fetching bread types:', error);
+    return [];
+  }
+  return (data || []).map(item => ({
+    id: item.id,
+    name: item.name,
+    size: item.size ?? null,
+    unit_price: item.unit_price,
+    created_by: item.created_by,
+    created_at: item.created_at,
+  }));
+} 

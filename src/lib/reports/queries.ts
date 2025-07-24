@@ -244,6 +244,155 @@ export async function getReportData(filters: ReportFilters = {}): Promise<Report
   };
 }
 
+/**
+ * Fetches and groups batch reports from the all_batches table by date and shift.
+ * Each group contains summary info and manager name.
+ */
+export async function getBatchReportsFromAllBatches(filters: ReportFilters = {}): Promise<ReportSummary> {
+  const supabase = await createServer();
+
+  // Set default date range (last 30 days)
+  const endDate = filters.endDate || new Date().toISOString().split('T')[0];
+  const startDate = filters.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  // Build date range for queries
+  const startDateTime = new Date(startDate);
+  startDateTime.setHours(0, 0, 0, 0);
+  const endDateTime = new Date(endDate);
+  endDateTime.setHours(23, 59, 59, 999);
+
+  // Fetch all_batches with bread type and user info
+  let query = supabase
+    .from('all_batches')
+    .select(`
+      *,
+      bread_types (id, name, unit_price),
+      users:created_by (id, name, role)
+    `)
+    .gte('start_time', startDateTime.toISOString())
+    .lte('start_time', endDateTime.toISOString())
+    .order('start_time', { ascending: false });
+
+  if (filters.shift) query = query.eq('shift', filters.shift);
+  if (filters.breadTypeId) query = query.eq('bread_type_id', filters.breadTypeId);
+  if (filters.recordedBy) query = query.eq('created_by', filters.recordedBy);
+
+  const { data: batches = [], error } = await query;
+  if (error) {
+    console.error('Error fetching all_batches:', error);
+    return {
+      totalProduced: 0,
+      totalSold: 0,
+      totalRevenue: 0,
+      totalLeftover: 0,
+      totalDiscounts: 0,
+      averageDailyRevenue: 0,
+      bestPerformingBreadType: 'N/A',
+      bestPerformingShift: 'morning',
+      shifts: []
+    };
+  }
+
+  // Group by date+shift
+  const groups = new Map<string, any>();
+  for (const batch of batches) {
+    const date = batch.start_time ? new Date(batch.start_time).toISOString().split('T')[0] : 'unknown';
+    const shift = batch.shift;
+    const key = `${date}-${shift}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        id: key,
+        date,
+        shift,
+        batches: [],
+        managerIds: new Set(),
+        managerNames: new Set(),
+        endTimes: [],
+        statuses: [],
+        totalUnits: 0,
+        breadTypeBreakdown: new Map(),
+        createdAts: [],
+      });
+    }
+    const group = groups.get(key);
+    group.batches.push(batch);
+    group.managerIds.add(batch.created_by);
+    if (batch.users && batch.users.name) group.managerNames.add(batch.users.name);
+    if (batch.end_time) group.endTimes.push(batch.end_time);
+    group.statuses.push(batch.status);
+    group.totalUnits += batch.actual_quantity || 0;
+    group.createdAts.push(batch.start_time);
+    // Bread type breakdown
+    const breadTypeId = batch.bread_type_id;
+    if (!group.breadTypeBreakdown.has(breadTypeId)) {
+      group.breadTypeBreakdown.set(breadTypeId, {
+        breadTypeId,
+        breadTypeName: batch.bread_types?.name || 'Unknown',
+        breadTypePrice: batch.bread_types?.unit_price || 0,
+        produced: 0,
+        sold: 0,
+        revenue: 0,
+        leftover: 0,
+        discounts: 0,
+      });
+    }
+    const breadType = group.breadTypeBreakdown.get(breadTypeId);
+    breadType.produced += batch.actual_quantity || 0;
+  }
+
+  // Build ShiftSummary[]
+  const shiftsArray: ShiftSummary[] = Array.from(groups.values()).map(group => {
+    const allCompleted = group.statuses.every((s: string) => s === 'completed');
+    const status = allCompleted ? 'Completed' : 'In Progress';
+    const latestEndTime = group.endTimes.length > 0 ? group.endTimes.sort().slice(-1)[0] : null;
+    const manager = Array.from(group.managerNames).join(', ') || 'Unknown';
+    return {
+      id: group.id,
+      date: group.date,
+      shift: group.shift,
+      totalProduced: group.totalUnits,
+      totalSold: 0, // Not tracked in all_batches
+      totalRevenue: 0, // Not tracked in all_batches
+      totalLeftover: 0, // Not tracked in all_batches
+      totalDiscounts: 0, // Not tracked in all_batches
+      breadTypeBreakdown: Array.from(group.breadTypeBreakdown.values()),
+      recordedBy: manager,
+      createdAt: new Date(group.createdAts.sort()[0]),
+      // Custom fields for UI
+      status,
+      latestEndTime,
+      totalBatches: group.batches.length,
+    } as ShiftSummary & {
+      status: string;
+      latestEndTime: string | null;
+      totalBatches: number;
+    };
+  });
+
+  // Sort by date desc, shift
+  shiftsArray.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  // Summary totals
+  const totalProduced = shiftsArray.reduce((sum, shift) => sum + shift.totalProduced, 0);
+  const totalBatches = shiftsArray.reduce((sum, shift) => sum + (shift as any).totalBatches, 0);
+
+  // Debug log
+  console.log('Grouped reports:', shiftsArray);
+
+  return {
+    totalProduced,
+    totalSold: 0,
+    totalRevenue: 0,
+    totalLeftover: 0,
+    totalDiscounts: 0,
+    averageDailyRevenue: 0,
+    bestPerformingBreadType: 'N/A',
+    bestPerformingShift: 'morning',
+    shifts: shiftsArray,
+    // Optionally, add totalBatches if needed
+  };
+}
+
 export async function getShiftDetails(shiftId: string): Promise<ShiftSummary | null> {
   const [date, shift] = shiftId.split('-');
   
