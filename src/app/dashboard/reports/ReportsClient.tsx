@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { BreadType, UserRole } from '@/types';
 import { ReportSummary, ReportFilters } from '@/lib/reports/queries';
 import { fetchReportData } from '@/lib/reports/actions';
+import { useShift } from '@/contexts/ShiftContext';
 import { toast } from 'sonner';
 
 import ReportFiltersComponent from '@/components/reports/report-filters';
@@ -38,8 +39,13 @@ export default function ReportsClient({
   userRole,
   initialFilters
 }: ReportsClientProps) {
+  const { currentShift } = useShift();
   const [reportData, setReportData] = useState<ReportSummary>(initialReportData);
-  const [filters, setFilters] = useState<ReportFilters>(initialFilters);
+  const [filters, setFilters] = useState<ReportFilters>({
+    ...initialFilters,
+    // Use current shift as default if no shift is specified
+    shift: initialFilters.shift || currentShift
+  });
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();

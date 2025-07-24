@@ -21,6 +21,11 @@ interface DataContextType {
   // Users
   users: Tables['users']['Row'][];
   
+  // Batches
+  batches: Tables['batches']['Row'][];
+  activeBatches: Tables['batches']['Row'][];
+  batchStats: any;
+  
   // Loading states
   isLoading: boolean;
   error: string | null;
@@ -33,6 +38,7 @@ interface DataContextType {
   refreshData: () => Promise<void>;
   refreshProduction: () => Promise<void>;
   refreshSales: () => Promise<void>;
+  refreshBatches: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -50,6 +56,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [salesLogs, setSalesLogs] = useState<Tables['sales_logs']['Row'][]>([]);
   const [breadTypes, setBreadTypes] = useState<Tables['bread_types']['Row'][]>([]);
   const [users, setUsers] = useState<Tables['users']['Row'][]>([]);
+  const [batches, setBatches] = useState<Tables['batches']['Row'][]>([]);
+  const [activeBatches, setActiveBatches] = useState<Tables['batches']['Row'][]>([]);
+  const [batchStats, setBatchStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -171,6 +180,41 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       } else {
         setError('Failed to load production data. Please try again.');
       }
+      throw err;
+    }
+  }, [withRetry]);
+
+  // Add batch fetching function
+  const fetchBatches = useCallback(async () => {
+    try {
+      console.log('🔄 Fetching batches...');
+      setConnectionStatus('connecting');
+      
+      const { data, error } = await withRetry(async () => {
+        const result = await supabase
+          .from('batches')
+          .select(`
+            *,
+            bread_type:bread_types(name, unit_price)
+          `)
+          .order('created_at', { ascending: false });
+        
+        if (result.error) throw result.error;
+        return result;
+      });
+      
+      console.log('✅ Batches fetched:', data?.length || 0, 'records');
+      setBatches(data || []);
+      
+      // Separate active batches
+      const active = (data || []).filter((batch: any) => batch.status === 'active');
+      setActiveBatches(active);
+      
+      setConnectionStatus('connected');
+      
+    } catch (err) {
+      console.error('❌ Error fetching batches:', err);
+      setConnectionStatus('error');
       throw err;
     }
   }, [withRetry]);
@@ -298,7 +342,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // Fetch logs in parallel but handle errors separately
       const promises = [
         fetchProductionLogs().catch(err => console.error('Production fetch failed:', err)),
-        fetchSalesLogs().catch(err => console.error('Sales fetch failed:', err))
+        fetchSalesLogs().catch(err => console.error('Sales fetch failed:', err)),
+        fetchBatches().catch(err => console.error('Batches fetch failed:', err))
       ];
       
       await Promise.allSettled(promises);
@@ -347,6 +392,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         // Only refresh logs, not static data
         fetchProductionLogs().catch(console.error);
         fetchSalesLogs().catch(console.error);
+        fetchBatches().catch(console.error);
       }
     }, FETCH_CONFIG.REFRESH_INTERVAL);
 
@@ -355,7 +401,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         clearInterval(refreshIntervalRef.current);
       }
     };
-  }, [refreshData, fetchProductionLogs, fetchSalesLogs]);
+  }, [refreshData, fetchProductionLogs, fetchSalesLogs, fetchBatches]);
 
   // Pause refresh when tab is not visible
   useEffect(() => {
@@ -364,18 +410,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         // Tab became visible - refresh data
         fetchProductionLogs().catch(console.error);
         fetchSalesLogs().catch(console.error);
+        fetchBatches().catch(console.error);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [fetchProductionLogs, fetchSalesLogs]);
+  }, [fetchProductionLogs, fetchSalesLogs, fetchBatches]);
 
   const value: DataContextType = {
     productionLogs,
     salesLogs,
     breadTypes,
     users,
+    batches,
+    activeBatches,
+    batchStats,
     isLoading,
     error,
     lastUpdated,
@@ -384,7 +434,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     addSalesLog,
     refreshData: () => refreshData(true),
     refreshProduction: fetchProductionLogs,
-    refreshSales: fetchSalesLogs
+    refreshSales: fetchSalesLogs,
+    refreshBatches: fetchBatches
   };
 
   return (

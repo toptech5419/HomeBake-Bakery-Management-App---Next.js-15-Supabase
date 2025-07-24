@@ -206,6 +206,69 @@ export interface Database {
           }
         ]
       }
+      all_batches: {
+        Row: {
+          id: string
+          bread_type_id: string
+          batch_number: string
+          start_time: string
+          end_time: string | null
+          target_quantity: number
+          actual_quantity: number
+          status: 'active' | 'completed' | 'cancelled'
+          shift: 'morning' | 'night'
+          notes: string | null
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          bread_type_id: string
+          batch_number: string
+          start_time?: string
+          end_time?: string | null
+          target_quantity: number
+          actual_quantity?: number
+          status?: 'active' | 'completed' | 'cancelled'
+          shift: 'morning' | 'night'
+          notes?: string | null
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          bread_type_id?: string
+          batch_number?: string
+          start_time?: string
+          end_time?: string | null
+          target_quantity?: number
+          actual_quantity?: number
+          status?: 'active' | 'completed' | 'cancelled'
+          shift?: 'morning' | 'night'
+          notes?: string | null
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "all_batches_bread_type_id_fkey"
+            columns: ["bread_type_id"]
+            isOneToOne: false
+            referencedRelation: "bread_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "all_batches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       production_logs: {
         Row: {
           id: string

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Package, RefreshCw, AlertTriangle, Plus, ShoppingCart, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { useShift } from '@/contexts/ShiftContext';
 
 interface BreadType {
   id: string;
@@ -43,6 +44,7 @@ interface InventoryItem {
 export function InventoryClient() {
   const router = useRouter();
   const { user } = useAuth();
+  const { currentShift } = useShift();
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +52,7 @@ export function InventoryClient() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   console.log('InventoryClient - User:', user);
+  console.log('InventoryClient - Current Shift:', currentShift);
   console.log('InventoryClient - Loading state:', isLoading);
 
   const fetchInventory = async () => {
@@ -70,8 +73,8 @@ export function InventoryClient() {
 
       if (breadTypesError) throw breadTypesError;
 
-      // Fetch remaining bread for the current user (if available)
-      console.log('Fetching remaining bread for user:', user?.id);
+      // Fetch remaining bread for the current user and shift
+      console.log('Fetching remaining bread for user:', user?.id, 'shift:', currentShift);
       let remainingBread: any[] = [];
       
       if (user?.id) {
@@ -79,9 +82,10 @@ export function InventoryClient() {
           .from('remaining_bread')
           .select('*')
           .eq('recorded_by', user.id)
+          .eq('shift', currentShift) // Filter by current shift
           .order('created_at', { ascending: false });
 
-        console.log('Remaining bread result:', remainingData);
+        console.log('Remaining bread result for shift:', currentShift, remainingData);
         console.log('Remaining bread error:', remainingError);
 
         if (remainingError) {
@@ -146,7 +150,7 @@ export function InventoryClient() {
     // Always try to fetch real data
     console.log('Fetching real inventory data...');
     fetchInventory();
-  }, [user?.id]);
+  }, [user?.id, currentShift]); // Add currentShift to dependencies
 
   console.log('InventoryClient render - isLoading:', isLoading, 'error:', error, 'inventory length:', inventory.length);
 

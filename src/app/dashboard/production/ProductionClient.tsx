@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useData } from '@/contexts/DataContext';
+import { useShift } from '@/contexts/ShiftContext';
 import { MobileLoading, SkeletonCard } from '@/components/ui/mobile-loading';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -29,6 +30,7 @@ interface ProductionClientProps {
 
 export function ProductionClient({ userRole, userId }: ProductionClientProps) {
   const { productionLogs, breadTypes, isLoading, error, addProductionLog, refreshProduction } = useData();
+  const { currentShift } = useShift();
   const [isAdding, setIsAdding] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -38,25 +40,27 @@ export function ProductionClient({ userRole, userId }: ProductionClientProps) {
   const [formData, setFormData] = useState({
     bread_type_id: '',
     quantity: '',
-    shift: 'morning' as 'morning' | 'night'
+    shift: currentShift
   });
 
-  // Auto-detect shift
+  // Update form shift when context changes
   useEffect(() => {
-    const hour = new Date().getHours();
     setFormData(prev => ({
       ...prev,
-      shift: hour >= 6 && hour < 14 ? 'morning' : 'night'
+      shift: currentShift
     }));
-  }, []);
+  }, [currentShift]);
 
-  // Calculate metrics
+  // Calculate metrics for current shift
   const todayLogs = productionLogs.filter(log => {
     const logDate = new Date(log.created_at).toDateString();
     return logDate === new Date().toDateString();
   });
 
+  // Filter logs by current shift
+  const currentShiftLogs = todayLogs.filter(log => log.shift === currentShift);
   const totalToday = todayLogs.reduce((sum, log) => sum + log.quantity, 0);
+  const currentShiftTotal = currentShiftLogs.reduce((sum, log) => sum + log.quantity, 0);
   const morningTotal = todayLogs.filter(log => log.shift === 'morning').reduce((sum, log) => sum + log.quantity, 0);
   const nightTotal = todayLogs.filter(log => log.shift === 'night').reduce((sum, log) => sum + log.quantity, 0);
 
@@ -77,20 +81,20 @@ export function ProductionClient({ userRole, userId }: ProductionClientProps) {
       await addProductionLog({
         bread_type_id: formData.bread_type_id,
         quantity: parseInt(formData.quantity),
-        shift: formData.shift,
+        shift: currentShift, // Use current shift from context
         recorded_by: userId
       });
 
       toast({
         title: 'Success',
-        description: 'Production log added successfully'
+        description: `Production log added successfully for ${currentShift} shift`
       });
 
       // Reset form
       setFormData({
         bread_type_id: '',
         quantity: '',
-        shift: formData.shift
+        shift: currentShift
       });
       setIsDialogOpen(false);
     } catch (error) {

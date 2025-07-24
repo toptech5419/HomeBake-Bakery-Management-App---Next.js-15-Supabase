@@ -4,13 +4,7 @@ import { BreadTypeTable } from '@/components/bread-type-table';
 import { useToast } from '@/components/ui/ToastProvider';
 import { deleteBreadTypeAction, refetchBreadTypesAction } from './actions';
 import { useRouter } from 'next/navigation';
-
-interface BreadType {
-  id: string;
-  name: string;
-  size?: string;
-  unit_price: number;
-}
+import { BreadType } from '@/types';
 
 interface User {
   id: string;

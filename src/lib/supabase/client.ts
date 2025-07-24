@@ -21,11 +21,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     flowType: 'pkce',
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
   },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
   global: {
     headers: {
       'X-Client-Info': 'homebake-pwa@2.0.0',

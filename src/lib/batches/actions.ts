@@ -13,17 +13,17 @@ export interface Batch {
   target_quantity: number;
   actual_quantity: number;
   status: 'active' | 'completed' | 'cancelled';
-  notes?: string;
+  notes?: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
+  shift: 'morning' | 'night';
   bread_type?: {
     name: string;
-    price: number;
+    unit_price: number;
   };
   created_by_user?: {
-    email: string;
-    full_name?: string;
+    name?: string;
   };
 }
 
@@ -32,9 +32,12 @@ export interface CreateBatchData {
   batch_number: string;
   target_quantity: number;
   notes?: string;
+  shift: 'morning' | 'night';
 }
 
 export interface UpdateBatchData {
+  bread_type_id?: string;
+  batch_number?: string;
   target_quantity?: number;
   actual_quantity?: number;
   status?: 'active' | 'completed' | 'cancelled';
@@ -42,73 +45,8 @@ export interface UpdateBatchData {
   end_time?: string;
 }
 
-// Fetch all batches with related data
-export async function getBatches(): Promise<Batch[]> {
-  const supabase = await createServer();
-  
-  const { data: batches, error } = await supabase
-    .from('batches')
-    .select(`
-      *,
-      bread_type:bread_types(name, price),
-      created_by_user:auth.users!created_by(email, raw_user_meta_data)
-    `)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Error fetching batches:', error);
-    throw new Error('Failed to fetch batches');
-  }
-
-  return batches || [];
-}
-
-// Fetch batches by bread type
-export async function getBatchesByBreadType(breadTypeId: string): Promise<Batch[]> {
-  const supabase = await createServer();
-  
-  const { data: batches, error } = await supabase
-    .from('batches')
-    .select(`
-      *,
-      bread_type:bread_types(name, price),
-      created_by_user:auth.users!created_by(email, raw_user_meta_data)
-    `)
-    .eq('bread_type_id', breadTypeId)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('Error fetching batches by bread type:', error);
-    throw new Error('Failed to fetch batches');
-  }
-
-  return batches || [];
-}
-
-// Fetch active batches
-export async function getActiveBatches(): Promise<Batch[]> {
-  const supabase = await createServer();
-  
-  const { data: batches, error } = await supabase
-    .from('batches')
-    .select(`
-      *,
-      bread_type:bread_types(name, price),
-      created_by_user:auth.users!created_by(email, raw_user_meta_data)
-    `)
-    .eq('status', 'active')
-    .order('start_time', { ascending: false });
-
-  if (error) {
-    console.error('Error fetching active batches:', error);
-    throw new Error('Failed to fetch active batches');
-  }
-
-  return batches || [];
-}
-
 // Create a new batch
-export async function createBatch(data: CreateBatchData): Promise<Batch> {
+export async function createBatch(data: CreateBatchData) {
   const supabase = await createServer();
   
   // Get current user
@@ -117,35 +55,13 @@ export async function createBatch(data: CreateBatchData): Promise<Batch> {
     throw new Error('Authentication required');
   }
 
-  // Check if batch number already exists for this bread type
-  const { data: existingBatch, error: checkError } = await supabase
-    .from('batches')
-    .select('id')
-    .eq('bread_type_id', data.bread_type_id)
-    .eq('batch_number', data.batch_number)
-    .single();
-
-  if (checkError && checkError.code !== 'PGRST116') {
-    console.error('Error checking existing batch:', checkError);
-    throw new Error('Failed to check existing batch');
-  }
-
-  if (existingBatch) {
-    throw new Error('Batch number already exists for this bread type');
-  }
-
   const { data: batch, error } = await supabase
     .from('batches')
     .insert({
       ...data,
-      created_by: user.id,
-      start_time: new Date().toISOString(),
+      created_by: user.id
     })
-    .select(`
-      *,
-      bread_type:bread_types(name, price),
-      created_by_user:auth.users!created_by(email, raw_user_meta_data)
-    `)
+    .select()
     .single();
 
   if (error) {
@@ -157,26 +73,64 @@ export async function createBatch(data: CreateBatchData): Promise<Batch> {
   return batch;
 }
 
-// Update a batch
-export async function updateBatch(batchId: string, data: UpdateBatchData): Promise<Batch> {
+// Get all batches
+export async function getBatches() {
   const supabase = await createServer();
   
-  const updateData: any = { ...data };
-  
-  // If completing the batch, set end_time
-  if (data.status === 'completed' && !data.end_time) {
-    updateData.end_time = new Date().toISOString();
-  }
-
-  const { data: batch, error } = await supabase
+  const { data: batches, error } = await supabase
     .from('batches')
-    .update(updateData)
-    .eq('id', batchId)
     .select(`
       *,
-      bread_type:bread_types(name, price),
-      created_by_user:auth.users!created_by(email, raw_user_meta_data)
+      bread_types (
+        id,
+        name,
+        unit_price
+      )
     `)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching batches:', error);
+    throw new Error('Failed to fetch batches');
+  }
+
+  return batches;
+}
+
+// Get active batches
+export async function getActiveBatches() {
+  const supabase = await createServer();
+  
+  const { data: batches, error } = await supabase
+    .from('batches')
+    .select(`
+      *,
+      bread_types (
+        id,
+        name,
+        unit_price
+      )
+    `)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching active batches:', error);
+    throw new Error('Failed to fetch active batches');
+  }
+
+  return batches;
+}
+
+// Update a batch
+export async function updateBatch(batchId: string, data: UpdateBatchData) {
+  const supabase = await createServer();
+  
+  const { data: batch, error } = await supabase
+    .from('batches')
+    .update(data)
+    .eq('id', batchId)
+    .select()
     .single();
 
   if (error) {
@@ -189,20 +143,50 @@ export async function updateBatch(batchId: string, data: UpdateBatchData): Promi
 }
 
 // Complete a batch
-export async function completeBatch(batchId: string, actualQuantity: number): Promise<Batch> {
-  return updateBatch(batchId, {
-    status: 'completed',
-    actual_quantity: actualQuantity,
-    end_time: new Date().toISOString(),
-  });
+export async function completeBatch(batchId: string, actualQuantity: number) {
+  const supabase = await createServer();
+  
+  const { data: batch, error } = await supabase
+    .from('batches')
+    .update({
+      status: 'completed',
+      actual_quantity: actualQuantity,
+      end_time: new Date().toISOString()
+    })
+    .eq('id', batchId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error completing batch:', error);
+    throw new Error('Failed to complete batch');
+  }
+
+  revalidatePath('/dashboard');
+  return batch;
 }
 
 // Cancel a batch
-export async function cancelBatch(batchId: string): Promise<Batch> {
-  return updateBatch(batchId, {
-    status: 'cancelled',
-    end_time: new Date().toISOString(),
-  });
+export async function cancelBatch(batchId: string) {
+  const supabase = await createServer();
+  
+  const { data: batch, error } = await supabase
+    .from('batches')
+    .update({
+      status: 'cancelled',
+      end_time: new Date().toISOString()
+    })
+    .eq('id', batchId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error cancelling batch:', error);
+    throw new Error('Failed to cancel batch');
+  }
+
+  revalidatePath('/dashboard');
+  return batch;
 }
 
 // Delete a batch
@@ -217,6 +201,173 @@ export async function deleteBatch(batchId: string): Promise<void> {
   if (error) {
     console.error('Error deleting batch:', error);
     throw new Error('Failed to delete batch');
+  }
+
+  revalidatePath('/dashboard');
+}
+
+// Check if batches are already saved to all_batches
+export async function checkAndSaveBatchesToAllBatches(): Promise<{ needsSaving: boolean; savedCount?: number }> {
+  const supabase = await createServer();
+  
+  try {
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error('Authentication required');
+    }
+
+    console.log('🔍 Starting batch check and save process...');
+
+    // Get current date for filtering
+    const today = new Date().toISOString().split('T')[0];
+    console.log(`📅 Checking batches for date: ${today}`);
+
+    // Get all batches from batches table for today
+    const { data: batches, error: batchesError } = await supabase
+      .from('batches')
+      .select('*')
+      .gte('created_at', `${today}T00:00:00`)
+      .lt('created_at', `${today}T23:59:59`);
+
+    if (batchesError) {
+      console.error('Error fetching batches:', batchesError);
+      throw new Error('Failed to fetch batches');
+    }
+
+    console.log(`📊 Found ${batches?.length || 0} batches in batches table for today`);
+
+    if (!batches || batches.length === 0) {
+      console.log('ℹ️ No batches found for today, nothing to save');
+      return { needsSaving: false };
+    }
+
+    // Get all existing batch UUIDs from all_batches table for today
+    const { data: existingBatches, error: existingError } = await supabase
+      .from('all_batches')
+      .select('id, created_at')
+      .gte('created_at', `${today}T00:00:00`)
+      .lt('created_at', `${today}T23:59:59`);
+
+    if (existingError) {
+      console.error('Error fetching existing batches:', existingError);
+      throw new Error('Failed to check existing batches');
+    }
+
+    console.log(`📋 Found ${existingBatches?.length || 0} existing batches in all_batches table for today`);
+
+    // Create a set of existing batch UUIDs for fast lookup
+    const existingBatchIds = new Set();
+    if (existingBatches) {
+      existingBatches.forEach(batch => {
+        existingBatchIds.add(batch.id);
+      });
+    }
+
+    // Filter batches that need to be saved (those not in all_batches)
+    const batchesToSave = batches.filter(batch => {
+      return !existingBatchIds.has(batch.id);
+    });
+
+    console.log(`💾 Found ${batchesToSave.length} batches that need to be saved to all_batches`);
+
+    if (batchesToSave.length === 0) {
+      console.log('✅ All batches are already saved to all_batches');
+      return { needsSaving: false };
+    }
+
+    // Log details of batches that will be saved
+    batchesToSave.forEach(batch => {
+      console.log(`📝 Will save batch: ${batch.id} (${batch.batch_number}) - ${(batch as any).shift} shift`);
+    });
+
+    // Validate batch data before insertion
+    const validBatchesToInsert = batchesToSave.map(batch => {
+      // Ensure all required fields are present
+      if (!batch.bread_type_id || !batch.batch_number || !batch.target_quantity) {
+        console.warn(`⚠️ Skipping invalid batch: ${batch.id} - missing required fields`);
+        return null;
+      }
+
+      return {
+        id: batch.id, // Preserve the original UUID
+        bread_type_id: batch.bread_type_id,
+        batch_number: batch.batch_number,
+        start_time: batch.start_time,
+        end_time: batch.end_time,
+        target_quantity: batch.target_quantity,
+        actual_quantity: batch.actual_quantity || 0,
+        status: batch.status || 'active',
+        shift: (batch as any).shift || 'morning',
+        notes: batch.notes,
+        created_by: batch.created_by,
+        created_at: batch.created_at,
+        updated_at: batch.updated_at
+      };
+    }).filter(batch => batch !== null);
+
+    if (validBatchesToInsert.length === 0) {
+      console.log('⚠️ No valid batches to save after validation');
+      return { needsSaving: false };
+    }
+
+    console.log(`🚀 Saving ${validBatchesToInsert.length} valid batches to all_batches table...`);
+
+    // Save batches to all_batches table in bulk
+    const { error: saveError } = await supabase
+      .from('all_batches')
+      .insert(validBatchesToInsert);
+
+    if (saveError) {
+      console.error('Error saving batches to all_batches:', saveError);
+      throw new Error('Failed to save batches to all_batches');
+    }
+
+    console.log(`✅ Successfully saved ${validBatchesToInsert.length} batches to all_batches table`);
+    return { needsSaving: true, savedCount: validBatchesToInsert.length };
+
+  } catch (error) {
+    console.error('❌ Error in checkAndSaveBatchesToAllBatches:', error);
+    throw error;
+  }
+}
+
+// Delete all batches (for managers/owners only)
+export async function deleteAllBatches(): Promise<void> {
+  const supabase = await createServer();
+  
+  // First, get the current user to check permissions
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  if (authError || !user) {
+    throw new Error('Authentication required');
+  }
+
+  // Get user role from users table
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (userError || !userData) {
+    throw new Error('User not found');
+  }
+
+  // Only managers and owners can delete all batches
+  if (userData.role !== 'manager' && userData.role !== 'owner') {
+    throw new Error('Unauthorized: Only managers and owners can delete all batches');
+  }
+
+  // Delete all batches using direct SQL to bypass RLS
+  const { error } = await supabase
+    .from('batches')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000'); // This will delete all records
+
+  if (error) {
+    console.error('Error deleting all batches:', error);
+    throw new Error('Failed to delete all batches');
   }
 
   revalidatePath('/dashboard');

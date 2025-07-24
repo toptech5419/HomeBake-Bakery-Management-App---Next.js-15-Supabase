@@ -162,73 +162,7 @@ export function useSalesManagement(userId: string, currentShift: string) {
     }
   }, [currentShift]);
 
-  // Real-time subscription for production logs
-  useEffect(() => {
-    const productionChannel = supabase
-      .channel('production_logs_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'production_logs',
-          filter: `shift=eq.${currentShift}`
-        },
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(productionChannel);
-    };
-  }, [currentShift, fetchData]);
-
-  // Real-time subscription for sales logs
-  useEffect(() => {
-    const salesChannel = supabase
-      .channel('sales_logs_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'sales_logs',
-          filter: `shift=eq.${currentShift}`
-        },
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(salesChannel);
-    };
-  }, [currentShift, fetchData]);
-
-  // Real-time subscription for available stock
-  useEffect(() => {
-    const stockChannel = supabase
-      .channel('available_stock_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'available_stock'
-        },
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(stockChannel);
-    };
-  }, [fetchData]);
+  // Note: Real-time subscriptions removed - using DataContext polling instead
 
   // Initial data fetch
   useEffect(() => {

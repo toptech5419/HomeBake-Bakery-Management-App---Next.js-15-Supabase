@@ -13,9 +13,8 @@ import {
   deleteBatch,
   getBatchStats,
   generateNextBatchNumber
-} from '@/lib/batches/client-actions';
+} from '@/lib/batches/api-actions';
 import { supabase } from '@/lib/supabase/client';
-import type { Batch, BatchStatus } from '@/types';
 
 export function useBatches() {
   const queryClient = useQueryClient();
@@ -238,4 +237,4 @@ export function useBatches() {
     refetchActiveBatches,
     refetchStats,
   };
-} 
+}
