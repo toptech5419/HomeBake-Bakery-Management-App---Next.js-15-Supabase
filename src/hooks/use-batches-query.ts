@@ -112,23 +112,16 @@ export function useBatchMutations() {
     },
   });
 
-  const generateBatchNumberMutation = useMutation({
-    mutationFn: ({ breadTypeId, shift }: { breadTypeId: string; shift?: 'morning' | 'night' }) =>
-      generateNextBatchNumber(breadTypeId, shift),
-  });
-
   return {
     createBatch: createBatchMutation.mutateAsync,
     updateBatch: updateBatchMutation.mutateAsync,
     completeBatch: completeBatchMutation.mutateAsync,
     cancelBatch: cancelBatchMutation.mutateAsync,
     deleteBatch: deleteBatchMutation.mutateAsync,
-    generateBatchNumber: generateBatchNumberMutation.mutateAsync,
     isCreatingBatch: createBatchMutation.isPending,
     isUpdatingBatch: updateBatchMutation.isPending,
     isCompletingBatch: completeBatchMutation.isPending,
     isCancellingBatch: cancelBatchMutation.isPending,
     isDeletingBatch: deleteBatchMutation.isPending,
-    isGeneratingBatchNumber: generateBatchNumberMutation.isPending,
   };
 } 

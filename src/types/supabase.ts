@@ -509,7 +509,33 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_batch_with_unique_number: {
+        Args: {
+          p_bread_type_id: string;
+          p_target_quantity: number;
+          p_notes: string | null;
+          p_shift: 'morning' | 'night';
+          p_created_by: string;
+          p_actual_quantity?: number | null;
+          p_start_time?: string | null;
+          p_status?: 'active' | 'completed' | 'cancelled';
+        };
+        Returns: {
+          id: string;
+          bread_type_id: string;
+          batch_number: string;
+          start_time: string;
+          end_time: string | null;
+          target_quantity: number;
+          actual_quantity: number;
+          status: 'active' | 'completed' | 'cancelled';
+          notes: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+          shift: 'morning' | 'night';
+        }[];
+      };
     }
     Enums: {
       [_ in never]: never

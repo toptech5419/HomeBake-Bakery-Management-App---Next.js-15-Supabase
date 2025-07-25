@@ -137,7 +137,7 @@ export function useBatches() {
   });
 
   // Helper functions
-  const createNewBatch = useCallback(async (data: CreateBatchData) => {
+  const createNewBatch = useCallback(async (data: Omit<CreateBatchData, 'batch_number'>) => {
     try {
       const result = await createBatchMutation.mutateAsync(data);
       return result;
@@ -186,16 +186,6 @@ export function useBatches() {
     }
   }, [deleteBatchMutation]);
 
-  const generateBatchNumber = useCallback(async (breadTypeId: string) => {
-    try {
-      const result = await generateNextBatchNumberMutation.mutateAsync(breadTypeId);
-      return result;
-    } catch (error) {
-      console.error('Error generating batch number:', error);
-      throw error;
-    }
-  }, [generateNextBatchNumberMutation]);
-
   return {
     // Data
     batches,
@@ -211,7 +201,6 @@ export function useBatches() {
     isCompletingBatch: completeBatchMutation.isPending,
     isCancellingBatch: cancelBatchMutation.isPending,
     isDeletingBatch: deleteBatchMutation.isPending,
-    isGeneratingBatchNumber: generateNextBatchNumberMutation.isPending,
     
     // Error states
     batchesError,
@@ -222,7 +211,6 @@ export function useBatches() {
     completeBatchError: completeBatchMutation.error,
     cancelBatchError: cancelBatchMutation.error,
     deleteBatchError: deleteBatchMutation.error,
-    generateBatchNumberError: generateNextBatchNumberMutation.error,
     
     // Actions
     createNewBatch,
@@ -230,7 +218,6 @@ export function useBatches() {
     completeExistingBatch,
     cancelExistingBatch,
     deleteExistingBatch,
-    generateBatchNumber,
     
     // Refetch functions
     refetchBatches,

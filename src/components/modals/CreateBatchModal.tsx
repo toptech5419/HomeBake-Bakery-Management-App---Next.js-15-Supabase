@@ -36,7 +36,7 @@ interface FormData {
 }
 
 export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift }: CreateBatchModalProps) {
-  const { createBatch, generateBatchNumber, isCreatingBatch } = useBatchMutations();
+  const { createBatch, isCreatingBatch } = useBatchMutations();
   const { user } = useAuth();
   const { currentShift: contextShift } = useShift();
   
@@ -138,27 +138,17 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
       setIsSubmitting(true);
       console.log('⏳ Setting submitting state to true');
 
-      // Generate batch number for the selected bread type and shift
-      console.log('🔢 Generating batch number for bread type:', formData.breadTypeId, 'shift:', shift);
-      const batchNumber = await generateBatchNumber({ 
-        breadTypeId: formData.breadTypeId, 
-        shift: shift 
-      });
-      console.log('✅ Generated batch number:', batchNumber);
-
       // Create the batch with shift information
       console.log('🏭 Creating batch with data:', {
         bread_type_id: formData.breadTypeId,
-        batch_number: batchNumber,
-        target_quantity: quantity,
+        actual_quantity: quantity,
         notes: formData.notes || undefined,
         shift: shift
       });
 
       const newBatch = await createBatch({
         bread_type_id: formData.breadTypeId,
-        batch_number: batchNumber,
-        target_quantity: quantity,
+        actual_quantity: quantity,
         notes: formData.notes || undefined,
         shift: shift
       });
@@ -166,7 +156,7 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
       console.log('✅ Batch created successfully:', newBatch);
 
       // Show success message
-      toast.success(`Batch #${batchNumber} created successfully for ${shift} shift!`);
+      toast.success(`Batch created successfully for ${shift} shift!`);
 
       // Reset form
       resetForm();
@@ -288,7 +278,7 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
           {/* Quantity Input */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">
-              Target Quantity *
+              Actual Quantity *
             </label>
             <div className="flex items-center gap-3">
               <button

@@ -3,7 +3,7 @@
 import { Batch, CreateBatchData, UpdateBatchData } from './actions';
 
 // Create a new batch using server API
-export async function createBatch(data: CreateBatchData): Promise<Batch> {
+export async function createBatch(data: Omit<CreateBatchData, 'batch_number'>): Promise<Batch> {
   const response = await fetch('/api/batches', {
     method: 'POST',
     headers: {
@@ -118,23 +118,6 @@ export async function deleteBatch(batchId: string): Promise<void> {
     const result = await response.json();
     throw new Error(result.error || 'Failed to delete batch');
   }
-}
-
-// Generate next batch number for a bread type
-export async function generateNextBatchNumber(breadTypeId: string, shift?: 'morning' | 'night'): Promise<string> {
-  const params = new URLSearchParams();
-  if (shift) {
-    params.append('shift', shift);
-  }
-  
-  const response = await fetch(`/api/batches/generate-number/${breadTypeId}?${params.toString()}`);
-  
-  if (!response.ok) {
-    throw new Error('Failed to generate batch number');
-  }
-
-  const result = await response.json();
-  return result.data;
 }
 
 // Get batch statistics

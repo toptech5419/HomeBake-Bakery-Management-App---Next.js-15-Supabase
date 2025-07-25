@@ -255,6 +255,18 @@ export default function ReportsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Back Button */}
+      <div className="p-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.href = '/'}
+          className="flex items-center gap-2"
+        >
+          <ChevronDown style={{ transform: 'rotate(90deg)' }} className="w-4 h-4" />
+          Back to Home
+        </Button>
+      </div>
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">

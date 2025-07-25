@@ -10,7 +10,6 @@ export interface Batch {
   batch_number: string;
   start_time: string;
   end_time?: string | null;
-  target_quantity: number;
   actual_quantity: number;
   status: 'active' | 'completed' | 'cancelled';
   notes?: string | null;
@@ -30,7 +29,7 @@ export interface Batch {
 export interface CreateBatchData {
   bread_type_id: string;
   batch_number: string;
-  target_quantity: number;
+  actual_quantity: number;
   notes?: string;
   shift: 'morning' | 'night';
 }
@@ -38,7 +37,6 @@ export interface CreateBatchData {
 export interface UpdateBatchData {
   bread_type_id?: string;
   batch_number?: string;
-  target_quantity?: number;
   actual_quantity?: number;
   status?: 'active' | 'completed' | 'cancelled';
   notes?: string;
@@ -46,7 +44,7 @@ export interface UpdateBatchData {
 }
 
 // Create a new batch
-export async function createBatch(data: CreateBatchData) {
+export async function createBatch(data: Omit<CreateBatchData, 'batch_number'>) {
   const supabase = await createServer();
   
   // Get current user
@@ -284,7 +282,7 @@ export async function checkAndSaveBatchesToAllBatches(): Promise<{ needsSaving: 
     // Validate batch data before insertion
     const validBatchesToInsert = batchesToSave.map(batch => {
       // Ensure all required fields are present
-      if (!batch.bread_type_id || !batch.batch_number || !batch.target_quantity) {
+      if (!batch.bread_type_id || !batch.batch_number || !batch.actual_quantity) {
         console.warn(`⚠️ Skipping invalid batch: ${batch.id} - missing required fields`);
         return null;
       }
@@ -295,7 +293,6 @@ export async function checkAndSaveBatchesToAllBatches(): Promise<{ needsSaving: 
         batch_number: batch.batch_number,
         start_time: batch.start_time,
         end_time: batch.end_time,
-        target_quantity: batch.target_quantity,
         actual_quantity: batch.actual_quantity || 0,
         status: batch.status || 'active',
         shift: (batch as any).shift || 'morning',
@@ -379,53 +376,24 @@ export async function getBatchStats() {
   
   const { data: stats, error } = await supabase
     .from('batches')
-    .select('status, target_quantity, actual_quantity');
+    .select('status, actual_quantity');
 
   if (error) {
     console.error('Error fetching batch stats:', error);
     return {
       activeBatches: 0,
       completedBatches: 0,
-      totalTargetQuantity: 0,
       totalActualQuantity: 0,
     };
   }
 
   const activeBatches = stats?.filter((b: any) => b.status === 'active').length || 0;
   const completedBatches = stats?.filter((b: any) => b.status === 'completed').length || 0;
-  const totalTargetQuantity = stats?.reduce((sum: number, b: any) => sum + (b.target_quantity || 0), 0) || 0;
   const totalActualQuantity = stats?.reduce((sum: number, b: any) => sum + (b.actual_quantity || 0), 0) || 0;
 
   return {
     activeBatches,
     completedBatches,
-    totalTargetQuantity,
     totalActualQuantity,
   };
 }
-
-// Generate next batch number for a bread type
-export async function generateNextBatchNumber(breadTypeId: string): Promise<string> {
-  const supabase = await createServer();
-  
-  const { data: lastBatch, error } = await supabase
-    .from('batches')
-    .select('batch_number')
-    .eq('bread_type_id', breadTypeId)
-    .order('batch_number', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (error && error.code !== 'PGRST116') {
-    console.error('Error fetching last batch number:', error);
-    throw new Error('Failed to generate batch number');
-  }
-
-  if (!lastBatch) {
-    return '001';
-  }
-
-  const lastNumber = parseInt(lastBatch.batch_number);
-  const nextNumber = lastNumber + 1;
-  return nextNumber.toString().padStart(3, '0');
-} 

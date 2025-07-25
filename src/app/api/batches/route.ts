@@ -16,10 +16,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { bread_type_id, batch_number, target_quantity, actual_quantity, start_time, notes, status, shift } = body;
+    const { bread_type_id, actual_quantity, start_time, notes, status, shift } = body;
 
-    // Validate required fields
-    if (!bread_type_id || !batch_number || !target_quantity) {
+    // Validate required fields (no batch_number needed)
+    if (!bread_type_id || !actual_quantity) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -34,51 +34,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if batch number already exists for this bread type and shift
-    const { data: existingBatch, error: checkError } = await supabase
-      .from('batches')
-      .select('id')
-      .eq('bread_type_id', bread_type_id)
-      .eq('batch_number', batch_number)
-      .eq('shift', shift)
-      .single();
+    // Call the Postgres RPC for atomic batch creation
+    const { data, error } = await supabase.rpc('create_batch_with_unique_number', {
+      p_bread_type_id: bread_type_id,
+      p_actual_quantity: actual_quantity,
+      p_notes: notes || null,
+      p_shift: shift,
+      p_created_by: user.id,
+      p_start_time: start_time || null,
+      p_status: status || 'active',
+    });
 
-    if (existingBatch) {
-      return NextResponse.json(
-        { error: 'Batch number already exists for this bread type and shift' },
-        { status: 409 }
-      );
-    }
-
-    // Create the batch
-    const { data: batch, error } = await supabase
-      .from('batches')
-      .insert({
-        bread_type_id,
-        batch_number,
-        target_quantity,
-        actual_quantity: actual_quantity || target_quantity,
-        start_time: start_time || new Date().toISOString(),
-        notes: notes || null,
-        status: status || 'active',
-        created_by: user.id,
-        shift: shift, // Include shift
-      })
-      .select(`
-        *,
-        bread_type:bread_types(name, unit_price)
-      `)
-      .single();
-
-    if (error) {
-      console.error('Error creating batch:', error);
+    if (error || !data || !data[0]) {
+      console.error('Error creating batch via RPC:', error);
       return NextResponse.json(
         { error: 'Failed to create batch' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ data: batch });
+    return NextResponse.json({ data: data[0] });
   } catch (error) {
     console.error('Unexpected error creating batch:', error);
     return NextResponse.json(

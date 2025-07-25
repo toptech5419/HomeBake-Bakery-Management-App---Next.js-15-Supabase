@@ -1,6 +1,6 @@
 import { createServer } from '@/lib/supabase/server';
-import { InventoryClient } from './InventoryClient';
 import { redirect } from 'next/navigation';
+import InventoryClient from './InventoryClient';
 
 export default async function InventoryPage() {
   const supabase = await createServer();
@@ -8,19 +8,6 @@ export default async function InventoryPage() {
 
   console.log('Inventory page - User:', user);
   console.log('Inventory page - Auth error:', error);
-
-  // Test database connection
-  try {
-    const { data: breadTypes, error: breadError } = await supabase
-      .from('bread_types')
-      .select('*')
-      .limit(1);
-    
-    console.log('Database test - Bread types:', breadTypes);
-    console.log('Database test - Error:', breadError);
-  } catch (dbError) {
-    console.error('Database connection error:', dbError);
-  }
 
   // Check authentication
   if (!user) {
