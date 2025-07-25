@@ -279,7 +279,6 @@ export interface Batch {
   batch_number: string;
   start_time: string;
   end_time: string | null;
-  target_quantity: number;
   actual_quantity: number;
   status: "active" | "completed" | "cancelled";
   notes: string | null;

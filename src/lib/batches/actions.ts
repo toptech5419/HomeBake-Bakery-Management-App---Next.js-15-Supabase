@@ -205,7 +205,7 @@ export async function deleteBatch(batchId: string): Promise<void> {
 }
 
 // Check if batches are already saved to all_batches
-export async function checkAndSaveBatchesToAllBatches(): Promise<{ needsSaving: boolean; savedCount?: number }> {
+export async function checkAndSaveBatchesToAllBatches(shift?: 'morning' | 'night'): Promise<{ needsSaving: boolean; savedCount?: number }> {
   const supabase = await createServer();
   
   try {
@@ -221,38 +221,56 @@ export async function checkAndSaveBatchesToAllBatches(): Promise<{ needsSaving: 
     const today = new Date().toISOString().split('T')[0];
     console.log(`📅 Checking batches for date: ${today}`);
 
-    // Get all batches from batches table for today
-    const { data: batches, error: batchesError } = await supabase
+    // Build the query to get batches for today
+    let batchesQuery = supabase
       .from('batches')
       .select('*')
       .gte('created_at', `${today}T00:00:00`)
       .lt('created_at', `${today}T23:59:59`);
+
+    // If shift is specified, filter by shift
+    if (shift) {
+      batchesQuery = batchesQuery.eq('shift', shift);
+      console.log(`🎯 Filtering by shift: ${shift}`);
+    } else {
+      console.log('⚠️ No shift specified, will check all shifts for today');
+    }
+
+    // Get batches from batches table for today (and specific shift if provided)
+    const { data: batches, error: batchesError } = await batchesQuery;
 
     if (batchesError) {
       console.error('Error fetching batches:', batchesError);
       throw new Error('Failed to fetch batches');
     }
 
-    console.log(`📊 Found ${batches?.length || 0} batches in batches table for today`);
+    console.log(`📊 Found ${batches?.length || 0} batches in batches table for ${shift || 'all shifts'} on ${today}`);
 
     if (!batches || batches.length === 0) {
-      console.log('ℹ️ No batches found for today, nothing to save');
+      console.log(`ℹ️ No batches found for ${shift || 'all shifts'} on ${today}, nothing to save`);
       return { needsSaving: false };
     }
 
-    // Get all existing batch UUIDs from all_batches table for today
-    const { data: existingBatches, error: existingError } = await supabase
+    // Get all existing batch UUIDs from all_batches table for today (and specific shift if provided)
+    let existingBatchesQuery = supabase
       .from('all_batches')
       .select('id, created_at')
       .gte('created_at', `${today}T00:00:00`)
       .lt('created_at', `${today}T23:59:59`);
+
+    // If shift is specified, filter existing batches by shift too
+    if (shift) {
+      existingBatchesQuery = existingBatchesQuery.eq('shift', shift);
+    }
+
+    const { data: existingBatches, error: existingError } = await existingBatchesQuery;
 
     if (existingError) {
       console.error('Error fetching existing batches:', existingError);
       throw new Error('Failed to check existing batches');
     }
 
-    console.log(`📋 Found ${existingBatches?.length || 0} existing batches in all_batches table for today`);
+    console.log(`📋 Found ${existingBatches?.length || 0} existing batches in all_batches table for ${shift || 'all shifts'} on ${today}`);
 
     // Create a set of existing batch UUIDs for fast lookup
     const existingBatchIds = new Set();
@@ -267,10 +285,10 @@ export async function checkAndSaveBatchesToAllBatches(): Promise<{ needsSaving: 
       return !existingBatchIds.has(batch.id);
     });
 
-    console.log(`💾 Found ${batchesToSave.length} batches that need to be saved to all_batches`);
+    console.log(`💾 Found ${batchesToSave.length} batches that need to be saved to all_batches for ${shift || 'all shifts'}`);
 
     if (batchesToSave.length === 0) {
-      console.log('✅ All batches are already saved to all_batches');
+      console.log(`✅ All batches for ${shift || 'all shifts'} are already saved to all_batches`);
       return { needsSaving: false };
     }
 
@@ -308,7 +326,7 @@ export async function checkAndSaveBatchesToAllBatches(): Promise<{ needsSaving: 
       return { needsSaving: false };
     }
 
-    console.log(`🚀 Saving ${validBatchesToInsert.length} valid batches to all_batches table...`);
+    console.log(`🚀 Saving ${validBatchesToInsert.length} valid batches to all_batches table for ${shift || 'all shifts'}...`);
 
     // Save batches to all_batches table in bulk
     const { error: saveError } = await supabase
@@ -320,7 +338,7 @@ export async function checkAndSaveBatchesToAllBatches(): Promise<{ needsSaving: 
       throw new Error('Failed to save batches to all_batches');
     }
 
-    console.log(`✅ Successfully saved ${validBatchesToInsert.length} batches to all_batches table`);
+    console.log(`✅ Successfully saved ${validBatchesToInsert.length} batches to all_batches table for ${shift || 'all shifts'}`);
     return { needsSaving: true, savedCount: validBatchesToInsert.length };
 
   } catch (error) {
@@ -330,7 +348,7 @@ export async function checkAndSaveBatchesToAllBatches(): Promise<{ needsSaving: 
 }
 
 // Delete all batches (for managers/owners only)
-export async function deleteAllBatches(): Promise<void> {
+export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<void> {
   const supabase = await createServer();
   
   // First, get the current user to check permissions
@@ -351,22 +369,39 @@ export async function deleteAllBatches(): Promise<void> {
     throw new Error('User not found');
   }
 
-  // Only managers and owners can delete all batches
+  // Only managers and owners can delete batches
   if (userData.role !== 'manager' && userData.role !== 'owner') {
-    throw new Error('Unauthorized: Only managers and owners can delete all batches');
+    throw new Error('Unauthorized: Only managers and owners can delete batches');
   }
 
-  // Delete all batches using direct SQL to bypass RLS
-  const { error } = await supabase
+  // Get current date for filtering
+  const today = new Date().toISOString().split('T')[0];
+  
+  console.log(`🧹 Starting batch deletion for ${shift || 'all'} shift on ${today}`);
+
+  // Build the delete query with shift and date filtering
+  let deleteQuery = supabase
     .from('batches')
     .delete()
-    .neq('id', '00000000-0000-0000-0000-000000000000'); // This will delete all records
+    .gte('created_at', `${today}T00:00:00`)
+    .lt('created_at', `${today}T23:59:59`);
 
-  if (error) {
-    console.error('Error deleting all batches:', error);
-    throw new Error('Failed to delete all batches');
+  // If shift is specified, filter by shift
+  if (shift) {
+    deleteQuery = deleteQuery.eq('shift', shift);
+    console.log(`🎯 Filtering by shift: ${shift}`);
+  } else {
+    console.log('⚠️ No shift specified, will delete all batches for today');
   }
 
+  const { error } = await deleteQuery;
+
+  if (error) {
+    console.error('Error deleting batches:', error);
+    throw new Error(`Failed to delete ${shift || 'all'} shift batches`);
+  }
+
+  console.log(`✅ Successfully deleted ${shift || 'all'} shift batches for ${today}`);
   revalidatePath('/dashboard');
 }
 

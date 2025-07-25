@@ -40,7 +40,7 @@ ON CONFLICT DO NOTHING;
 -- =====================================================
 -- SAMPLE BATCHES
 -- =====================================================
-INSERT INTO batches (bread_type_id, batch_number, target_quantity, status, created_by) VALUES
+INSERT INTO batches (bread_type_id, batch_number, actual_quantity, status, created_by) VALUES
 ((SELECT id FROM bread_types WHERE name = 'White Bread' LIMIT 1), 'B001', 50, 'completed', (SELECT id FROM users WHERE role = 'manager' LIMIT 1)),
 ((SELECT id FROM bread_types WHERE name = 'Brown Bread' LIMIT 1), 'B001', 30, 'completed', (SELECT id FROM users WHERE role = 'manager' LIMIT 1)),
 ((SELECT id FROM bread_types WHERE name = 'Whole Wheat' LIMIT 1), 'B001', 25, 'active', (SELECT id FROM users WHERE role = 'manager' LIMIT 1)),
@@ -55,4 +55,4 @@ INSERT INTO shift_feedback (user_id, shift, note) VALUES
 ((SELECT id FROM users WHERE role = 'sales_rep' LIMIT 1), 'morning', 'Good customer flow. White bread was most popular.'),
 ((SELECT id FROM users WHERE role = 'manager' LIMIT 1), 'night', 'Night shift completed successfully. Equipment maintenance scheduled.'),
 ((SELECT id FROM users WHERE role = 'sales_rep' LIMIT 1), 'night', 'Evening sales were steady. Sourdough had good demand.')
-ON CONFLICT DO NOTHING; 
+ON CONFLICT DO NOTHING;

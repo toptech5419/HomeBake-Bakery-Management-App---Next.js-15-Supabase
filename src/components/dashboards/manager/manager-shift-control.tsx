@@ -36,7 +36,7 @@ interface ShiftSummary {
 }
 
 export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps) {
-  const { currentShift, isAutoMode, setIsAutoMode, toggleShift } = useShift();
+  const { currentShift, toggleShift } = useShift();
   const { productionLogs } = useData();
   const [showHandover, setShowHandover] = useState(false);
   const [handoverNotes, setHandoverNotes] = useState('');
@@ -102,31 +102,71 @@ export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps)
 
   const handleShiftHandover = async () => {
     try {
-      // Generate shift summary for database storage
-      const shiftSummary = {
-        shift: currentShift,
-        endTime: new Date().toISOString(),
-        totalProduction: currentShiftData?.totalProduction || 0,
-        completedBatches: currentShiftData?.completedBatches || 0,
-        handoverNotes,
-        managerId: currentUserId
-      };
-
-      // In a real implementation, this would save to the database
-      // await saveShiftHandover(shiftSummary);
+      // Import the necessary functions
+      const { checkAndSaveBatchesToAllBatches } = await import('@/lib/batches/actions');
       
-      // Clear form and close modal
+      // Get current date for filtering
+      const today = new Date().toISOString().split('T')[0];
+      
+      console.log(`🔄 Starting end shift process for ${currentShift} shift on ${today}`);
+      
+      // Step 1: Save batches to all_batches (with duplicate checking)
+      const saveResult = await checkAndSaveBatchesToAllBatches(currentShift);
+      
+      if (saveResult.needsSaving) {
+        console.log(`✅ Saved ${saveResult.savedCount} ${currentShift} shift batches to all_batches`);
+      } else {
+        console.log(`ℹ️ All ${currentShift} shift batches already saved to all_batches`);
+      }
+      
+      // Step 2: Clear batches for current shift and date
+      const supabase = (await import('@/lib/supabase/server')).createServer();
+      const { data: { user }, error: authError } = await (await supabase).auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Authentication required');
+      }
+      
+      // Get user role for permission check
+      const { data: userData } = await (await supabase)
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      if (!userData || (userData.role !== 'manager' && userData.role !== 'owner')) {
+        throw new Error('Unauthorized: Only managers and owners can end shifts');
+      }
+      
+      // Delete batches for current shift and today's date
+      const { error: deleteError } = await (await supabase)
+        .from('batches')
+        .delete()
+        .eq('shift', currentShift)
+        .gte('created_at', `${today}T00:00:00`)
+        .lt('created_at', `${today}T23:59:59`);
+      
+      if (deleteError) {
+        console.error('Error clearing batches:', deleteError);
+        throw new Error('Failed to clear batches for current shift');
+      }
+      
+      console.log(`🧹 Cleared ${currentShift} shift batches for ${today}`);
+      
+      // Step 3: Clear form and close modal
       setShowHandover(false);
       setHandoverNotes('');
       
-      // Switch to next shift
+      // Step 4: Switch to next shift
       toggleShift();
       
-      // Show success feedback (in a real app, use a toast notification)
-      // toast.success('Shift handover completed successfully');
+      // Show success feedback
+      console.log('✅ Shift handover completed successfully');
+      
     } catch (error) {
+      console.error('❌ Error in shift handover:', error);
       // In a real implementation, show error to user
-      // toast.error('Failed to complete shift handover');
+      // toast.error(error instanceof Error ? error.message : 'Failed to complete shift handover');
     }
   };
 
@@ -145,9 +185,6 @@ export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps)
                   <h3 className="text-lg font-semibold">
                     {currentShift === 'morning' ? '🌅 Morning Shift' : '🌙 Night Shift'}
                   </h3>
-                                     {isAutoMode && (
-                     <Badge className="text-xs bg-secondary text-secondary-foreground">Auto</Badge>
-                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Active since {formatNigeriaDate(new Date().toISOString(), 'h:mm a')}
@@ -176,18 +213,6 @@ export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps)
               <RotateCcw className="h-4 w-4" />
               Switch Shift
             </Button>
-
-            {!isAutoMode && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsAutoMode(true)}
-                className="flex items-center gap-2"
-              >
-                <Clock className="h-4 w-4" />
-                Auto Mode
-              </Button>
-            )}
           </div>
         </div>
 
@@ -328,19 +353,16 @@ export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps)
         </Card>
       )}
 
-      {/* Auto Mode Info */}
-      {isAutoMode && (
-        <div className="text-xs text-muted-foreground bg-blue-50 p-3 rounded-md border border-blue-200">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-blue-600" />
-            <span className="font-medium text-blue-900">Auto Mode Active:</span>
-          </div>
-          <p className="mt-1 text-blue-800">
-            Shifts automatically switch based on Nigeria time: 
-            Morning (6:00 AM - 6:00 PM) | Night (6:00 PM - 6:00 AM)
-          </p>
+      {/* End Shift Info */}
+      <div className="text-xs text-muted-foreground bg-blue-50 p-3 rounded-md border border-blue-200">
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-blue-600" />
+          <span className="font-medium text-blue-900">Shift Management:</span>
         </div>
-      )}
+        <p className="mt-1 text-blue-800">
+          End Shift will save current batches to reports and clear only the current shift's batches.
+        </p>
+      </div>
     </div>
   );
 }

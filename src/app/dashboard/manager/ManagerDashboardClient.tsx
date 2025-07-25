@@ -87,25 +87,25 @@ export default function ManagerDashboardClient({
     setIsCheckingBatches(true);
     
     try {
-      console.log('🔍 Checking if batches need to be saved to all_batches...');
+      console.log(`🔍 Checking if ${currentShift} shift batches need to be saved to all_batches...`);
       
-      // First, check if batches need to be saved to all_batches
-      const result = await checkAndSaveBatchesToAllBatches();
+      // First, check if batches need to be saved to all_batches (filtered by current shift)
+      const result = await checkAndSaveBatchesToAllBatches(currentShift);
       
       if (result.needsSaving) {
-        console.log(`✅ Successfully saved ${result.savedCount} batch reports to history`);
+        console.log(`✅ Successfully saved ${result.savedCount} ${currentShift} shift batch reports to history`);
         // Show success toast for saving reports
         toast({
           title: 'Reports Saved Successfully',
-          description: `Successfully saved ${result.savedCount} batch reports to history`,
+          description: `Successfully saved ${result.savedCount} ${currentShift} shift batch reports to history`,
           type: 'success'
         });
       } else {
-        console.log('ℹ️ All batches are already saved to all_batches');
+        console.log(`ℹ️ All ${currentShift} shift batches are already saved to all_batches`);
         // Show info toast if no saving was needed
         toast({
           title: 'Reports Already Saved',
-          description: 'All batch reports are already saved to history',
+          description: `All ${currentShift} shift batch reports are already saved to history`,
           type: 'success'
         });
       }
@@ -129,18 +129,18 @@ export default function ManagerDashboardClient({
   // Handler for confirming End Shift
   const handleConfirmEndShift = async () => {
     setIsDeletingBatches(true);
-    console.log("Deleting all batches...");
+    console.log(`Deleting batches for ${currentShift} shift...`);
     
     try {
-      // Use the server action to delete all batches
-      await deleteAllBatches();
+      // Use the server action to delete batches for current shift only
+      await deleteAllBatches(currentShift);
       
-      console.log("End shift confirmed");
-      console.log('All batches deleted');
+      console.log(`End shift confirmed for ${currentShift} shift`);
+      console.log(`${currentShift} shift batches deleted`);
       
       toast({
         title: 'Success',
-        description: 'Shift ended successfully',
+        description: `${currentShift} shift ended successfully`,
         type: 'success'
       });
       
@@ -357,7 +357,7 @@ export default function ManagerDashboardClient({
             )}
           </button>
           <p className="text-xs text-gray-500 mt-2 text-center">
-            ⚠️ End Shift button saves all batches to reports before ending the shift
+            ⚠️ End Shift button saves all batches to reports before ending the current shift only
           </p>
         </div>
       </div>
@@ -403,7 +403,7 @@ export default function ManagerDashboardClient({
               <div>
                 <h3 className="font-semibold text-gray-900">End Current Shift?</h3>
                 <p className="text-sm text-gray-600">
-                  This will end the {currentShift} shift and clear all active batches.
+                  This will end the {currentShift} shift and clear only the {currentShift} shift batches for today.
                 </p>
               </div>
             </div>
@@ -413,7 +413,7 @@ export default function ManagerDashboardClient({
                 disabled={isDeletingBatches}
                 className="bg-red-500 hover:bg-red-600"
               >
-                {isDeletingBatches ? 'Ending...' : 'End Shift'}
+                {isDeletingBatches ? 'Ending...' : `End ${currentShift} Shift`}
               </Button>
               <Button
                 onClick={handleCancelEndShift}

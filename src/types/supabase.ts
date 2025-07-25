@@ -153,7 +153,6 @@ export interface Database {
           batch_number: string
           start_time: string
           end_time: string | null
-          target_quantity: number
           actual_quantity: number
           status: 'active' | 'completed' | 'cancelled'
           notes: string | null
@@ -167,7 +166,6 @@ export interface Database {
           batch_number: string
           start_time?: string
           end_time?: string | null
-          target_quantity: number
           actual_quantity?: number
           status?: 'active' | 'completed' | 'cancelled'
           notes?: string | null
@@ -181,7 +179,6 @@ export interface Database {
           batch_number?: string
           start_time?: string
           end_time?: string | null
-          target_quantity?: number
           actual_quantity?: number
           status?: 'active' | 'completed' | 'cancelled'
           notes?: string | null
@@ -213,7 +210,6 @@ export interface Database {
           batch_number: string
           start_time: string
           end_time: string | null
-          target_quantity: number
           actual_quantity: number
           status: 'active' | 'completed' | 'cancelled'
           shift: 'morning' | 'night'
@@ -228,7 +224,6 @@ export interface Database {
           batch_number: string
           start_time?: string
           end_time?: string | null
-          target_quantity: number
           actual_quantity?: number
           status?: 'active' | 'completed' | 'cancelled'
           shift: 'morning' | 'night'
@@ -243,7 +238,6 @@ export interface Database {
           batch_number?: string
           start_time?: string
           end_time?: string | null
-          target_quantity?: number
           actual_quantity?: number
           status?: 'active' | 'completed' | 'cancelled'
           shift?: 'morning' | 'night'
@@ -512,11 +506,10 @@ export interface Database {
       create_batch_with_unique_number: {
         Args: {
           p_bread_type_id: string;
-          p_target_quantity: number;
+          p_actual_quantity?: number | null;
           p_notes: string | null;
           p_shift: 'morning' | 'night';
           p_created_by: string;
-          p_actual_quantity?: number | null;
           p_start_time?: string | null;
           p_status?: 'active' | 'completed' | 'cancelled';
         };
@@ -526,7 +519,6 @@ export interface Database {
           batch_number: string;
           start_time: string;
           end_time: string | null;
-          target_quantity: number;
           actual_quantity: number;
           status: 'active' | 'completed' | 'cancelled';
           notes: string | null;

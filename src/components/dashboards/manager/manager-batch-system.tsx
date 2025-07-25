@@ -59,10 +59,10 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
   } = useBatches();
 
   const [showCreateBatch, setShowCreateBatch] = useState(false);
-  const [newBatch, setNewBatch] = useState({
+  const [newBatch, setNewBatch] = useState<{ breadTypeId: string; batchNumber: string; actualQuantity: string; notes: string }>({
     breadTypeId: '',
     batchNumber: '',
-    targetQuantity: '',
+    actualQuantity: '',
     notes: ''
   });
   const [isGeneratingBatchNumber, setIsGeneratingBatchNumber] = useState(false);
@@ -107,7 +107,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
   }, [newBatch.breadTypeId, generateBatchNumber, toast]);
 
   const handleCreateBatch = async () => {
-    if (!newBatch.breadTypeId || !newBatch.batchNumber || !newBatch.targetQuantity) {
+    if (!newBatch.breadTypeId || !newBatch.batchNumber || !newBatch.actualQuantity) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -120,8 +120,9 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
       await createNewBatch({
         bread_type_id: newBatch.breadTypeId,
         batch_number: newBatch.batchNumber,
-        target_quantity: parseInt(newBatch.targetQuantity),
+        actual_quantity: parseInt(newBatch.actualQuantity),
         notes: newBatch.notes || undefined,
+        shift: currentShift,
       });
 
       toast({
@@ -133,11 +134,11 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
       setNewBatch({
         breadTypeId: '',
         batchNumber: '',
-        targetQuantity: '',
+        actualQuantity: '',
         notes: ''
       });
       setShowCreateBatch(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating batch:', error);
       toast({
         title: "Error",
@@ -173,7 +174,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
         description: "Batch completed successfully",
         type: "success"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error completing batch:', error);
       toast({
         title: "Error",
@@ -234,7 +235,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
     const start = new Date(batch.start_time);
     const now = new Date();
     const elapsed = now.getTime() - start.getTime();
-    const estimated = batch.target_quantity * 2; // Rough estimate: 2 minutes per unit
+    const estimated = batch.actual_quantity * 2; // Rough estimate: 2 minutes per unit
     return Math.min(Math.floor((elapsed / (estimated * 60 * 1000)) * 100), 95);
   };
 
@@ -323,7 +324,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
             Active Batches ({activeBatchesList.length})
           </h4>
           <div className="space-y-4">
-            {activeBatchesList.map(batch => {
+            {activeBatchesList.map((batch: BatchType) => {
               const progress = calculateProgress(batch);
               const breadTypeName = batch.bread_type?.name || 'Unknown';
               const createdBy = batch.created_by_user?.email || 'Unknown';
@@ -338,7 +339,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
                       <div>
                         <div className="font-medium">{batch.batch_number} - {breadTypeName}</div>
                         <div className="text-sm text-muted-foreground">
-                          {batch.target_quantity} units • Started {new Date(batch.start_time).toLocaleTimeString()}
+                          {batch.actual_quantity} units • Started {new Date(batch.start_time).toLocaleTimeString()}
                         </div>
                       </div>
                       <Badge className={getStatusColor(batch.status)}>
@@ -348,7 +349,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
                     <div className="flex items-center gap-2">
                       <Button
                         size="sm"
-                        onClick={() => handleCompleteBatch(batch.id, batch.target_quantity)}
+                        onClick={() => handleCompleteBatch(batch.id, batch.actual_quantity)}
                         disabled={isCompletingBatch}
                       >
                         {isCompletingBatch ? (
@@ -423,7 +424,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
                     <Badge className={getStatusColor(batch.status)}>Planning</Badge>
                   </div>
                   <div className="text-sm text-muted-foreground mb-3">
-                    {batch.target_quantity} units • Target quantity
+                    {batch.actual_quantity} units • Quantity
                   </div>
                   <Button
                     size="sm"
@@ -496,8 +497,8 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
                   type="number"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  value={newBatch.targetQuantity}
-                  onChange={(e) => setNewBatch(prev => ({ ...prev, targetQuantity: e.target.value }))}
+                  value={newBatch.actualQuantity}
+                  onChange={(e) => setNewBatch(prev => ({ ...prev, actualQuantity: e.target.value }))}
                   placeholder="Enter quantity"
                   className="text-lg"
                 />
@@ -518,7 +519,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
               <Button 
                 onClick={handleCreateBatch} 
                 className="flex-1"
-                disabled={isCreatingBatch || !newBatch.breadTypeId || !newBatch.batchNumber || !newBatch.targetQuantity}
+                disabled={isCreatingBatch || !newBatch.breadTypeId || !newBatch.batchNumber || !newBatch.actualQuantity}
               >
                 {isCreatingBatch ? (
                   <>

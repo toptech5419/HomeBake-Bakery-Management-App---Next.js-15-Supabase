@@ -98,7 +98,6 @@ CREATE TABLE IF NOT EXISTS batches (
     batch_number VARCHAR(50) NOT NULL,
     start_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     end_time TIMESTAMP WITH TIME ZONE,
-    target_quantity INTEGER NOT NULL,
     actual_quantity INTEGER DEFAULT 0,
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'completed', 'cancelled')),
     notes TEXT,
@@ -336,5 +335,4 @@ COMMENT ON TABLE batches IS 'Tracks individual production batches for better inv
 
 COMMENT ON COLUMN batches.batch_number IS 'Unique batch identifier within a bread type';
 COMMENT ON COLUMN batches.status IS 'Current status: active, completed, or cancelled';
-COMMENT ON COLUMN batches.target_quantity IS 'Planned quantity for this batch';
-COMMENT ON COLUMN batches.actual_quantity IS 'Actual quantity produced (updated from production_logs)'; 
+COMMENT ON COLUMN batches.actual_quantity IS 'Actual quantity produced (updated from production_logs)';

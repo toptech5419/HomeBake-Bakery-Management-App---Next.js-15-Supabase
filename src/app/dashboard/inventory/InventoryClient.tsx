@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Package, TrendingUp, Clock } from 'lucide-react';
+import { Package, TrendingUp, Clock, RefreshCw } from 'lucide-react';
 import { useInventoryData } from '@/hooks/use-inventory-data';
 
 export default function InventoryClient() {
@@ -12,8 +12,22 @@ export default function InventoryClient() {
     isLoading, 
     error, 
     currentShift, 
-    shiftStartTime 
+    shiftStartTime,
+    nextShiftTime,
+    timeUntilNextShift,
+    source,
+    recordCount,
+    refreshData 
   } = useInventoryData();
+
+  // Add debugging
+  console.log(`🔍 Inventory Client Debug:`);
+  console.log(`   Current shift: ${currentShift}`);
+  console.log(`   Inventory items: ${inventory?.length || 0}`);
+  console.log(`   Total units: ${totalUnits}`);
+  console.log(`   Source: ${source}`);
+  console.log(`   Record count: ${recordCount}`);
+  console.log(`   Error: ${error?.message || 'none'}`);
 
   if (isLoading) {
     return (
@@ -55,7 +69,7 @@ export default function InventoryClient() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-white">
-      {/* Header - Simplified with just title */}
+      {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm px-4 py-4 border-b border-orange-100">
         <h1 className="text-2xl font-bold text-center bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
           Inventory
@@ -63,18 +77,28 @@ export default function InventoryClient() {
       </div>
 
       <div className="p-4 space-y-6">
-        {/* Shift Info Card */}
+        {/* Shift Info Card - Enhanced with automatic switching */}
         <Card className="border-orange-200 bg-white/90 backdrop-blur-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Clock className="w-5 h-5 text-orange-500" />
                 <span className="font-semibold text-gray-900 capitalize">{currentShift} Shift</span>
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  source === 'batches' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {source === 'batches' ? 'Live' : 'Archive'}
+                </span>
               </div>
               <div className="text-right">
-                <span className="text-sm text-gray-600">Refresh Shift</span>
-                <div className="text-sm font-medium text-orange-600">{shiftStartTime}</div>
+                <span className="text-sm text-gray-600">Next shift in</span>
+                <div className="text-sm font-medium text-orange-600">{timeUntilNextShift}</div>
               </div>
+            </div>
+            <div className="mt-2 text-xs text-gray-500">
+              {recordCount} records • Auto-switching at {nextShiftTime}
             </div>
           </CardContent>
         </Card>
@@ -85,6 +109,13 @@ export default function InventoryClient() {
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-orange-500 rounded-full animate-pulse"></div>
               <h2 className="text-lg font-semibold text-gray-900">Production Overview</h2>
+              <button
+                onClick={() => refreshData()}
+                className="ml-auto p-1 text-orange-600 hover:text-orange-800"
+                title="Refresh data"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
             </div>
           </CardHeader>
           <CardContent>
@@ -95,7 +126,7 @@ export default function InventoryClient() {
               <div className="text-orange-600 font-medium">Total Units Produced</div>
               <div className="mt-2 flex items-center justify-center space-x-1">
                 <TrendingUp className="w-4 h-4 text-green-500" />
-                <span className="text-sm text-gray-600">Live tracking</span>
+                <span className="text-sm text-gray-600">Real-time tracking</span>
               </div>
             </div>
           </CardContent>
@@ -146,6 +177,11 @@ export default function InventoryClient() {
                         {item.quantity.toLocaleString()}
                       </div>
                       <div className="text-xs text-gray-500 uppercase tracking-wide">units</div>
+                      {item.batches && item.batches > 0 && (
+                        <div className="text-xs text-gray-400">
+                          {item.batches} batch{item.batches !== 1 ? 'es' : ''}
+                        </div>
+                      )}
                     </div>
                   </div>
                   

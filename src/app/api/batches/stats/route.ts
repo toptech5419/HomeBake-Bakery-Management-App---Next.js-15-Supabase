@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     // Build query with optional shift filtering
     let query = supabase
       .from('batches')
-      .select('status, target_quantity, actual_quantity, created_at');
+      .select('status, actual_quantity, created_at');
 
     // Add shift filtering if provided
     if (shift && ['morning', 'night'].includes(shift)) {
@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
     const completedBatches = batches?.filter(b => b.status === 'completed').length || 0;
     const cancelledBatches = batches?.filter(b => b.status === 'cancelled').length || 0;
     
-    const totalTargetQuantity = batches?.reduce((sum, b) => sum + (b.target_quantity || 0), 0) || 0;
     const totalActualQuantity = batches?.reduce((sum, b) => sum + (b.actual_quantity || 0), 0) || 0;
     
     const today = new Date();
@@ -57,11 +56,10 @@ export async function GET(request: NextRequest) {
       activeBatches,
       completedBatches,
       cancelledBatches,
-      totalTargetQuantity,
       totalActualQuantity,
       todayBatches,
       completionRate: totalBatches > 0 ? (completedBatches / totalBatches) * 100 : 0,
-      efficiencyRate: totalTargetQuantity > 0 ? (totalActualQuantity / totalTargetQuantity) * 100 : 0,
+      efficiencyRate: totalActualQuantity > 0 ? (totalActualQuantity / totalActualQuantity) * 100 : 0,
       shift: shift || 'all',
     };
 

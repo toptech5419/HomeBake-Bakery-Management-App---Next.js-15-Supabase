@@ -330,7 +330,6 @@ Generated from HomeBake Bakery Management System`;
             batch_number: batch.batch_number,
             start_time: batch.start_time,
             end_time: batch.end_time,
-            target_quantity: batch.target_quantity,
             actual_quantity: batch.actual_quantity,
             status: batch.status,
             notes: batch.notes,
