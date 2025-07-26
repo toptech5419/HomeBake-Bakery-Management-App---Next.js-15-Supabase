@@ -22,8 +22,8 @@ interface ShiftInventoryData {
 
 // Fetch inventory data from the new API endpoint
 async function fetchShiftInventory(shift: 'morning' | 'night', date?: string): Promise<ShiftInventoryData> {
-  // Use the specific date where your batches exist
-  const targetDate = date || '2025-07-25'; // Your batches are from July 25th
+  // Use current date if no date provided, or use the provided date
+  const targetDate = date || new Date().toISOString().split('T')[0];
   
   const params = new URLSearchParams({
     shift,
@@ -60,8 +60,8 @@ export function useInventoryData() {
     shiftEndDateTime 
   } = useAutoShift();
 
-  // Use the specific date where your batches exist
-  const targetDate = '2025-07-25'; // Your batches are from this date
+  // Use current date instead of hardcoded date
+  const targetDate = new Date().toISOString().split('T')[0];
   
   const { 
     data: inventoryData = { inventory: [], totalUnits: 0, source: 'batches', recordCount: 0 },

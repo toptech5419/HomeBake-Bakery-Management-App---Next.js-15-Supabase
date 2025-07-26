@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Plus, Minus, Loader2 } from 'lucide-react';
+import { X, Plus, Minus, Loader2, Sparkles, Package, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -10,6 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useBatchMutations } from '@/hooks/use-batches-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useShift } from '@/contexts/ShiftContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 // Configure dayjs plugins
 dayjs.extend(utc);
@@ -206,143 +209,196 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Create New Batch</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Shift Display */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-sm font-medium text-blue-800">
-                Creating batch for {shift === 'morning' ? '🌅 Morning' : '🌙 Night'} shift
-              </span>
-            </div>
-          </div>
-
-          {/* Bread Type Selection */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Bread Type *
-            </label>
-            <Select
-              value={formData.breadTypeId}
-              onValueChange={handleBreadTypeChange}
-              disabled={loading}
-            >
-              <SelectTrigger className="w-full h-12 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed bg-white">
-                <SelectValue placeholder={loading ? "Loading..." : "Select bread type..."} />
-              </SelectTrigger>
-              <SelectContent 
-                position="popper" 
-                side="bottom" 
-                sideOffset={4}
-                className="z-[200] w-[var(--radix-select-trigger-width)] max-h-[40vh] overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg"
-                align="start"
-              >
-                {breadTypes.map(type => (
-                  <SelectItem 
-                    key={type.id} 
-                    value={type.id}
-                    className="px-4 py-3 text-sm cursor-pointer hover:bg-orange-50 focus:bg-orange-50 focus:text-orange-900 data-[highlighted]:bg-orange-50 data-[highlighted]:text-orange-900"
-                  >
-                    <div className="flex flex-col space-y-1">
-                      <span className="font-medium text-gray-900">{type.name}</span>
-                      {type.size && (
-                        <span className="text-xs text-gray-500">Size: {type.size}</span>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {loading && (
-              <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading bread types...
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden shadow-2xl border-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="relative bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
+            
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">Create New Batch</h2>
+                  <p className="text-orange-100 text-sm">Add production batch</p>
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* Quantity Input */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Actual Quantity *
-            </label>
-            <div className="flex items-center gap-3">
               <button
-                type="button"
-                onClick={() => handleQuantityChange(parseInt(formData.quantity) - 1)}
-                disabled={!formData.quantity || parseInt(formData.quantity) <= 1}
-                className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={onClose}
+                className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors"
               >
-                <Minus size={16} />
-              </button>
-              <input
-                type="number"
-                value={formData.quantity}
-                onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
-                min="1"
-                max="1000"
-                className="flex-1 h-10 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Enter quantity"
-              />
-              <button
-                type="button"
-                onClick={() => handleQuantityChange(parseInt(formData.quantity) + 1)}
-                disabled={!formData.quantity || parseInt(formData.quantity) >= 1000}
-                className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus size={16} />
+                <X size={20} />
               </button>
             </div>
           </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Notes (Optional)
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => handleNotesChange(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-              placeholder="Add any notes about this batch..."
-            />
-          </div>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {/* Shift Display */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <Card className="border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">
+                        {shift === 'morning' ? '🌅 Morning' : '🌙 Night'} Shift
+                      </p>
+                      <p className="text-xs text-blue-700">Creating batch for current shift</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isSubmitting || !formData.breadTypeId || !formData.quantity}
-            className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="animate-spin" size={20} />
-                Creating Batch...
-              </>
-            ) : (
-              <>
-                <Plus size={20} />
-                Create Batch
-              </>
-            )}
-          </button>
-        </form>
-      </div>
-    </div>
+            {/* Bread Type Selection */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="space-y-3"
+            >
+              <label className="block text-sm font-semibold text-gray-700">
+                Bread Type <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={formData.breadTypeId}
+                onValueChange={handleBreadTypeChange}
+                disabled={loading}
+              >
+                <SelectTrigger className="w-full h-12 px-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:opacity-50 disabled:cursor-not-allowed bg-white hover:border-gray-300 transition-colors">
+                  <SelectValue placeholder={loading ? "Loading bread types..." : "Select bread type..."} />
+                </SelectTrigger>
+                <SelectContent 
+                  position="popper" 
+                  side="bottom" 
+                  sideOffset={4}
+                  className="z-[200] w-[var(--radix-select-trigger-width)] max-h-[40vh] overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl"
+                  align="start"
+                >
+                  {breadTypes.map(type => (
+                    <SelectItem 
+                      key={type.id} 
+                      value={type.id}
+                      className="px-4 py-3 text-sm cursor-pointer hover:bg-orange-50 focus:bg-orange-50 focus:text-orange-900 data-[highlighted]:bg-orange-50 data-[highlighted]:text-orange-900 rounded-lg mx-2 my-1"
+                    >
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-900">{type.name}</span>
+                        {type.size && (
+                          <span className="text-xs text-gray-500">Size: {type.size}</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {loading && (
+                <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading bread types...
+                </div>
+              )}
+            </motion.div>
+
+            {/* Quantity Input */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="space-y-3"
+            >
+              <label className="block text-sm font-semibold text-gray-700">
+                Actual Quantity <span className="text-red-500">*</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleQuantityChange(parseInt(formData.quantity) - 1)}
+                  disabled={!formData.quantity || parseInt(formData.quantity) <= 1}
+                  className="w-12 h-12 rounded-xl border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  <Minus size={18} />
+                </button>
+                <input
+                  type="number"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
+                  min="1"
+                  max="1000"
+                  className="flex-1 h-12 px-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-center text-lg font-semibold transition-colors"
+                  placeholder="0"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleQuantityChange(parseInt(formData.quantity) + 1)}
+                  disabled={!formData.quantity || parseInt(formData.quantity) >= 1000}
+                  className="w-12 h-12 rounded-xl border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                >
+                  <Plus size={18} />
+                </button>
+              </div>
+            </motion.div>
+
+            {/* Notes */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="space-y-3"
+            >
+              <label className="block text-sm font-semibold text-gray-700">
+                Notes <span className="text-gray-400">(Optional)</span>
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => handleNotesChange(e.target.value)}
+                rows={3}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none transition-colors"
+                placeholder="Add any notes about this batch..."
+              />
+            </motion.div>
+
+            {/* Submit Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Button
+                type="submit"
+                disabled={isSubmitting || !formData.breadTypeId || !formData.quantity}
+                className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-base font-semibold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                leftIcon={isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+              >
+                {isSubmitting ? 'Creating Batch...' : 'Create Batch'}
+              </Button>
+            </motion.div>
+          </form>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

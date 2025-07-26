@@ -260,11 +260,11 @@ export default function ReportsPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => window.location.href = '/'}
+          onClick={() => window.location.href = '/dashboard/manager'}
           className="flex items-center gap-2"
         >
           <ChevronDown style={{ transform: 'rotate(90deg)' }} className="w-4 h-4" />
-          Back to Home
+          Back to Manager Dashboard
         </Button>
       </div>
       {/* Header */}

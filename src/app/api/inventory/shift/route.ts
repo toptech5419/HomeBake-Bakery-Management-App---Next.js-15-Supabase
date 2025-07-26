@@ -32,9 +32,18 @@ export async function GET(request: NextRequest) {
     // Parse the date parameter correctly
     const targetDate = new Date(dateParam + 'T00:00:00');
     
-    // Calculate shift boundaries with proper timezone handling
-    const shiftStart = new Date(targetDate);
-    const shiftEnd = new Date(targetDate);
+    // For night shift, we need to handle the fact that it spans midnight
+    // Night shift starts at 10 PM on the given date and ends at 10 AM the next day
+    let queryDate = targetDate;
+    if (shift === 'night') {
+      // For night shift, we query from the previous day at 10 PM to the current day at 10 AM
+      queryDate = new Date(targetDate);
+      queryDate.setDate(queryDate.getDate() - 1); // Go back one day
+    }
+    
+    // Calculate shift boundaries with inventory shift logic
+    const shiftStart = new Date(queryDate);
+    const shiftEnd = new Date(queryDate);
 
     if (shift === 'morning') {
       // Morning shift: 10:00 AM - 10:00 PM LOCAL TIME
@@ -54,6 +63,7 @@ export async function GET(request: NextRequest) {
 
     // Add comprehensive debugging logs
     console.log(`🔍 Debug: Shift boundaries for ${shift} shift on ${dateParam}`);
+    console.log(`   Query date: ${queryDate.toISOString().split('T')[0]}`);
     console.log(`   Parsed date: ${targetDate.toISOString()}`);
     console.log(`   Local start: ${shiftStart.toLocaleString()}`);
     console.log(`   Local end: ${shiftEnd.toLocaleString()}`);
