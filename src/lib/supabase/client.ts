@@ -25,14 +25,33 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     headers: {
       'X-Client-Info': 'homebake-pwa@2.0.0',
     },
+    fetch: (url, options = {}) => {
+      // Increase timeout for better reliability
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      return fetch(url, {
+        ...options,
+        signal: controller.signal,
+      }).finally(() => {
+        clearTimeout(timeoutId);
+      });
+    },
   },
 })
 
-// Connection health check
+// Connection health check with retry
 export const checkConnection = async (): Promise<boolean> => {
   try {
-    const { error } = await supabase.from('bread_types').select('count').limit(1).maybeSingle()
-    return !error
+    const result = await withRetry(
+      async () => {
+        const { error } = await supabase.from('bread_types').select('count').limit(1).maybeSingle()
+        return { error }
+      },
+      3,
+      1000
+    )
+    return !result.error
   } catch {
     return false
   }
@@ -88,6 +107,10 @@ export const handleSupabaseError = (error: any): string => {
       return 'Account creation is currently disabled'
     case 'invalid_request':
       return 'Invalid request. Please check your information and try again'
+    case 'UND_ERR_CONNECT_TIMEOUT':
+      return 'Connection timeout. Please check your internet connection and try again.'
+    case 'fetch failed':
+      return 'Network error. Please check your connection and try again.'
     default:
       return error.message || 'Something went wrong. Please try again.'
   }

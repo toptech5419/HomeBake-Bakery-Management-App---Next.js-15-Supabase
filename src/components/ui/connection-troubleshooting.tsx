@@ -1,128 +1,150 @@
-'use client';
+'use client'
 
-import React, { useState } from 'react';
-import { AlertTriangle, Wifi, RefreshCw, CheckCircle, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { checkConnection } from '@/lib/supabase/client';
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { AlertCircle, CheckCircle, RefreshCw, Wifi, WifiOff } from 'lucide-react'
+import { checkConnection, withRetry } from '@/lib/supabase/client'
 
-interface ConnectionTroubleshootingProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+export function ConnectionTroubleshooting() {
+  const [isTesting, setIsTesting] = useState(false)
+  const [testResults, setTestResults] = useState<{
+    basicConnectivity: boolean | null
+    supabaseConnection: boolean | null
+    error: string | null
+  }>({
+    basicConnectivity: null,
+    supabaseConnection: null,
+    error: null
+  })
 
-export function ConnectionTroubleshooting({ isOpen, onClose }: ConnectionTroubleshootingProps) {
-  const [isChecking, setIsChecking] = useState(false);
-  const [lastCheckResult, setLastCheckResult] = useState<{ connected: boolean; error?: string } | null>(null);
+  const runConnectionTests = async () => {
+    setIsTesting(true)
+    setTestResults({
+      basicConnectivity: null,
+      supabaseConnection: null,
+      error: null
+    })
 
-  const handleCheckConnection = async () => {
-    setIsChecking(true);
     try {
-      const result = await checkConnection();
-      setLastCheckResult(result);
-    } catch (error) {
-      setLastCheckResult({ connected: false, error: 'Failed to check connection' });
-    } finally {
-      setIsChecking(false);
-    }
-  };
+      // Test 1: Basic connectivity to Supabase URL
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      if (!supabaseUrl) {
+        throw new Error('Supabase URL not configured')
+      }
 
-  if (!isOpen) return null;
+      const basicTest = await fetch(supabaseUrl, {
+        method: 'HEAD',
+        mode: 'no-cors'
+      }).then(() => true).catch(() => false)
+
+      // Test 2: Supabase database connection
+      const supabaseTest = await withRetry(
+        async () => {
+          const connected = await checkConnection()
+          return connected
+        },
+        2,
+        2000
+      )
+
+      setTestResults({
+        basicConnectivity: basicTest,
+        supabaseConnection: supabaseTest,
+        error: null
+      })
+    } catch (error) {
+      setTestResults({
+        basicConnectivity: false,
+        supabaseConnection: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      })
+    } finally {
+      setIsTesting(false)
+    }
+  }
+
+  const getStatusIcon = (status: boolean | null) => {
+    if (status === null) return <RefreshCw className="h-4 w-4 animate-spin" />
+    if (status) return <CheckCircle className="h-4 w-4 text-green-500" />
+    return <AlertCircle className="h-4 w-4 text-red-500" />
+  }
+
+  const getStatusBadge = (status: boolean | null, label: string) => {
+    if (status === null) {
+      return <Badge variant="secondary">{label}: Testing...</Badge>
+    }
+    if (status) {
+      return <Badge variant="default" className="bg-green-500 hover:bg-green-600">{label}: OK</Badge>
+    }
+    return <Badge variant="destructive">{label}: Failed</Badge>
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Wifi className="h-5 w-5" />
+          Connection Diagnostics
+        </CardTitle>
+        <CardDescription>
+          Test your connection to the database and identify issues
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
-              Connection Troubleshooting
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <span className="text-sm font-medium">Basic Connectivity</span>
+            {getStatusIcon(testResults.basicConnectivity)}
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <h3 className="font-semibold text-sm">Common Solutions:</h3>
-            <ul className="space-y-2 text-sm text-gray-600">
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span>Check your internet connection</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span>Try refreshing the page</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span>Check if your firewall is blocking the connection</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span>Try using a different network (mobile hotspot)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span>Contact your IT administrator if the issue persists</span>
-              </li>
+          {getStatusBadge(testResults.basicConnectivity, 'Network')}
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Database Connection</span>
+            {getStatusIcon(testResults.supabaseConnection)}
+          </div>
+          {getStatusBadge(testResults.supabaseConnection, 'Database')}
+        </div>
+
+        {testResults.error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-700">{testResults.error}</p>
+          </div>
+        )}
+
+        <Button 
+          onClick={runConnectionTests} 
+          disabled={isTesting}
+          className="w-full"
+        >
+          {isTesting ? (
+            <>
+              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+              Testing...
+            </>
+          ) : (
+            <>
+              <Wifi className="h-4 w-4 mr-2" />
+              Run Tests
+            </>
+          )}
+        </Button>
+
+        {(testResults.basicConnectivity === false || testResults.supabaseConnection === false) && (
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <h4 className="font-medium text-yellow-800 mb-2">Troubleshooting Tips:</h4>
+            <ul className="text-sm text-yellow-700 space-y-1">
+              <li>• Check your internet connection</li>
+              <li>• Verify your Supabase project is active</li>
+              <li>• Try refreshing the page</li>
+              <li>• Contact support if issues persist</li>
             </ul>
           </div>
-
-          <div className="border-t pt-4">
-            <Button
-              onClick={handleCheckConnection}
-              disabled={isChecking}
-              className="w-full"
-              variant="outline"
-            >
-              {isChecking ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Checking Connection...
-                </>
-              ) : (
-                <>
-                  <Wifi className="h-4 w-4 mr-2" />
-                  Test Connection
-                </>
-              )}
-            </Button>
-          </div>
-
-          {lastCheckResult && (
-            <div className={`p-3 rounded-lg border ${
-              lastCheckResult.connected 
-                ? 'bg-green-50 border-green-200 text-green-800' 
-                : 'bg-red-50 border-red-200 text-red-800'
-            }`}>
-              <div className="flex items-center gap-2">
-                {lastCheckResult.connected ? (
-                  <CheckCircle className="h-4 w-4" />
-                ) : (
-                  <AlertTriangle className="h-4 w-4" />
-                )}
-                <span className="font-medium">
-                  {lastCheckResult.connected ? 'Connection Successful' : 'Connection Failed'}
-                </span>
-              </div>
-              {lastCheckResult.error && (
-                <p className="text-sm mt-1 opacity-80">{lastCheckResult.error}</p>
-              )}
-            </div>
-          )}
-
-          <div className="text-xs text-gray-500 text-center">
-            If problems persist, please contact your bakery administrator.
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+        )}
+      </CardContent>
+    </Card>
+  )
 } 

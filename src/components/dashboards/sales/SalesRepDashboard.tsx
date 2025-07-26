@@ -142,10 +142,10 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     
     setLoading(true);
     try {
-      // Get today's date boundaries
+      // Get today's date boundaries in UTC to match database timestamps
       const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      const startOfDay = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+      const endOfDay = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() + 1));
 
       // Fetch production data for current shift
       const { data: productionData } = await supabase
@@ -209,9 +209,36 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
 
       const transactions = salesData?.length || 0;
       
+      // Calculate total units sold (sum of all quantities)
+      const totalUnitsSold = salesData?.reduce((sum, sale) => sum + sale.quantity, 0) || 0;
+      
       // Calculate unique bread types sold
       const uniqueBreadTypes = new Set(salesData?.map(sale => sale.bread_type_id) || []);
-      const itemsSold = uniqueBreadTypes.size;
+      const itemsSold = totalUnitsSold; // Changed to total units instead of unique types
+
+      // Debug logging to help identify issues
+      console.log('Dashboard Data Debug:', {
+        salesDataLength: salesData?.length || 0,
+        transactions,
+        itemsSold,
+        uniqueBreadTypes: Array.from(uniqueBreadTypes),
+        totalUnitsSold: salesData?.reduce((sum, sale) => sum + sale.quantity, 0) || 0,
+        salesBreakdown: salesData?.map(sale => ({
+          breadType: sale.bread_types?.name,
+          quantity: sale.quantity,
+          unitPrice: sale.unit_price,
+          totalAmount: (sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0)
+        })),
+        dateRange: {
+          startOfDay: startOfDay.toISOString(),
+          endOfDay: endOfDay.toISOString()
+        },
+        filters: {
+          shift: currentShift,
+          userId,
+          dateRange: `${startOfDay.toISOString()} to ${endOfDay.toISOString()}`
+        }
+      });
 
       // Calculate production monetary value
       const productionMonetaryValue = productionData?.reduce((sum: number, prod: ProductionLog) => {
@@ -472,7 +499,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
             <div className="text-2xl font-display font-bold text-gray-900">
               {metrics.itemsSold}
             </div>
-            <div className="text-sm text-gray-600 mt-1">Items Sold</div>
+            <div className="text-sm text-gray-600 mt-1">Total Units Sold</div>
           </ModernCardContent>
         </ModernCard>
 
@@ -722,7 +749,11 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
 
       <FinalReportModal
         isOpen={showFinalReportModal}
-        onClose={() => setShowFinalReportModal(false)}
+        onClose={() => {
+          setShowFinalReportModal(false);
+          // Refresh dashboard data when final report modal closes
+          fetchDashboardData();
+        }}
         reportData={finalReportData}
         userId={userId}
       />

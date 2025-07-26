@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { UserRole } from '@/types';
 import { supabase } from '@/lib/supabase/client';
+import { ConnectionStatus } from '@/components/ui/connection-status';
 
 interface HeaderProps {
   user: any;
@@ -83,6 +84,11 @@ export function Header({ displayName, role, onMobileMenuToggle, isMobileMenuOpen
                 Dashboard
               </h1>
             </div>
+          </div>
+
+          {/* Center: Connection Status */}
+          <div className="hidden md:flex items-center">
+            <ConnectionStatus showDetails={false} />
           </div>
 
           {/* Right side: User info and actions */}

@@ -1,87 +1,95 @@
-'use client';
+'use client'
 
-import { useData } from '@/contexts/DataContext';
-import { Wifi, WifiOff, RefreshCw, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react'
+import { checkConnection } from '@/lib/supabase/client'
+import { Badge } from '@/components/ui/badge'
+import { AlertCircle, CheckCircle, Wifi, WifiOff } from 'lucide-react'
 
-export function ConnectionStatus() {
-  const { connectionStatus, error, lastUpdated, refreshData } = useData();
+interface ConnectionStatusProps {
+  showDetails?: boolean
+  className?: string
+}
 
-  const getStatusInfo = () => {
-    switch (connectionStatus) {
-      case 'connected':
-        return {
-          icon: <Wifi className="h-4 w-4" />,
-          color: 'text-green-600',
-          bg: 'bg-green-100',
-          text: 'Connected'
-        };
-      case 'connecting':
-        return {
-          icon: <RefreshCw className="h-4 w-4 animate-spin" />,
-          color: 'text-blue-600',
-          bg: 'bg-blue-100',
-          text: 'Connecting...'
-        };
-      case 'disconnected':
-        return {
-          icon: <WifiOff className="h-4 w-4" />,
-          color: 'text-gray-600',
-          bg: 'bg-gray-100',
-          text: 'Offline'
-        };
-      case 'error':
-        return {
-          icon: <AlertCircle className="h-4 w-4" />,
-          color: 'text-red-600',
-          bg: 'bg-red-100',
-          text: 'Error'
-        };
+export function ConnectionStatus({ showDetails = false, className = '' }: ConnectionStatusProps) {
+  const [isConnected, setIsConnected] = useState<boolean | null>(null)
+  const [isChecking, setIsChecking] = useState(false)
+  const [lastChecked, setLastChecked] = useState<Date | null>(null)
+
+  const checkConnectionStatus = async () => {
+    setIsChecking(true)
+    try {
+      const connected = await checkConnection()
+      setIsConnected(connected)
+      setLastChecked(new Date())
+    } catch (error) {
+      setIsConnected(false)
+      setLastChecked(new Date())
+    } finally {
+      setIsChecking(false)
     }
-  };
+  }
 
-  const status = getStatusInfo();
+  useEffect(() => {
+    checkConnectionStatus()
+    
+    // Check connection every 30 seconds
+    const interval = setInterval(checkConnectionStatus, 30000)
+    
+    return () => clearInterval(interval)
+  }, [])
 
-  if (connectionStatus === 'connected' && !error) {
-    // Only show connection status when there are issues
-    return null;
+  if (isConnected === null && !isChecking) {
+    return (
+      <div className={`flex items-center gap-2 ${className}`}>
+        <Badge variant="secondary" className="flex items-center gap-1">
+          <Wifi className="h-3 w-3" />
+          Checking...
+        </Badge>
+      </div>
+    )
+  }
+
+  if (isChecking) {
+    return (
+      <div className={`flex items-center gap-2 ${className}`}>
+        <Badge variant="secondary" className="flex items-center gap-1">
+          <Wifi className="h-3 w-3 animate-pulse" />
+          Checking...
+        </Badge>
+      </div>
+    )
+  }
+
+  if (isConnected) {
+    return (
+      <div className={`flex items-center gap-2 ${className}`}>
+        <Badge variant="default" className="flex items-center gap-1 bg-green-500 hover:bg-green-600">
+          <CheckCircle className="h-3 w-3" />
+          Connected
+        </Badge>
+        {showDetails && lastChecked && (
+          <span className="text-xs text-muted-foreground">
+            Last checked: {lastChecked.toLocaleTimeString()}
+          </span>
+        )}
+      </div>
+    )
   }
 
   return (
-    <div className={cn(
-      "flex items-center gap-2 px-3 py-2 rounded-lg border",
-      status.bg,
-      "border-current border-opacity-20"
-    )}>
-      <div className={status.color}>
-        {status.icon}
-      </div>
-      <div className="flex-1">
-        <div className={cn("text-sm font-medium", status.color)}>
-          {status.text}
-        </div>
-        {error && (
-          <div className="text-xs text-gray-600 mt-1">
-            {error}
-          </div>
-        )}
-        {lastUpdated && (
-          <div className="text-xs text-gray-500">
-            Last updated: {lastUpdated.toLocaleTimeString()}
-          </div>
-        )}
-      </div>
-      {(connectionStatus === 'error' || connectionStatus === 'disconnected') && (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={refreshData}
-          className="h-7 px-2 text-xs"
+    <div className={`flex items-center gap-2 ${className}`}>
+      <Badge variant="destructive" className="flex items-center gap-1">
+        <WifiOff className="h-3 w-3" />
+        Disconnected
+      </Badge>
+      {showDetails && (
+        <button
+          onClick={checkConnectionStatus}
+          className="text-xs text-blue-500 hover:text-blue-600 underline"
         >
           Retry
-        </Button>
+        </button>
       )}
     </div>
-  );
+  )
 }

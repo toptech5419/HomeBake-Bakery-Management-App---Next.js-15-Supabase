@@ -227,35 +227,87 @@ export function QuickRecordAllModal({
 
   const handleAddNewSale = async (breadType: BreadType, quantity: number) => {
     try {
-      const { data: salesData, error } = await supabase
+      // Check for existing record for this bread type in current shift today
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+      const { data: existingRecords } = await supabase
         .from('sales_logs')
-        .insert({
-          bread_type_id: breadType.id,
-          quantity: quantity,
-          unit_price: breadType.unit_price,
-          shift: currentShift,
-          recorded_by: userId
-        })
-        .select('*');
+        .select('*')
+        .eq('bread_type_id', breadType.id)
+        .eq('shift', currentShift)
+        .eq('recorded_by', userId)
+        .gte('created_at', startOfDay.toISOString())
+        .lt('created_at', endOfDay.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-      if (error) {
-        console.error('Error recording sale:', error);
-        throw error;
-      }
+      if (existingRecords && existingRecords.length > 0) {
+        // Update existing record - add to existing quantity
+        const existingRecord = existingRecords[0];
+        const { error: updateError } = await supabase
+          .from('sales_logs')
+          .update({
+            quantity: existingRecord.quantity + quantity,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingRecord.id);
 
-      if (salesData) {
-        setSalesLogs(salesData);
+        if (updateError) {
+          console.error('Error updating sale:', updateError);
+          throw updateError;
+        }
+        
+        // Update local state to reflect the change
+        setSalesLogs(prev => 
+          prev.map(log => 
+            log.id === existingRecord.id 
+              ? { ...log, quantity: log.quantity + quantity }
+              : log
+          )
+        );
+        
+        toast.success(`Updated ${breadType.name} sales: ${existingRecord.quantity} + ${quantity} = ${existingRecord.quantity + quantity} units`);
+      } else {
+        // Create new record only if none exists
+        const { data: salesData, error } = await supabase
+          .from('sales_logs')
+          .insert({
+            bread_type_id: breadType.id,
+            quantity: quantity,
+            unit_price: breadType.unit_price,
+            shift: currentShift,
+            recorded_by: userId
+          })
+          .select('*');
+
+        if (error) {
+          console.error('Error recording sale:', error);
+          throw error;
+        }
+
+        if (salesData) {
+          setSalesLogs(prev => [...salesData, ...prev]);
+        }
+        
+        toast.success(`Recorded ${quantity} units of ${breadType.name}`);
       }
 
       // Don't call onSalesRecorded() during final submit to prevent page refresh
       // This prevents the flash when transitioning to FinalReportModal
       if (!submitting) {
-      onSalesRecorded();
+        onSalesRecorded();
       }
-      toast.success('Record saved successfully!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error recording sale:', error);
-      toast.error('Failed to record sale');
+      
+      // Handle specific database errors
+      if (error.message?.includes('Duplicate sales record')) {
+        toast.error('This sale was already recorded. Please check your entries.');
+      } else {
+        toast.error('Failed to record sale. Please try again.');
+      }
     }
   };
 
@@ -268,38 +320,25 @@ export function QuickRecordAllModal({
         return sum + (item.quantity * item.breadType.unit_price);
       }, 0);
 
-      // Generate report data
+      // Generate report data using only the final quantities from the form
       const reportData = {
-        salesRecords: [
-          ...salesLogs.filter(log => log.quantity > 0).map(log => ({
-            breadType: log.bread_types?.name || 'Unknown',
-            quantity: log.quantity,
-            unitPrice: log.unit_price || 0,
-            totalAmount: log.quantity * (log.unit_price || 0),
-            timestamp: log.created_at
-          })),
-          ...salesToRecord.map(item => ({
-            breadType: item.breadType.name,
-            quantity: item.quantity,
-            unitPrice: item.breadType.unit_price,
-            totalAmount: item.quantity * item.breadType.unit_price,
-            timestamp: new Date().toISOString()
-          }))
-        ],
+        salesRecords: salesToRecord.map(item => ({
+          breadType: item.breadType.name,
+          quantity: item.quantity,
+          unitPrice: item.breadType.unit_price,
+          totalAmount: item.quantity * item.breadType.unit_price,
+          timestamp: new Date().toISOString()
+        })),
         remainingBreads: remainingToRecord.map(item => ({
           breadType: item.breadType.name,
           quantity: item.quantity,
           unitPrice: item.breadType.unit_price,
           totalAmount: item.quantity * item.breadType.unit_price
         })),
-        totalRevenue: [
-          ...salesLogs.filter(log => log.quantity > 0),
-          ...salesToRecord.map(item => ({ quantity: item.quantity, unit_price: item.breadType.unit_price }))
-        ].reduce((sum: number, item: any) => sum + (item.quantity * (item.unit_price || 0)), 0),
-        totalItemsSold: [
-          ...salesLogs.filter(log => log.quantity > 0),
-          ...salesToRecord
-        ].reduce((sum: number, item: any) => sum + item.quantity, 0),
+        totalRevenue: salesToRecord.reduce((sum: number, item: any) => 
+          sum + (item.quantity * item.breadType.unit_price), 0),
+        totalItemsSold: salesToRecord.reduce((sum: number, item: any) => 
+          sum + item.quantity, 0),
         totalRemaining: totalRemainingMonetaryValue
       };
 
@@ -324,9 +363,41 @@ export function QuickRecordAllModal({
       const salesToRecord = quickRecordItems.filter(item => item.quantity > 0);
       const remainingToRecord = quickRemainingItems.filter(item => item.quantity > 0);
       
-      // Record sales
+      // Update or create sales records based on final quantities
       for (const item of salesToRecord) {
-        await handleAddNewSale(item.breadType, item.quantity);
+        const existingRecord = salesLogs.find(log => 
+          log.bread_type_id === item.breadType.id
+        );
+        
+        if (existingRecord) {
+          // Update existing record to the new quantity
+          const { error: updateError } = await supabase
+            .from('sales_logs')
+            .update({
+              quantity: item.quantity,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingRecord.id);
+
+          if (updateError) {
+            console.error('Error updating sale:', updateError);
+            throw updateError;
+          }
+          
+          // Update local state to reflect the change
+          setSalesLogs(prev => 
+            prev.map(log => 
+              log.id === existingRecord.id 
+                ? { ...log, quantity: item.quantity }
+                : log
+            )
+          );
+          
+          toast.success(`Updated ${item.breadType.name} sales to ${item.quantity} units`);
+        } else {
+          // Create new record if none exists
+          await handleAddNewSale(item.breadType, item.quantity);
+        }
       }
 
         // Handle remaining breads - update, insert, or delete based on quantity
