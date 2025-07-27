@@ -57,6 +57,7 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
   const [isClosing, setIsClosing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [reportAction, setReportAction] = useState<'created' | 'updated' | null>(null);
   const [shiftFeedback, setShiftFeedback] = useState<ShiftFeedback | null>(null);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
   
@@ -150,11 +151,26 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
 
       if (result.success) {
         setSaveStatus('success');
-        toast.success('Shift report saved successfully!');
-        console.log('✅ Shift report saved successfully');
+        
+        // Show appropriate message based on whether it was created or updated
+        if (result.wasUpdated) {
+          setReportAction('updated');
+          toast.success(result.message || 'Existing shift report updated successfully!');
+          console.log('✅ Existing shift report updated successfully');
+        } else {
+          setReportAction('created');
+          toast.success(result.message || 'New shift report created successfully!');
+          console.log('✅ New shift report created successfully');
+        }
       } else {
         setSaveStatus('error');
-        toast.error(`Failed to save report: ${result.error}`);
+        
+        // Handle specific error cases
+        if (result.code === 'DUPLICATE_REPORT') {
+          toast.error('A report already exists for this shift. The system will update the existing report.');
+        } else {
+          toast.error(`Failed to save report: ${result.error}`);
+        }
         console.error('❌ Failed to save shift report:', result.error);
       }
     } catch (error) {
@@ -174,6 +190,7 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
       onClose();
       setIsClosing(false);
       setSaveStatus('idle');
+      setReportAction(null);
       setShiftFeedback(null);
       hasSavedRef.current = false; // Reset for next time
     }, 300);
@@ -335,7 +352,9 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                 </svg>
-                <span>Report saved successfully!</span>
+                <span>
+                  {reportAction === 'updated' ? 'Report updated successfully!' : 'Report created successfully!'}
+                </span>
               </div>
             )}
             {saveStatus === 'error' && (

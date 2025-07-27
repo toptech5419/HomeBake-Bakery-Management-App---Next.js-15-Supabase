@@ -67,7 +67,7 @@ export function QuickRecordAllModal({
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [pendingReportData, setPendingReportData] = useState<any>(null);
-  const [loadingItems, setLoadingItems] = useState<Set<string>>(new Set());
+
 
   useEffect(() => {
     if (isOpen) {
@@ -173,57 +173,19 @@ export function QuickRecordAllModal({
     }
   };
 
-  const updateQuickRecordQuantity = async (breadTypeId: string, quantity: number, isRemaining: boolean = false) => {
+  const updateQuickRecordQuantity = (breadTypeId: string, quantity: number, isRemaining: boolean = false) => {
     const items = isRemaining ? quickRemainingItems : quickRecordItems;
     const setItems = isRemaining ? setQuickRemainingItems : setQuickRecordItems;
     
-    // Set loading state for this specific item
-    setLoadingItems(prev => new Set(prev).add(breadTypeId));
-    
+    // Only update local state - no database operations
     setItems(items.map(item => 
       item.breadType.id === breadTypeId 
         ? { ...item, quantity: Math.max(0, quantity) }
         : item
     ));
-
-    // If this is a remaining bread update and quantity is 0, delete from Supabase
-    if (isRemaining && quantity === 0) {
-      await handleDeleteRemainingBread(breadTypeId);
-    }
-    
-    // Clear loading state after a short delay to show the update
-    setTimeout(() => {
-      setLoadingItems(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(breadTypeId);
-        return newSet;
-      });
-    }, 300);
   };
 
-  const handleDeleteRemainingBread = async (breadTypeId: string) => {
-    try {
-      // Show loading state for the specific item
-      const { error } = await supabase
-        .from('remaining_bread')
-        .delete()
-        .eq('bread_type_id', breadTypeId)
-        .eq('recorded_by', userId);
 
-      if (error) {
-        console.error('Error deleting remaining bread:', error);
-        toast.error('Failed to remove remaining bread item');
-      } else {
-        // Show success toast for the specific action
-        toast.success('Remaining bread item removed successfully');
-        // Don't call onRemainingUpdated() here to prevent page reload
-        // The UI will be updated locally through the state change
-      }
-    } catch (error) {
-      console.error('Error deleting remaining bread:', error);
-      toast.error('Failed to remove remaining bread item');
-    }
-  };
 
   const handleAddNewSale = async (breadType: BreadType, quantity: number) => {
     try {
@@ -294,11 +256,7 @@ export function QuickRecordAllModal({
         toast.success(`Recorded ${quantity} units of ${breadType.name}`);
       }
 
-      // Don't call onSalesRecorded() during final submit to prevent page refresh
-      // This prevents the flash when transitioning to FinalReportModal
-      if (!submitting) {
-        onSalesRecorded();
-      }
+
     } catch (error: any) {
       console.error('Error recording sale:', error);
       
@@ -400,76 +358,75 @@ export function QuickRecordAllModal({
         }
       }
 
-        // Handle remaining breads - update, insert, or delete based on quantity
-        const allBreadTypes = [...new Set([...remainingToRecord.map(item => item.breadType), ...breadTypes])];
-        
-        for (const breadType of allBreadTypes) {
-          const item = remainingToRecord.find(r => r.breadType.id === breadType.id);
-          const quantity = item ? item.quantity : 0;
+      // Handle remaining breads - update, insert, or delete based on quantity
+      const allBreadTypes = [...new Set([...remainingToRecord.map(item => item.breadType), ...breadTypes])];
+      
+      for (const breadType of allBreadTypes) {
+        const item = remainingToRecord.find(r => r.breadType.id === breadType.id);
+        const quantity = item ? item.quantity : 0;
 
-          if (quantity === 0) {
-            // Delete any existing record for this bread type
-            const { error: deleteError } = await supabase
+        if (quantity === 0) {
+          // Delete any existing record for this bread type
+          const { error: deleteError } = await supabase
+            .from('remaining_bread')
+            .delete()
+            .eq('bread_type_id', breadType.id)
+            .eq('recorded_by', userId);
+
+          if (deleteError) {
+            console.error('Error deleting remaining bread:', deleteError);
+            // Don't throw error for deletion failures
+          }
+        } else {
+          // Update or insert record
+          const { data: existingRecords } = await supabase
+            .from('remaining_bread')
+            .select('id')
+            .eq('bread_type_id', breadType.id)
+            .eq('recorded_by', userId)
+            .limit(1);
+
+          const existingRecord = existingRecords && existingRecords.length > 0 ? existingRecords[0] : null;
+
+          if (existingRecord) {
+            // Update existing record
+            const { error: updateError } = await supabase
               .from('remaining_bread')
-              .delete()
-              .eq('bread_type_id', breadType.id)
-              .eq('recorded_by', userId);
+              .update({
+                shift: currentShift,
+                bread_type: breadType.name,
+                bread_type_id: breadType.id,
+                quantity: quantity,
+                unit_price: breadType.unit_price,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', existingRecord.id);
 
-            if (deleteError) {
-              console.error('Error deleting remaining bread:', deleteError);
-              // Don't throw error for deletion failures
+            if (updateError) {
+              console.error('Error updating remaining bread:', updateError);
+              throw updateError;
             }
           } else {
-            // Update or insert record
-            const { data: existingRecords } = await supabase
+            // Insert new record
+            const { error: insertError } = await supabase
               .from('remaining_bread')
-              .select('id')
-              .eq('bread_type_id', breadType.id)
-              .eq('recorded_by', userId)
-              .limit(1);
+              .insert({
+                shift: currentShift,
+                bread_type: breadType.name,
+                bread_type_id: breadType.id,
+                quantity: quantity,
+                unit_price: breadType.unit_price,
+                recorded_by: userId
+              });
 
-            const existingRecord = existingRecords && existingRecords.length > 0 ? existingRecords[0] : null;
-
-            if (existingRecord) {
-              // Update existing record
-              const { error: updateError } = await supabase
-                .from('remaining_bread')
-                .update({
-                  shift: currentShift,
-                  bread_type: breadType.name,
-                  bread_type_id: breadType.id,
-                  quantity: quantity,
-                  unit_price: breadType.unit_price,
-                  updated_at: new Date().toISOString()
-                })
-                .eq('id', existingRecord.id);
-
-              if (updateError) {
-                console.error('Error updating remaining bread:', updateError);
-                throw updateError;
-              }
-            } else {
-              // Insert new record
-              const { error: insertError } = await supabase
-                .from('remaining_bread')
-                .insert({
-                  shift: currentShift,
-                  bread_type: breadType.name,
-                  bread_type_id: breadType.id,
-                  quantity: quantity,
-                  unit_price: breadType.unit_price,
-                  recorded_by: userId
-                });
-
-              if (insertError) {
-                console.error('Error inserting remaining bread:', insertError);
-                throw insertError;
-              }
+            if (insertError) {
+              console.error('Error inserting remaining bread:', insertError);
+              throw insertError;
             }
           }
         }
+      }
 
-      // Remove shift_feedback insert logic
       // Add feedback to report data
       const finalReportData = {
         ...pendingReportData,
@@ -484,6 +441,9 @@ export function QuickRecordAllModal({
 
       // Close feedback modal immediately
       setShowFeedbackModal(false);
+
+      // CRITICAL FIX: Don't call onSalesRecorded during final submit to prevent flash
+      // onSalesRecorded(); // REMOVED THIS LINE - This was causing the flash!
 
       // Trigger final report modal immediately - no delays
       onReportComplete(finalReportData);
@@ -615,13 +575,8 @@ export function QuickRecordAllModal({
                               size="sm"
                               onClick={() => updateQuickRecordQuantity(item.breadType.id, item.quantity - 1)}
                               className="h-8 w-8 p-0"
-                              disabled={loadingItems.has(item.breadType.id)}
                             >
-                              {loadingItems.has(item.breadType.id) ? (
-                                <div className="animate-spin rounded-full h-3 w-3 border border-gray-400 border-t-transparent" />
-                              ) : (
                               <Minus className="h-4 w-4" />
-                              )}
                             </Button>
                             <input
                               type="number"
@@ -630,20 +585,14 @@ export function QuickRecordAllModal({
                               onChange={(e) => updateQuickRecordQuantity(item.breadType.id, parseInt(e.target.value) || 0)}
                               className="w-16 text-center border rounded px-2 py-1 text-center font-semibold"
                               placeholder="0"
-                              disabled={loadingItems.has(item.breadType.id)}
                             />
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => updateQuickRecordQuantity(item.breadType.id, item.quantity + 1)}
                               className="h-8 w-8 p-0"
-                              disabled={loadingItems.has(item.breadType.id)}
                             >
-                              {loadingItems.has(item.breadType.id) ? (
-                                <div className="animate-spin rounded-full h-3 w-3 border border-gray-400 border-t-transparent" />
-                              ) : (
                               <Plus className="h-4 w-4" />
-                              )}
                             </Button>
                           </div>
                         </div>
@@ -670,13 +619,8 @@ export function QuickRecordAllModal({
                               size="sm"
                               onClick={() => updateQuickRecordQuantity(item.breadType.id, item.quantity - 1, true)}
                               className="h-8 w-8 p-0"
-                              disabled={loadingItems.has(item.breadType.id)}
                             >
-                              {loadingItems.has(item.breadType.id) ? (
-                                <div className="animate-spin rounded-full h-3 w-3 border border-gray-400 border-t-transparent" />
-                              ) : (
                               <Minus className="h-4 w-4" />
-                              )}
                             </Button>
                             <input
                               type="number"
@@ -685,20 +629,14 @@ export function QuickRecordAllModal({
                               onChange={(e) => updateQuickRecordQuantity(item.breadType.id, parseInt(e.target.value) || 0, true)}
                               className="w-16 text-center border rounded px-2 py-1 text-center font-semibold"
                               placeholder="0"
-                              disabled={loadingItems.has(item.breadType.id)}
                             />
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => updateQuickRecordQuantity(item.breadType.id, item.quantity + 1, true)}
                               className="h-8 w-8 p-0"
-                              disabled={loadingItems.has(item.breadType.id)}
                             >
-                              {loadingItems.has(item.breadType.id) ? (
-                                <div className="animate-spin rounded-full h-3 w-3 border border-gray-400 border-t-transparent" />
-                              ) : (
                               <Plus className="h-4 w-4" />
-                              )}
                             </Button>
                           </div>
                         </div>

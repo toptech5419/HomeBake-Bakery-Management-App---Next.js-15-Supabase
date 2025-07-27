@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useShift } from '@/contexts/ShiftContext';
+import { useEndShiftContext } from '@/contexts/EndShiftContext';
 import { Clock, RotateCcw, Settings, Sun, Moon, Power, AlertTriangle } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { toast } from 'sonner';
@@ -18,24 +19,22 @@ interface ShiftToggleProps {
 
 export default function ShiftToggle({ showLabel = true, compact = false }: ShiftToggleProps) {
   const { currentShift, toggleShift } = useShift();
+  const { onEndShift } = useEndShiftContext();
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const router = useRouter();
 
+  // Handle end shift functionality
   const handleEndShift = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from('sales_logs')
-        .delete()
-        .eq('shift', currentShift);
-      if (error) throw error;
-      toast.success('Shift ended successfully.');
+      console.log('🔄 ShiftToggle: End shift button clicked');
+      await onEndShift();
       setShowModal(false);
-      router.push('/dashboard');
-    } catch (err) {
-      console.error('End Shift error:', err);
+      toast.success('Shift ended successfully!');
+    } catch (error) {
+      console.error('❌ Error ending shift:', error);
       toast.error('Failed to end shift. Please try again.');
     } finally {
       setIsLoading(false);
@@ -246,7 +245,7 @@ export default function ShiftToggle({ showLabel = true, compact = false }: Shift
                 ) : (
                   <Power className="h-5 w-5 mr-2" />
                 )}
-                Proceed
+                {isLoading ? 'Ending Shift...' : 'Proceed'}
               </Button>
             </motion.div>
             

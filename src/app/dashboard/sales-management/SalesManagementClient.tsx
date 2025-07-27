@@ -27,6 +27,7 @@ import {
 import { SalesModal } from '@/components/dashboards/sales/SalesModal';
 import { QuickRecordAllModal } from '@/components/dashboards/sales/QuickRecordAllModal';
 import { FinalReportModal } from '@/components/dashboards/sales/FinalReportModal';
+import { ViewAllSalesModal } from '@/components/modals/ViewAllSalesModal';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -96,6 +97,7 @@ export default function SalesManagementClient({
   const [showSalesModal, setShowSalesModal] = useState(false);
   const [showQuickRecordModal, setShowQuickRecordModal] = useState(false);
   const [showFinalReportModal, setShowFinalReportModal] = useState(false);
+  const [showViewAllSalesModal, setShowViewAllSalesModal] = useState(false);
   const [finalReportData, setFinalReportData] = useState<any>(null);
   
   // Transition state management
@@ -104,7 +106,7 @@ export default function SalesManagementClient({
   const [isInModalTransition, setIsInModalTransition] = useState(false);
 
   // Check if any modal is open
-  const isAnyModalOpen = showSalesModal || showQuickRecordModal || showFinalReportModal;
+  const isAnyModalOpen = showSalesModal || showQuickRecordModal || showFinalReportModal || showViewAllSalesModal;
 
   // Fetch production and sales data
   const fetchData = async () => {
@@ -274,8 +276,7 @@ export default function SalesManagementClient({
   };
 
   const viewAllSales = () => {
-    // This would open a modal with all sales
-    toast.info('Viewing all sales...');
+    setShowViewAllSalesModal(true);
   };
 
   const filterProducts = (filter: 'all' | 'available' | 'low') => {
@@ -606,6 +607,13 @@ export default function SalesManagementClient({
         isOpen={showFinalReportModal}
         onClose={() => setShowFinalReportModal(false)}
         reportData={finalReportData}
+      />
+
+      <ViewAllSalesModal
+        isOpen={showViewAllSalesModal}
+        onClose={() => setShowViewAllSalesModal(false)}
+        currentShift={currentShift}
+        userId={userId}
       />
     </div>
   );

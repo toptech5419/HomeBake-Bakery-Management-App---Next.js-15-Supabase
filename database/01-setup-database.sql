@@ -69,6 +69,22 @@ CREATE TABLE IF NOT EXISTS sales_logs (
 );
 
 -- =====================================================
+-- REMAINING BREAD TABLE
+-- =====================================================
+CREATE TABLE IF NOT EXISTS remaining_bread (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  shift TEXT CHECK (shift IN ('morning', 'night')) NOT NULL,
+  bread_type TEXT NOT NULL,
+  bread_type_id UUID REFERENCES bread_types(id),
+  quantity INTEGER NOT NULL,
+  recorded_by UUID REFERENCES users(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  unit_price NUMERIC(10,2) NOT NULL DEFAULT 0,
+  total_value NUMERIC(10,2) DEFAULT 0
+);
+
+-- =====================================================
 -- SHIFT FEEDBACK TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS shift_feedback (
@@ -136,6 +152,12 @@ CREATE INDEX IF NOT EXISTS idx_sales_logs_bread_type_id ON sales_logs(bread_type
 CREATE INDEX IF NOT EXISTS idx_sales_logs_recorded_by ON sales_logs(recorded_by);
 CREATE INDEX IF NOT EXISTS idx_sales_logs_created_at ON sales_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_sales_logs_shift ON sales_logs(shift);
+
+-- Remaining bread indexes
+CREATE INDEX IF NOT EXISTS idx_remaining_bread_shift ON remaining_bread(shift);
+CREATE INDEX IF NOT EXISTS idx_remaining_bread_bread_type_id ON remaining_bread(bread_type_id);
+CREATE INDEX IF NOT EXISTS idx_remaining_bread_created_at ON remaining_bread(created_at);
+CREATE INDEX IF NOT EXISTS idx_remaining_bread_recorded_by ON remaining_bread(recorded_by);
 
 -- Shift feedback indexes
 CREATE INDEX IF NOT EXISTS idx_shift_feedback_user_id ON shift_feedback(user_id);
@@ -240,7 +262,20 @@ CREATE POLICY "Owners and managers can update sales logs" ON sales_logs
         EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('owner', 'manager'))
     );
 
--- Shift Feedback policies
+-- Remaining bread policies
+CREATE POLICY "Users can view remaining bread" ON remaining_bread
+    FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Users can insert remaining bread" ON remaining_bread
+    FOR INSERT WITH CHECK (recorded_by = auth.uid());
+
+CREATE POLICY "Users can update remaining bread" ON remaining_bread
+    FOR UPDATE USING (recorded_by = auth.uid());
+
+CREATE POLICY "Users can delete remaining bread" ON remaining_bread
+    FOR DELETE USING (recorded_by = auth.uid());
+
+-- Shift feedback policies
 CREATE POLICY "Users can view their own feedback" ON shift_feedback
     FOR SELECT USING (user_id = auth.uid());
 

@@ -225,9 +225,11 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
 
       toast.success('Sales record added successfully!');
       
+      // Call the callback immediately to refresh dashboard
+      onSalesRecorded();
+      
       // Auto-close after 1.5 seconds
       setTimeout(() => {
-        onSalesRecorded();
         onClose();
         resetForm();
       }, 1500);
@@ -374,7 +376,7 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
                           <input
                             type="number"
                             min="0"
-                            value={formData.quantity}
+                            value={formData.quantity === 0 ? '' : formData.quantity}
                             onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 0)}
                             className="w-full text-center text-3xl font-bold border-2 border-gray-300 rounded-2xl py-4 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
                             placeholder="0"

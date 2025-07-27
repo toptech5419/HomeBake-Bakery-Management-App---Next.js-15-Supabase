@@ -90,7 +90,52 @@ export async function createShiftReport(reportData: any) {
       updated_at: new Date().toISOString(),
     };
 
-    // Insert with timeout handling
+    // Check for existing report before inserting
+    const { data: existingReport, error: checkError } = await supabase
+      .from('shift_reports')
+      .select('id, created_at, updated_at')
+      .eq('user_id', payload.user_id)
+      .eq('shift', payload.shift)
+      .eq('report_date', payload.report_date)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      // PGRST116 is "no rows returned" - that's expected if no existing report
+      console.error('Error checking for existing report:', checkError);
+      return { success: false, error: 'Failed to check for existing report' };
+    }
+
+    if (existingReport) {
+      // Report already exists - update it instead
+      const { data, error: updateError } = await supabase
+        .from('shift_reports')
+        .update({
+          total_revenue: payload.total_revenue,
+          total_items_sold: payload.total_items_sold,
+          total_remaining: payload.total_remaining,
+          feedback: payload.feedback,
+          sales_data: payload.sales_data,
+          remaining_breads: payload.remaining_breads,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingReport.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating existing shift report:', updateError);
+        return { success: false, error: updateError.message };
+      }
+
+      return { 
+        success: true, 
+        data,
+        message: 'Existing shift report updated successfully',
+        wasUpdated: true
+      };
+    }
+
+    // No existing report found - insert new one
     const { data, error } = await supabase
       .from('shift_reports')
       .insert(payload)
@@ -99,10 +144,25 @@ export async function createShiftReport(reportData: any) {
 
     if (error) {
       console.error('Error inserting shift report:', error);
+      
+      // Handle unique constraint violation specifically
+      if (error.code === '23505' && error.message.includes('shift_reports_unique_user_shift_date')) {
+        return { 
+          success: false, 
+          error: 'A shift report already exists for this date and shift. The system will attempt to update the existing report.',
+          code: 'DUPLICATE_REPORT'
+        };
+      }
+      
       return { success: false, error: error.message };
     }
 
-    return { success: true, data };
+    return { 
+      success: true, 
+      data,
+      message: 'New shift report created successfully',
+      wasUpdated: false
+    };
   } catch (error: any) {
     console.error('Error creating shift report:', error);
     
