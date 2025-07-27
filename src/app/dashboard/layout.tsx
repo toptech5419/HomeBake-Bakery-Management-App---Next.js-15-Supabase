@@ -7,6 +7,9 @@ import { OfflineSyncIndicator } from '@/components/offline-sync-indicator';
 import { DataProvider } from '@/contexts/DataContext';
 import { ToastProvider } from '@/components/ui/toast-provider';
 
+// Force dynamic rendering for all dashboard pages - they require authentication and database access
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardLayout({
   children,
 }: {

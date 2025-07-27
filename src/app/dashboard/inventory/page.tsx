@@ -15,5 +15,5 @@ export default async function InventoryPage() {
     redirect('/login');
   }
 
-  return <InventoryClient />;
+  return <InventoryClient serverUser={user} />;
 }

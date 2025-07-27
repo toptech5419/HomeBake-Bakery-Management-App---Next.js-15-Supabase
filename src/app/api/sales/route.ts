@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServer } from '@/lib/supabase/server';
 import { salesEntrySchema } from '@/lib/validations/sales';
 
+// Force dynamic rendering for API routes that require authentication
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServer();

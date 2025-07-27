@@ -13,6 +13,7 @@ interface AutoShiftState {
 export function useAutoShift(): AutoShiftState {
   const [shiftState, setShiftState] = useState<AutoShiftState>(() => {
     const shiftInfo = getCurrentShiftInfo();
+    console.log('🔄 useAutoShift: Initial shift info:', shiftInfo);
     return {
       currentShift: shiftInfo.currentShift,
       shiftStartTime: shiftInfo.shiftStartTime,
@@ -26,6 +27,7 @@ export function useAutoShift(): AutoShiftState {
   useEffect(() => {
     const updateShift = () => {
       const shiftInfo = getCurrentShiftInfo();
+      console.log('🔄 useAutoShift: Updated shift info:', shiftInfo);
       setShiftState(prevState => ({
         ...prevState,
         currentShift: shiftInfo.currentShift,

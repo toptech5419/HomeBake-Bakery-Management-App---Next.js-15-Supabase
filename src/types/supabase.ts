@@ -155,6 +155,7 @@ export interface Database {
           end_time: string | null
           actual_quantity: number
           status: 'active' | 'completed' | 'cancelled'
+          shift: 'morning' | 'night'
           notes: string | null
           created_by: string
           created_at: string
@@ -168,6 +169,7 @@ export interface Database {
           end_time?: string | null
           actual_quantity?: number
           status?: 'active' | 'completed' | 'cancelled'
+          shift: 'morning' | 'night'
           notes?: string | null
           created_by: string
           created_at?: string
@@ -181,6 +183,7 @@ export interface Database {
           end_time?: string | null
           actual_quantity?: number
           status?: 'active' | 'completed' | 'cancelled'
+          shift?: 'morning' | 'night'
           notes?: string | null
           created_by?: string
           created_at?: string

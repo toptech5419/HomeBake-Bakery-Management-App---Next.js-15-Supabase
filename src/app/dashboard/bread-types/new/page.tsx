@@ -4,6 +4,9 @@ import BreadTypeNewClient from './BreadTypeNewClient';
 
 import { Suspense } from 'react';
 
+// Force dynamic rendering - this page requires authentication and database access
+export const dynamic = 'force-dynamic';
+
 type PageProps = {
   searchParams?: Promise<{ id?: string }>
 };
