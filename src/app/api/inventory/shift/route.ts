@@ -1,7 +1,6 @@
 import { createServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { getInventoryShiftContext, getNightShiftBoundariesWithArchive } from '@/lib/utils/enhanced-shift-utils';
-import { getShiftDateRange } from '@/lib/utils/shift-utils';
+import { getInventoryShiftContext } from '@/lib/utils/enhanced-shift-utils';
 
 // Force dynamic rendering for API routes that require authentication
 export const dynamic = 'force-dynamic';
@@ -60,53 +59,53 @@ export async function GET(request: NextRequest) {
     // Parse the date parameter correctly
     const targetDate = new Date(dateParam + 'T00:00:00');
     
-    // Calculate shift boundaries with enhanced logic
-    let queryDate = targetDate;
+    // Calculate shift boundaries with CORRECT logic
     let shiftStart: Date;
     let shiftEnd: Date;
     
     if (validatedShift === 'night') {
-      // For night shift, we want to be on the safer side
-      // Search from yesterday 10 AM to today 10 AM (24-hour period)
-      // This covers the case where night shift might start work anytime
+      // Night shift: 10:00 PM to 10:00 AM (next day)
+      // For night shift, we need to show batches from 10 PM yesterday to 10 AM today
       const yesterday = new Date(targetDate);
       yesterday.setDate(yesterday.getDate() - 1);
       
       shiftStart = new Date(yesterday);
-      shiftStart.setHours(10, 0, 0, 0); // Yesterday 10 AM
+      shiftStart.setHours(22, 0, 0, 0); // Yesterday 10 PM
       
       shiftEnd = new Date(targetDate);
       shiftEnd.setHours(10, 0, 0, 0); // Today 10 AM
       
-      console.log(`🌙 Night shift: Searching from yesterday 10 AM to today 10 AM for safety`);
+      console.log(`🌙 Night shift: Searching from ${shiftStart.toLocaleDateString()} 10 PM to ${shiftEnd.toLocaleDateString()} 10 AM`);
+      console.log(`🌙 This covers the current night shift period (no fallback to previous shifts)`);
     } else {
-      // Morning shift: 12:00 AM - 10:00 PM LOCAL TIME (current day)
-      // This includes early morning batches (8 AM, 9 AM) that were recorded before shift switch
-      shiftStart = new Date(queryDate);
-      shiftStart.setHours(0, 0, 0, 0); // Start of day (12 AM)
-      shiftEnd = new Date(queryDate);
-      shiftEnd.setHours(22, 0, 0, 0); // 10 PM
+      // Morning shift: 10:00 AM to 10:00 PM (current day only)
+      shiftStart = new Date(targetDate);
+      shiftStart.setHours(10, 0, 0, 0); // 10 AM today
       
-      console.log(`☀️ Morning shift: Searching current day 12 AM to 10 PM (includes early morning batches)`);
+      shiftEnd = new Date(targetDate);
+      shiftEnd.setHours(22, 0, 0, 0); // 10 PM today
+      
+      console.log(`☀️ Morning shift: Searching current day ${shiftStart.toLocaleDateString()} 10 AM to ${shiftEnd.toLocaleDateString()} 10 PM`);
     }
 
     // Convert local times to UTC for database query
-    // FIXED: Subtract timezone offset to convert local time to UTC properly
-    const utcShiftStart = new Date(shiftStart.getTime() - (shiftStart.getTimezoneOffset() * 60000));
-    const utcShiftEnd = new Date(shiftEnd.getTime() - (shiftEnd.getTimezoneOffset() * 60000));
-
-    console.log(`🔍 Shift boundaries for ${validatedShift} shift on ${dateParam}:`);
-    console.log(`   Query date: ${queryDate.toISOString().split('T')[0]}`);
-    console.log(`   Local start: ${shiftStart.toLocaleString()}`);
-    console.log(`   Local end: ${shiftEnd.toLocaleString()}`);
-    console.log(`   UTC start: ${utcShiftStart.toISOString()}`);
-    console.log(`   UTC end: ${utcShiftEnd.toISOString()}`);
-    console.log(`   Timezone offset: ${new Date().getTimezoneOffset()} minutes`);
-    console.log(`   Current local time: ${new Date().toLocaleString()}`);
-    console.log(`   Current UTC time: ${new Date().toISOString()}`);
+    // Nigeria is UTC+1, so we need to subtract 1 hour to convert local time to UTC
+    const nigeriaTimezoneOffset = 1; // Nigeria is UTC+1
+    const utcShiftStart = new Date(shiftStart.getTime() - (nigeriaTimezoneOffset * 60 * 60 * 1000));
+    const utcShiftEnd = new Date(shiftEnd.getTime() - (nigeriaTimezoneOffset * 60 * 60 * 1000));
+    
+    console.log(`🔍 Timezone conversion:`);
+    console.log(`  Local start: ${shiftStart.toLocaleString()}`);
+    console.log(`  Local end: ${shiftEnd.toLocaleString()}`);
+    console.log(`  UTC start: ${utcShiftStart.toISOString()}`);
+    console.log(`  UTC end: ${utcShiftEnd.toISOString()}`);
 
     // Query the batches table for the current shift
     console.log(`🔍 Querying batches table for ${validatedShift} shift...`);
+    console.log(`🔍 Query parameters:`);
+    console.log(`  Shift: ${validatedShift}`);
+    console.log(`  Created at >= ${utcShiftStart.toISOString()}`);
+    console.log(`  Created at < ${utcShiftEnd.toISOString()}`);
     
     let { data: batchesData, error: batchesError } = await supabase
       .from('batches')
@@ -134,7 +133,7 @@ export async function GET(request: NextRequest) {
     } else {
       console.log(`⚠️ No active batches found, checking archived data...`);
       
-      // Step 2: If no active batches, check all_batches table
+      // If no active batches, check all_batches table
       const { data: allBatchesData, error: allBatchesError } = await supabase
         .from('all_batches')
         .select(`
@@ -166,34 +165,9 @@ export async function GET(request: NextRequest) {
         dataSource = 'all_batches';
         console.log(`✅ Found ${allBatchesData.length} archived batches`);
       } else {
-        // Step 3: For night shift, also check for any data in the time range regardless of shift
-        if (validatedShift === 'night') {
-          console.log(`🔍 No night shift data found, checking for any data in the time range...`);
-          
-          // Check for any batches (morning or night) in the time range
-          const { data: anyBatchesData, error: anyBatchesError } = await supabase
-            .from('all_batches')
-            .select(`
-              *,
-              bread_type:bread_types!inner(
-                id,
-                name,
-                size,
-                unit_price
-              )
-            `)
-            .gte('created_at', utcShiftStart.toISOString())
-            .lt('created_at', utcShiftEnd.toISOString())
-            .order('created_at', { ascending: false });
-
-          console.log(`📊 Any batches in time range: ${anyBatchesData?.length || 0} records`);
-          
-          if (anyBatchesData && anyBatchesData.length > 0) {
-            batchesData = anyBatchesData || [];
-            dataSource = 'archived';
-            console.log(`✅ Found ${anyBatchesData.length} batches in the 24-hour period for night shift`);
-          }
-        }
+        // No batches found in current shift period - show empty state
+        console.log(`📭 No batches found for current ${validatedShift} shift period`);
+        console.log(`📭 Showing empty state - no fallback to previous shifts`);
       }
     }
 

@@ -38,7 +38,7 @@ interface DataContextType {
   refreshData: () => Promise<void>;
   refreshProduction: () => Promise<void>;
   refreshSales: () => Promise<void>;
-  refreshBatches: () => Promise<void>;
+  refreshBatches: (shift?: 'morning' | 'night') => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -184,14 +184,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [withRetry]);
 
-  // Add batch fetching function
-  const fetchBatches = useCallback(async () => {
+  // Add batch fetching function with shift filtering
+  const fetchBatches = useCallback(async (shift?: 'morning' | 'night') => {
     try {
-      console.log('🔄 Fetching batches...');
+      console.log(`🔄 Fetching batches${shift ? ` for ${shift} shift` : ''}...`);
       setConnectionStatus('connecting');
       
       const { data, error } = await withRetry(async () => {
-        const result = await supabase
+        let query = supabase
           .from('batches')
           .select(`
             *,
@@ -199,11 +199,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           `)
           .order('created_at', { ascending: false });
         
+        // Add shift filtering if provided
+        if (shift) {
+          query = query.eq('shift', shift);
+        }
+        
+        const result = await query;
         if (result.error) throw result.error;
         return result;
       });
       
-      console.log('✅ Batches fetched:', data?.length || 0, 'records');
+      console.log(`✅ Batches fetched: ${data?.length || 0} records${shift ? ` for ${shift} shift` : ''}`);
       setBatches(data || []);
       
       // Separate active batches
@@ -435,7 +441,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     refreshData: () => refreshData(true),
     refreshProduction: fetchProductionLogs,
     refreshSales: fetchSalesLogs,
-    refreshBatches: fetchBatches
+    refreshBatches: (shift?: 'morning' | 'night') => fetchBatches(shift)
   };
 
   return (

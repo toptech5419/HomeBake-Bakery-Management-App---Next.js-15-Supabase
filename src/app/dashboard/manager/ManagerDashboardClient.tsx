@@ -9,10 +9,12 @@ import { ExportAllBatchesModal } from '@/components/modals/ExportAllBatchesModal
 import { useAuth } from '@/hooks/use-auth';
 import { useManagerDashboard } from '@/hooks/use-manager-dashboard';
 import { useShift } from '@/contexts/ShiftContext';
+import { useData } from '@/contexts/DataContext';
 import { deleteAllBatches, checkAndSaveBatchesToAllBatches } from '@/lib/batches/actions';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { useOptimizedToast } from '@/components/ui/toast-optimized';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ManagerDashboardClientProps {
   userName: string;
@@ -36,6 +38,8 @@ export default function ManagerDashboardClient({
   const { user } = useAuth();
   const { toast } = useOptimizedToast();
   const { currentShift, setCurrentShift } = useShift();
+  const { refreshBatches } = useData();
+  const queryClient = useQueryClient();
 
   // Use the simplified manager dashboard hook with shift filtering
   const {
@@ -144,8 +148,23 @@ export default function ManagerDashboardClient({
         type: 'success'
       });
       
-      // Refresh dashboard data
+      // Force refresh all data sources with current shift
       await refreshData();
+      
+      // Also refresh batches specifically for current shift
+      await refreshBatches(currentShift);
+      
+      // Invalidate all React Query caches for batches
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['batches', 'active'] });
+      queryClient.invalidateQueries({ queryKey: ['batches', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['batches', 'active', currentShift] });
+      queryClient.invalidateQueries({ queryKey: ['batches', 'stats', currentShift] });
+      
+      // Force a page reload to ensure all caches are cleared
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
       
     } catch (err) {
       console.error('Error ending shift:', err);

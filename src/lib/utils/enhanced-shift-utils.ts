@@ -51,8 +51,9 @@ export async function getEnhancedShiftInfo(userId?: string): Promise<EnhancedShi
         
         // Determine if we should show archived data
         if (baseShiftInfo.currentShift === 'night') {
-          // For night shift, we always want to show archived data for safety
-          shouldShowArchivedData = true;
+          // For night shift, we want to show archived data only if no current shift data exists
+          // This ensures we don't show old data when current shift has data
+          shouldShowArchivedData = false; // Will be determined dynamically based on data availability
         }
         
         // Determine data source priority
@@ -274,4 +275,4 @@ function getDataSourcePriority(source: 'batches' | 'all_batches' | 'archived'): 
     default:
       return 1;
   }
-} 
+}

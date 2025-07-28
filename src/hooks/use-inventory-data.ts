@@ -143,9 +143,9 @@ export function useInventoryData(user?: any) {
       return fetchShiftInventory(currentShift, targetDate);
     },
     enabled: !!currentShift && !shiftLoading,
-    staleTime: 30 * 1000, // 30 seconds - data is fresh for 30 seconds
+    staleTime: 15 * 1000, // 15 seconds - data is fresh for 15 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache for 5 minutes
-    refetchInterval: 30 * 1000, // Refetch every 30 seconds for real-time updates
+    refetchInterval: 15 * 1000, // Refetch every 15 seconds for real-time updates
     refetchIntervalInBackground: true, // Continue refetching in background
     refetchOnWindowFocus: true, // Refetch when user returns to tab
     retry: 3, // Retry failed requests 3 times

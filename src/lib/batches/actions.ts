@@ -402,7 +402,13 @@ export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<voi
   }
 
   console.log(`✅ Successfully deleted ${shift || 'all'} shift batches for ${today}`);
+  
+  // Invalidate all relevant paths and caches
   revalidatePath('/dashboard');
+  revalidatePath('/dashboard/manager');
+  revalidatePath('/dashboard/production');
+  revalidatePath('/api/batches');
+  revalidatePath('/api/batches/stats');
 }
 
 // Get batch statistics
