@@ -190,6 +190,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       console.log(`🔄 Fetching batches${shift ? ` for ${shift} shift` : ''}...`);
       setConnectionStatus('connecting');
       
+      // Get current user for filtering
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      
+      if (!userId) {
+        console.log('⚠️ No user found, skipping batch fetch');
+        setBatches([]);
+        setActiveBatches([]);
+        return;
+      }
+      
       const { data, error } = await withRetry(async () => {
         let query = supabase
           .from('batches')
@@ -197,6 +208,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             *,
             bread_type:bread_types(name, unit_price)
           `)
+          .eq('created_by', userId) // Filter by current user
           .order('created_at', { ascending: false });
         
         // Add shift filtering if provided
@@ -209,7 +221,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return result;
       });
       
-      console.log(`✅ Batches fetched: ${data?.length || 0} records${shift ? ` for ${shift} shift` : ''}`);
+      console.log(`✅ Batches fetched: ${data?.length || 0} records${shift ? ` for ${shift} shift` : ''} for user ${userId}`);
       setBatches(data || []);
       
       // Separate active batches

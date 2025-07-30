@@ -50,62 +50,60 @@ export async function GET(request: NextRequest) {
     
     console.log(`🔍 Enhanced Shift Context for ${validatedShift} shift:`);
     console.log(`   User ID: ${user?.id || 'No user'}`);
-    console.log(`   Manager Shift: ${shiftContext.managerShift}`);
-    console.log(`   Shift Aligned: ${shiftContext.isShiftAligned}`);
     console.log(`   Show Archived Data: ${shiftContext.shouldShowArchivedData}`);
     console.log(`   Data Source: ${shiftContext.dataSource}`);
-    console.log(`   Alignment Status: ${shiftContext.shiftAlignmentStatus}`);
 
-    // Parse the date parameter correctly
-    const targetDate = new Date(dateParam + 'T00:00:00');
-    
-    // Calculate shift boundaries with CORRECT logic
-    let shiftStart: Date;
-    let shiftEnd: Date;
-    
-    if (validatedShift === 'night') {
-      // Night shift: 10:00 PM to 10:00 AM (next day)
-      // For night shift, we need to show batches from 10 PM yesterday to 10 AM today
-      const yesterday = new Date(targetDate);
-      yesterday.setDate(yesterday.getDate() - 1);
+    // Dynamic current shift period calculation
+    function getCurrentShiftPeriod(shift: 'morning' | 'night') {
+      const now = new Date();
+      const currentHour = now.getHours();
       
-      shiftStart = new Date(yesterday);
-      shiftStart.setHours(22, 0, 0, 0); // Yesterday 10 PM
-      
-      shiftEnd = new Date(targetDate);
-      shiftEnd.setHours(10, 0, 0, 0); // Today 10 AM
-      
-      console.log(`🌙 Night shift: Searching from ${shiftStart.toLocaleDateString()} 10 PM to ${shiftEnd.toLocaleDateString()} 10 AM`);
-      console.log(`🌙 This covers the current night shift period (no fallback to previous shifts)`);
-    } else {
-      // Morning shift: 10:00 AM to 10:00 PM (current day only)
-      shiftStart = new Date(targetDate);
-      shiftStart.setHours(10, 0, 0, 0); // 10 AM today
-      
-      shiftEnd = new Date(targetDate);
-      shiftEnd.setHours(22, 0, 0, 0); // 10 PM today
-      
-      console.log(`☀️ Morning shift: Searching current day ${shiftStart.toLocaleDateString()} 10 AM to ${shiftEnd.toLocaleDateString()} 10 PM`);
+      if (shift === 'morning') {
+        // Morning shift: 3:00 AM to 10:00 PM current day only
+        const searchStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 3, 0, 0);
+        const searchEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 22, 0, 0);
+        
+        console.log(`☀️ Morning shift: Searching from ${searchStart.toLocaleDateString()} 3 AM to ${searchEnd.toLocaleDateString()} 10 PM`);
+        return { searchStart, searchEnd };
+      } else {
+        // Night shift: 3:00 PM previous day to 10:00 AM current day
+        if (currentHour >= 22) {
+          // After 10 PM today - current night shift just started
+          const searchStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 15, 0, 0); // 3 PM today
+          const searchEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 10, 0, 0); // 10 AM tomorrow
+          
+          console.log(`🌙 Night shift (after 10 PM): Searching from ${searchStart.toLocaleDateString()} 3 PM to ${searchEnd.toLocaleDateString()} 10 AM`);
+          return { searchStart, searchEnd };
+        } else {
+          // Before 10 AM today - current night shift ending
+          const searchStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 15, 0, 0); // 3 PM yesterday
+          const searchEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0, 0); // 10 AM today
+          
+          console.log(`🌙 Night shift (before 10 AM): Searching from ${searchStart.toLocaleDateString()} 3 PM to ${searchEnd.toLocaleDateString()} 10 AM`);
+          return { searchStart, searchEnd };
+        }
+      }
     }
 
+    // Get current shift period boundaries
+    const { searchStart, searchEnd } = getCurrentShiftPeriod(validatedShift);
+
     // Convert local times to UTC for database query
-    // Nigeria is UTC+1, so we need to subtract 1 hour to convert local time to UTC
     const nigeriaTimezoneOffset = 1; // Nigeria is UTC+1
-    const utcShiftStart = new Date(shiftStart.getTime() - (nigeriaTimezoneOffset * 60 * 60 * 1000));
-    const utcShiftEnd = new Date(shiftEnd.getTime() - (nigeriaTimezoneOffset * 60 * 60 * 1000));
+    const utcSearchStart = new Date(searchStart.getTime() - (nigeriaTimezoneOffset * 60 * 60 * 1000));
+    const utcSearchEnd = new Date(searchEnd.getTime() - (nigeriaTimezoneOffset * 60 * 60 * 1000));
     
     console.log(`🔍 Timezone conversion:`);
-    console.log(`  Local start: ${shiftStart.toLocaleString()}`);
-    console.log(`  Local end: ${shiftEnd.toLocaleString()}`);
-    console.log(`  UTC start: ${utcShiftStart.toISOString()}`);
-    console.log(`  UTC end: ${utcShiftEnd.toISOString()}`);
+    console.log(`  Local start: ${searchStart.toLocaleString()}`);
+    console.log(`  Local end: ${searchEnd.toLocaleString()}`);
+    console.log(`  UTC start: ${utcSearchStart.toISOString()}`);
+    console.log(`  UTC end: ${utcSearchEnd.toISOString()}`);
 
-    // Query the batches table for the current shift
+    // Query the batches table based on shift assignment, not creation time
     console.log(`🔍 Querying batches table for ${validatedShift} shift...`);
     console.log(`🔍 Query parameters:`);
     console.log(`  Shift: ${validatedShift}`);
-    console.log(`  Created at >= ${utcShiftStart.toISOString()}`);
-    console.log(`  Created at < ${utcShiftEnd.toISOString()}`);
+    console.log(`  Current Date: ${new Date().toLocaleDateString()}`);
     
     let { data: batchesData, error: batchesError } = await supabase
       .from('batches')
@@ -119,8 +117,8 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq('shift', validatedShift)
-      .gte('created_at', utcShiftStart.toISOString())
-      .lt('created_at', utcShiftEnd.toISOString())
+      .gte('created_at', utcSearchStart.toISOString())
+      .lt('created_at', utcSearchEnd.toISOString())
       .order('created_at', { ascending: false });
 
     console.log(`📊 Active batches query result: ${batchesData?.length || 0} records`);
@@ -146,8 +144,8 @@ export async function GET(request: NextRequest) {
           )
         `)
         .eq('shift', validatedShift)
-        .gte('created_at', utcShiftStart.toISOString())
-        .lt('created_at', utcShiftEnd.toISOString())
+        .gte('created_at', utcSearchStart.toISOString())
+        .lt('created_at', utcSearchEnd.toISOString())
         .order('created_at', { ascending: false });
 
       console.log(`📊 All_batches query result: ${allBatchesData?.length || 0} records`);
@@ -224,7 +222,6 @@ export async function GET(request: NextRequest) {
     console.log(`📊 Final result: ${inventory.length} inventory items, ${totalUnits} total units`);
     console.log(`📊 Data source: ${dataSource}`);
     console.log(`📊 Total batches: ${totalBatches}, Archived: ${totalArchivedBatches}`);
-    console.log(`📊 Shift alignment: ${shiftContext.shiftAlignmentStatus}`);
 
     return NextResponse.json({ 
       data: inventory,
@@ -236,9 +233,6 @@ export async function GET(request: NextRequest) {
       source: dataSource,
       recordCount: allBatches.length,
       shiftContext: {
-        isShiftAligned: shiftContext.isShiftAligned,
-        managerShift: shiftContext.managerShift,
-        alignmentStatus: shiftContext.shiftAlignmentStatus,
         shouldShowArchivedData: shiftContext.shouldShowArchivedData,
         isManager: shiftContext.isManager,
       }

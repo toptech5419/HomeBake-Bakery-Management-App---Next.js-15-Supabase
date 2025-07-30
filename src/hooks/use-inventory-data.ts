@@ -24,9 +24,6 @@ interface ShiftInventoryData {
   source: 'batches' | 'all_batches' | 'archived';
   recordCount: number;
   shiftContext: {
-    isShiftAligned: boolean;
-    managerShift: 'morning' | 'night';
-    alignmentStatus: 'aligned' | 'misaligned' | 'transitioning';
     shouldShowArchivedData: boolean;
     isManager: boolean;
   };
@@ -63,9 +60,6 @@ async function fetchShiftInventory(shift: 'morning' | 'night', date?: string): P
     source: result.source || 'batches',
     recordCount: result.recordCount || 0,
     shiftContext: result.shiftContext || {
-      isShiftAligned: true,
-      managerShift: shift,
-      alignmentStatus: 'aligned',
       shouldShowArchivedData: false,
       isManager: false,
     },
@@ -123,9 +117,6 @@ export function useInventoryData(user?: any) {
       source: 'batches' as const, 
       recordCount: 0,
       shiftContext: {
-        isShiftAligned: true,
-        managerShift: currentShift,
-        alignmentStatus: 'aligned' as const,
         shouldShowArchivedData: false,
         isManager: false,
       }
@@ -178,9 +169,6 @@ export function useInventoryData(user?: any) {
   }, [shiftEndDateTime]);
 
   const shiftStatus = inventoryData.shiftContext || {
-    isShiftAligned: true,
-    managerShift: currentShift,
-    alignmentStatus: 'aligned' as const,
     shouldShowArchivedData: false,
     isManager: false,
   };

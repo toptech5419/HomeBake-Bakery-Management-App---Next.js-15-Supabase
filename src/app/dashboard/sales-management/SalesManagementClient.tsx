@@ -30,23 +30,8 @@ import { FinalReportModal } from '@/components/dashboards/sales/FinalReportModal
 import { ViewAllSalesModal } from '@/components/modals/ViewAllSalesModal';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-
-interface BreadType {
-  id: string;
-  name: string;
-  unit_price: number;
-}
-
-interface ProductionItem {
-  id: string;
-  bread_type_id: string;
-  quantity: number;
-  unit_price: number;
-  bread_types: BreadType;
-  produced: number;
-  sold: number;
-  available: number;
-}
+import { useSalesRepProduction } from '@/hooks/use-sales-rep-production';
+import { useAuth } from '@/hooks/use-auth';
 
 interface SalesRecord {
   id: string;
@@ -58,7 +43,11 @@ interface SalesRecord {
   shift: string;
   recorded_by: string;
   created_at: string;
-  bread_types: BreadType;
+  bread_types: {
+    id: string;
+    name: string;
+    unit_price: number;
+  };
 }
 
 interface DashboardMetrics {
@@ -71,7 +60,7 @@ interface SalesManagementClientProps {
   userId: string;
   userName: string;
   userRole: string;
-  breadTypes: BreadType[];
+  breadTypes: any[];
 }
 
 export default function SalesManagementClient({
@@ -80,18 +69,60 @@ export default function SalesManagementClient({
   userRole,
   breadTypes
 }: SalesManagementClientProps) {
+  console.log('🔄 SalesManagementClient: Component rendering...', { userId, userName, userRole });
+  
   const { currentShift } = useShift();
   const router = useRouter();
+  const { user: clientUser } = useAuth();
   
+  // Use server user if available, otherwise fall back to client user
+  const user = clientUser || { id: userId };
+  
+  console.log('🔄 SalesManagementClient: Shift and user info:', { 
+    currentShift, 
+    userId, 
+    clientUserId: clientUser?.id 
+  });
+  
+  // Use sales rep production hook for production items
+  const { 
+    productionItems, 
+    totalUnits, 
+    isLoading, 
+    error, 
+    refetch,
+    source,
+    isEmpty,
+    shift,
+    currentTime,
+    currentHour,
+    currentDate
+  } = useSalesRepProduction();
+  
+  // Debug log the production data
+  useEffect(() => {
+    console.log('🔧 Client Production Debug:', {
+      currentUser: user?.id,
+      userRole: userRole || 'unknown',
+      currentShift,
+      currentDate,
+      productionItemsLength: productionItems.length,
+      totalUnits,
+      isEmpty,
+      source,
+      isLoading,
+      error,
+      note: 'Sales rep viewing ALL production items'
+    });
+  }, [productionItems, totalUnits, isLoading, error, source, isEmpty, shift, currentTime, currentHour, currentShift, user, currentDate, userRole]);
+
   // State management
-  const [productionItems, setProductionItems] = useState<ProductionItem[]>([]);
   const [salesRecords, setSalesRecords] = useState<SalesRecord[]>([]);
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     todaySales: 0,
     transactions: 0,
     itemsSold: 0
   });
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'available' | 'low'>('all');
   const [showSalesModal, setShowSalesModal] = useState(false);
@@ -108,35 +139,15 @@ export default function SalesManagementClient({
   // Check if any modal is open
   const isAnyModalOpen = showSalesModal || showQuickRecordModal || showFinalReportModal || showViewAllSalesModal;
 
-  // Fetch production and sales data
-  const fetchData = async () => {
+  // Fetch sales data for current shift and current user only - NO DATE FILTERING
+  const fetchSalesData = async () => {
     if (isTransitioning) {
       return;
     }
     
-    setLoading(true);
     try {
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-
-      // Fetch production data for current shift
-      const { data: productionData } = await supabase
-        .from('production_logs')
-        .select(`
-          *,
-          bread_types (
-            id,
-            name,
-            unit_price
-          )
-        `)
-        .gte('created_at', startOfDay.toISOString())
-        .lt('created_at', endOfDay.toISOString())
-        .eq('shift', currentShift);
-
-      // Fetch sales data for current shift
-      const { data: salesData } = await supabase
+      // Fetch sales data for current shift and current user only
+      const { data: salesData, error: salesError } = await supabase
         .from('sales_logs')
         .select(`
           *,
@@ -146,59 +157,87 @@ export default function SalesManagementClient({
             unit_price
           )
         `)
-        .gte('created_at', startOfDay.toISOString())
-        .lt('created_at', endOfDay.toISOString())
+        .eq('recorded_by', userId)
         .eq('shift', currentShift)
         .order('created_at', { ascending: false });
 
-      // Process production items with calculated values
-      if (productionData && salesData) {
-        const processedItems = productionData.map(prod => {
-          const sold = salesData
-            .filter(sale => sale.bread_type_id === prod.bread_type_id)
-            .reduce((sum, sale) => sum + sale.quantity, 0);
-          
-          return {
-            id: prod.id,
-            bread_type_id: prod.bread_type_id,
-            quantity: prod.quantity,
-            unit_price: prod.bread_types.unit_price,
-            bread_types: prod.bread_types,
-            produced: prod.quantity,
-            sold,
-            available: Math.max(0, prod.quantity - sold)
-          };
-        });
+      if (salesError) throw salesError;
 
-        setProductionItems(processedItems);
+      // Process sales data
+      if (salesData) {
+        setSalesRecords(salesData);
 
-        // Calculate metrics
-        const todaySales = salesData.reduce((sum, sale) => {
+        // Calculate metrics - same logic as SalesRepDashboard
+        const todaySales = salesData.reduce((sum: number, sale: SalesRecord) => {
           const amount = (sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0);
           return sum + amount;
         }, 0);
 
-        const itemsSold = salesData.reduce((sum, sale) => sum + sale.quantity, 0);
+        const transactions = salesData.length;
+        
+        // Calculate total units sold (sum of all quantities)
+        const totalUnitsSold = salesData.reduce((sum, sale) => sum + sale.quantity, 0);
+        const itemsSold = totalUnitsSold; // Total units instead of unique types
+
+        // Debug logging to help identify issues
+        console.log('📊 Sales Management Data Debug:', {
+          salesDataLength: salesData.length || 0,
+          transactions,
+          itemsSold,
+          totalUnitsSold: salesData.reduce((sum, sale) => sum + sale.quantity, 0) || 0,
+          salesBreakdown: salesData.map(sale => ({
+            breadType: sale.bread_types?.name,
+            quantity: sale.quantity,
+            unitPrice: sale.unit_price,
+            totalAmount: (sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0)
+          })),
+          filters: {
+            shift: currentShift,
+            userId
+          }
+        });
 
         setMetrics({
           todaySales,
-          transactions: salesData.length,
+          transactions,
           itemsSold
         });
-
-        setSalesRecords(salesData);
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to fetch data');
-    } finally {
-      setLoading(false);
+      console.error('Error fetching sales data:', error);
+      toast.error('Failed to fetch sales data');
     }
   };
 
   useEffect(() => {
-    fetchData();
-  }, [currentShift]);
+    fetchSalesData();
+  }, [currentShift, userId]);
+
+  // Calculate available quantities based on production items and sales
+  const calculateAvailableQuantities = () => {
+    const processedItems = productionItems.map((item: any) => {
+      // Calculate total sold for this bread type in current shift
+      const sold = salesRecords
+        .filter(sale => sale.bread_types.name === item.name)
+        .reduce((sum, sale) => sum + sale.quantity, 0);
+      
+      return {
+        id: item.id,
+        bread_type_id: item.bread_type_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        name: item.name,
+        size: item.size,
+        produced: item.produced,
+        sold,
+        available: Math.max(0, item.quantity - sold)
+      };
+    });
+
+    return processedItems;
+  };
+
+  const processedProductionItems = calculateAvailableQuantities();
 
   const getStatusIndicator = (available: number) => {
     if (available === 0) return <XCircle className="h-4 w-4 text-red-500" />;
@@ -207,7 +246,8 @@ export default function SalesManagementClient({
   };
 
   const handleSalesRecorded = () => {
-    fetchData();
+    fetchSalesData();
+    refetch(); // Refresh production data
     toast.success('Sale recorded successfully');
   };
 
@@ -284,11 +324,12 @@ export default function SalesManagementClient({
   };
 
   const refreshProducts = () => {
-    fetchData();
+    refetch();
+    fetchSalesData();
     toast.success('Data refreshed');
   };
 
-  if (loading && !isTransitioning) {
+  if (isLoading && !isTransitioning) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
@@ -344,7 +385,7 @@ export default function SalesManagementClient({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Quick Stats */}
+        {/* Quick Stats - Updated with proper metrics calculation */}
         <div className="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-gray-200">
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
@@ -443,11 +484,44 @@ export default function SalesManagementClient({
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 mb-6">
           <div className="bg-gray-50 px-4 py-4 border-b border-gray-200 font-semibold text-gray-700 text-sm">
             Production Items for Current Shift
+            {source && (
+              <span className="ml-2 text-xs text-gray-500">
+                (Source: {source})
+              </span>
+            )}
+            {shift && (
+              <span className="ml-2 text-xs text-gray-500">
+                | Shift: {shift}
+              </span>
+            )}
+            {currentHour !== undefined && (
+              <span className="ml-2 text-xs text-gray-500">
+                | Hour: {currentHour}
+              </span>
+            )}
           </div>
           
-          {productionItems
+          {isEmpty ? (
+            <div className="p-8 text-center text-gray-500">
+              <Package className="mx-auto h-12 w-12 mb-4 text-gray-300" />
+              <div className="space-y-2">
+                <p className="font-medium">Production cleared for current shift</p>
+                <p className="text-sm">
+                  {shift === 'morning' 
+                    ? 'Morning shift clears at 3:00 PM' 
+                    : 'Night shift clears at 12:00 AM'
+                  }
+                </p>
+                {currentTime && (
+                  <p className="text-xs text-gray-400">
+                    Current time: {new Date(currentTime).toLocaleString('en-US', { timeZone: 'Africa/Lagos' })}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : processedProductionItems
             .filter(item => {
-              const matchesSearch = item.bread_types.name.toLowerCase().includes(searchTerm.toLowerCase());
+              const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
               const matchesFilter = 
                 activeFilter === 'all' ||
                 (activeFilter === 'available' && item.available > 0) ||
@@ -459,7 +533,7 @@ export default function SalesManagementClient({
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     {getStatusIndicator(item.available)}
-                    <span className="font-semibold text-gray-900">{item.bread_types.name}</span>
+                    <span className="font-semibold text-gray-900">{item.name}</span>
                   </div>
                   <div className="flex gap-3 text-xs text-gray-600">
                     <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-lg font-medium">
@@ -470,27 +544,22 @@ export default function SalesManagementClient({
                 </div>
                 <div className="text-right">
                   <div className="font-semibold text-green-600 text-sm mb-1">
-                    {formatCurrencyNGN(item.bread_types.unit_price)}
+                    {formatCurrencyNGN(item.unit_price)}
                   </div>
-                  <button
-                    onClick={() => quickSale(item.bread_types.name.toLowerCase())}
-                    disabled={item.available === 0}
-                    className={cn(
-                      "px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1",
-                      item.available === 0
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : "bg-green-500 text-white hover:bg-green-600"
-                    )}
-                  >
-                    <Plus className="h-3 w-3" />
+                  <div className={cn(
+                    "px-3 py-1 rounded-lg text-xs font-medium",
+                    item.available === 0
+                      ? "bg-gray-100 text-gray-400"
+                      : "bg-green-100 text-green-800"
+                  )}>
                     {item.available === 0 ? 'Sold Out' : 'Available'}
-                  </button>
+                  </div>
                 </div>
               </div>
             ))}
           
-          {productionItems.filter(item => {
-            const matchesSearch = item.bread_types.name.toLowerCase().includes(searchTerm.toLowerCase());
+          {!isEmpty && processedProductionItems.filter(item => {
+            const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesFilter = 
               activeFilter === 'all' ||
               (activeFilter === 'available' && item.available > 0) ||
@@ -499,12 +568,22 @@ export default function SalesManagementClient({
           }).length === 0 && (
             <div className="p-8 text-center text-gray-500">
               <Package className="mx-auto h-12 w-12 mb-4 text-gray-300" />
-              <p>No products found</p>
+              <p>No production items for current shift</p>
+            </div>
+          )}
+          
+          {/* Debug info - remove in production */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="p-4 bg-gray-100 text-xs text-gray-600 border-t border-gray-200">
+              <p>Debug: Shift={shift}, Empty={isEmpty.toString()}, Source={source}, Hour={currentHour}</p>
+              {currentTime && (
+                <p>Current Time: {currentTime}</p>
+              )}
             </div>
           )}
         </div>
 
-        {/* Recent Sales Section */}
+        {/* Recent Sales Section - Updated with proper data */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-gray-600" />

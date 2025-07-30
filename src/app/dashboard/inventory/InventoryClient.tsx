@@ -7,8 +7,18 @@ import { useInventoryData } from '@/hooks/use-inventory-data';
 import { useAuth } from '@/hooks/use-auth';
 import { useAutoShift } from '@/hooks/use-auto-shift';
 
+interface InventoryItem {
+  id: string;
+  name: string;
+  size?: string;
+  price?: number;
+  quantity: number;
+  batches?: number;
+  archivedBatches?: number;
+}
+
 interface InventoryClientProps {
-  serverUser?: any;
+  serverUser?: unknown;
 }
 
 export default function InventoryClient({ serverUser }: InventoryClientProps) {
@@ -126,21 +136,11 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
                   <Clock className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
                   <span className="font-semibold text-gray-900 capitalize text-sm md:text-base">{currentShift} Shift</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  {dataSourceInfo.source === 'all_batches' && (
-                    <Archive className="w-4 h-4 text-purple-500" />
-                  )}
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                    shiftStatus.alignmentStatus === 'aligned' 
-                    ? 'bg-green-100 text-green-800' 
-                      : shiftStatus.alignmentStatus === 'transitioning'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-orange-100 text-orange-800'
-                }`}>
-                    {shiftStatus.alignmentStatus === 'aligned' ? 'Aligned' : 
-                     shiftStatus.alignmentStatus === 'transitioning' ? 'Transitioning' : 'Misaligned'}
-                </span>
-                </div>
+                              <div className="flex items-center gap-1">
+                {dataSourceInfo.source === 'all_batches' && (
+                  <Archive className="w-4 h-4 text-purple-500" />
+                )}
+              </div>
               </div>
               <div className="text-right">
                 <span className="text-xs md:text-sm text-gray-600">Next shift in</span>
@@ -149,11 +149,7 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
             </div>
             
             {/* Enhanced shift details - Mobile responsive grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-xs md:text-sm">
-              <div>
-                <span className="text-gray-600">Manager Shift:</span>
-                <div className="font-medium capitalize">{shiftStatus.managerShift}</div>
-              </div>
+            <div className="grid grid-cols-3 gap-3 md:gap-4 text-xs md:text-sm">
               <div>
                 <span className="text-gray-600">Data Source:</span>
                 <div className="font-medium capitalize">{dataSourceInfo.source}</div>
@@ -238,7 +234,7 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
               <div className="text-xs md:text-sm font-medium text-gray-700 mb-3">
                 {inventory.length} Bread Type{inventory.length !== 1 ? 's' : ''} in Production
               </div>
-              {inventory.map((item: any, index: number) => (
+              {inventory.map((item: InventoryItem, index: number) => (
                 <div 
                   key={item.id} 
                   className="bg-white/95 backdrop-blur-sm p-4 md:p-6 rounded-xl border border-orange-200 

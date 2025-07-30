@@ -53,28 +53,30 @@ export async function createServer() {
             try {
               return cookieStore.get(name)?.value
             } catch (error) {
-              console.warn('Error getting cookie:', error)
+              // Silently handle cookie get errors
               return undefined
             }
           },
           set(name: string, value: string, options: CookieOptions) {
             try {
-              cookieStore.set({ name, value, ...options })
+              // Only set cookies in Server Actions or Route Handlers
+              if (typeof window === 'undefined') {
+                cookieStore.set({ name, value, ...options })
+              }
             } catch (error) {
-              // The `set` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-              console.warn('Error setting cookie:', error)
+              // Silently ignore cookie set errors in Server Components
+              // This is expected behavior in Next.js 15
             }
           },
           remove(name: string, options: CookieOptions) {
             try {
-              cookieStore.set({ name, value: '', ...options })
+              // Only remove cookies in Server Actions or Route Handlers
+              if (typeof window === 'undefined') {
+                cookieStore.set({ name, value: '', ...options })
+              }
             } catch (error) {
-              // The `delete` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-              console.warn('Error removing cookie:', error)
+              // Silently ignore cookie remove errors in Server Components
+              // This is expected behavior in Next.js 15
             }
           },
         },

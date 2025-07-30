@@ -2,19 +2,11 @@ import { createServer } from '@/lib/supabase/server';
 import { ShiftType, ShiftInfo, getCurrentShiftInfo, getShiftDateRange, getShiftBoundaries } from './shift-utils';
 
 export interface EnhancedShiftInfo extends ShiftInfo {
-  managerShift: ShiftType;
-  isShiftAligned: boolean;
   shouldShowArchivedData: boolean;
   dataSource: 'batches' | 'all_batches' | 'archived';
-  shiftAlignmentStatus: 'aligned' | 'misaligned' | 'transitioning';
 }
 
-export interface ManagerShiftContext {
-  userId: string;
-  userRole: string;
-  currentManagerShift: ShiftType;
-  lastShiftChange: Date;
-}
+
 
 /**
  * Get enhanced shift information including manager alignment
@@ -22,12 +14,8 @@ export interface ManagerShiftContext {
 export async function getEnhancedShiftInfo(userId?: string): Promise<EnhancedShiftInfo> {
   const baseShiftInfo = getCurrentShiftInfo();
   
-  // Get manager shift context if user is provided
-  let managerShift: ShiftType = baseShiftInfo.currentShift;
-  let isShiftAligned = true;
   let shouldShowArchivedData = false;
   let dataSource: 'batches' | 'all_batches' | 'archived' = 'batches';
-  let shiftAlignmentStatus: 'aligned' | 'misaligned' | 'transitioning' = 'aligned';
 
   if (userId) {
     try {
@@ -41,26 +29,13 @@ export async function getEnhancedShiftInfo(userId?: string): Promise<EnhancedShi
         .single();
 
       if (userProfile && (userProfile.role === 'manager' || userProfile.role === 'owner')) {
-        // For managers, check if they have a specific shift preference
-        // For now, we'll use the time-based shift, but this could be enhanced
-        // to store manager's preferred shift in the database
-        managerShift = baseShiftInfo.currentShift;
-        
-        // Check if inventory shift matches manager's shift
-        isShiftAligned = baseShiftInfo.currentShift === managerShift;
-        
         // Determine if we should show archived data
         if (baseShiftInfo.currentShift === 'night') {
-          // For night shift, we want to show archived data only if no current shift data exists
-          // This ensures we don't show old data when current shift has data
           shouldShowArchivedData = false; // Will be determined dynamically based on data availability
         }
         
         // Determine data source priority
         dataSource = await determineOptimalDataSource(baseShiftInfo.currentShift);
-        
-        // Determine alignment status
-        shiftAlignmentStatus = determineShiftAlignmentStatus(baseShiftInfo.currentShift, managerShift);
       }
     } catch (error) {
       console.error('Error getting manager shift context:', error);
@@ -69,11 +44,8 @@ export async function getEnhancedShiftInfo(userId?: string): Promise<EnhancedShi
 
   return {
     ...baseShiftInfo,
-    managerShift,
-    isShiftAligned,
     shouldShowArchivedData,
     dataSource,
-    shiftAlignmentStatus,
   };
 }
 
@@ -179,29 +151,7 @@ async function determineOptimalDataSource(shift: ShiftType): Promise<'batches' |
   }
 }
 
-/**
- * Determine shift alignment status
- */
-function determineShiftAlignmentStatus(
-  inventoryShift: ShiftType, 
-  managerShift: ShiftType
-): 'aligned' | 'misaligned' | 'transitioning' {
-  if (inventoryShift === managerShift) {
-    return 'aligned';
-  }
-  
-  // Check if we're in a transition period (within 30 minutes of shift change)
-  const now = new Date();
-  const shiftInfo = getCurrentShiftInfo();
-  const timeUntilShiftEnd = shiftInfo.shiftEndDateTime.getTime() - now.getTime();
-  const thirtyMinutes = 30 * 60 * 1000;
-  
-  if (timeUntilShiftEnd <= thirtyMinutes) {
-    return 'transitioning';
-  }
-  
-  return 'misaligned';
-}
+
 
 /**
  * Get shift boundaries for night shift with archived data consideration

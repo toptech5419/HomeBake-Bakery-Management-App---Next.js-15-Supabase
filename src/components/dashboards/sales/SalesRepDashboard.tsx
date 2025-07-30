@@ -43,7 +43,7 @@ interface DashboardMetrics {
   todaySales: number;
   transactions: number;
   itemsSold: number;
-  productionTarget: number;
+  productionTotalAmount: number;
   remainingTarget: number;
   salesTarget: number;
   topProducts: Array<{
@@ -120,7 +120,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     todaySales: 0,
     transactions: 0,
     itemsSold: 0,
-    productionTarget: 0,
+    productionTotalAmount: 0,
     remainingTarget: 0,
     salesTarget: 0,
     topProducts: [],
@@ -137,48 +137,10 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
   const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
 
   const fetchDashboardData = async () => {
-    // Don't fetch data during modal transitions to prevent flashing
-    if (isInModalTransition) {
-      return;
-    }
-    
-    setLoading(true);
     try {
-      // Get today's date boundaries in LOCAL timezone to match user's time
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      setLoading(true);
 
-      console.log('🔍 Fetching dashboard data with filters:', {
-        startOfDay: startOfDay.toISOString(),
-        endOfDay: endOfDay.toISOString(),
-        currentShift,
-        userId
-      });
-
-      // Fetch production data for current shift
-      const { data: productionData, error: productionError } = await supabase
-        .from('production_logs')
-        .select(`
-          *,
-          bread_types (
-            id,
-            name,
-            unit_price
-          )
-        `)
-        .gte('created_at', startOfDay.toISOString())
-        .lt('created_at', endOfDay.toISOString())
-        .eq('shift', currentShift);
-
-      if (productionError) {
-        console.error('❌ Error fetching production data:', productionError);
-      }
-
-      // Calculate production target (total bread produced)
-      const productionTarget = productionData?.reduce((sum: number, prod: ProductionLog) => sum + prod.quantity, 0) || 0;
-
-      // Fetch sales data for current user and shift
+      // Fetch sales data for current shift and current user only - NO DATE FILTERING
       const { data: salesData, error: salesError } = await supabase
         .from('sales_logs')
         .select(`
@@ -189,37 +151,36 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
             unit_price
           )
         `)
-        .gte('created_at', startOfDay.toISOString())
-        .lt('created_at', endOfDay.toISOString())
-        .eq('shift', currentShift)
         .eq('recorded_by', userId)
+        .eq('shift', currentShift)
         .order('created_at', { ascending: false });
 
-      if (salesError) {
-        console.error('❌ Error fetching sales data:', salesError);
-        toast.error('Failed to fetch sales data. Please check your permissions.');
-      }
+      if (salesError) throw salesError;
 
-      // Fetch all remaining bread records with bread_types for unit prices
-      const { data: remainingData, error: remainingError } = await supabase
+      // Fetch remaining bread data from the remaining_bread table - ALL DATA
+      const { data: remainingBreadData, error: remainingBreadError } = await supabase
         .from('remaining_bread')
         .select(`
           *,
-          bread_types (
+          bread_types!remaining_bread_bread_type_id_fkey (
             id,
             name,
             unit_price
           )
-        `)
-        .eq('recorded_by', userId);
+        `);
 
-      if (remainingError) {
-        console.error('❌ Error fetching remaining bread data:', remainingError);
+      if (remainingBreadError) throw remainingBreadError;
+
+      // Fetch inventory data for current shift to calculate sales target
+      const inventoryResponse = await fetch(`/api/inventory/shift?shift=${currentShift}&date=${new Date().toISOString().split('T')[0]}`);
+      let inventoryData = null;
+      if (inventoryResponse.ok) {
+        inventoryData = await inventoryResponse.json();
       }
 
       // Calculate total monetary value of remaining bread
-      const totalRemainingMonetaryValue = remainingData?.reduce((sum: number, item) => {
-        const unitPrice = item.bread_types?.unit_price || 0;
+      const totalRemainingMonetaryValue = remainingBreadData?.reduce((sum: number, item) => {
+        const unitPrice = item.unit_price || item.bread_types?.unit_price || 0;
         return sum + (item.quantity * unitPrice);
       }, 0) || 0;
 
@@ -251,37 +212,40 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
           unitPrice: sale.unit_price,
           totalAmount: (sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0)
         })),
-        dateRange: {
-          startOfDay: startOfDay.toISOString(),
-          endOfDay: endOfDay.toISOString()
-        },
         filters: {
           shift: currentShift,
-          userId,
-          dateRange: `${startOfDay.toISOString()} to ${endOfDay.toISOString()}`
+          userId
         }
       });
 
-      // Calculate production monetary value
-      const productionMonetaryValue = productionData?.reduce((sum: number, prod: ProductionLog) => {
-        const unitPrice = prod.bread_types?.unit_price || 0;
-        return sum + (prod.quantity * unitPrice);
-      }, 0) || 0;
+      // Calculate production total amount from inventory data
+      let productionTotalAmount = 0;
 
-      // Calculate sales monetary value
-      const salesMonetaryValue = salesData?.reduce((sum: number, sale: SalesLog) => {
-        const amount = (sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0);
-        return sum + amount;
-      }, 0) || 0;
+      if (inventoryData && inventoryData.data) {
+        // Calculate production total amount: sum of (unit_price * quantity) for each bread type
+        productionTotalAmount = inventoryData.data.reduce((sum: number, item: any) => {
+          const unitPrice = item.price || 0;
+          const quantity = item.quantity || 0;
+          return sum + (unitPrice * quantity);
+        }, 0);
 
-      // Calculate remaining target in monetary terms
-      const remainingFromProduction = Math.max(0, productionMonetaryValue - salesMonetaryValue);
-      
-      // Total remaining includes both production remaining and recorded remaining bread (monetary)
-      const remainingTarget = remainingFromProduction + totalRemainingMonetaryValue;
+        console.log('📊 Production Total Amount Calculation:', {
+          productionTotalAmount,
+          inventoryItems: inventoryData.data.map((item: any) => ({
+            name: item.name,
+            unitPrice: item.price,
+            quantity: item.quantity,
+            total: (item.price || 0) * (item.quantity || 0)
+          })),
+          inventoryDataLength: inventoryData.data.length
+        });
+      }
+
+      // Calculate remaining target in monetary terms - only remaining bread total
+      const remainingTarget = totalRemainingMonetaryValue;
       
       // Sales target equals production monetary value
-      const salesTarget = productionMonetaryValue;
+      const salesTarget = productionTotalAmount;
 
       // Calculate top products for current shift
       const productSales = new Map<string, { breadTypeId: string; name: string; quantity: number; revenue: number }>();
@@ -317,7 +281,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
         todaySales,
         transactions,
         itemsSold,
-        productionTarget,
+        productionTotalAmount,
         remainingTarget,
         salesTarget,
         topProducts,
@@ -421,7 +385,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
         todaySales: 0,
         transactions: 0,
         itemsSold: 0,
-        productionTarget: prev.productionTarget, // Preserve
+        productionTotalAmount: prev.productionTotalAmount, // Preserve - don't reset
         remainingTarget: prev.remainingTarget, // Preserve - don't reset
         salesTarget: prev.salesTarget, // Preserve - don't reset
         topProducts: [],
@@ -578,9 +542,9 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               <Target className="h-6 w-6 text-blue-600" />
             </div>
             <div className="text-2xl font-display font-bold text-gray-900">
-              {metrics.productionTarget.toLocaleString()}
+              {metrics.productionTotalAmount.toLocaleString()}
             </div>
-            <div className="text-sm text-gray-600 mt-1">Production Target</div>
+            <div className="text-sm text-gray-600 mt-1">Production Total Amount</div>
           </ModernCardContent>
         </ModernCard>
 
