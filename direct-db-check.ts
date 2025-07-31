@@ -1,10 +1,35 @@
 // Direct database check
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  'https://kqhrrjykkrfrzbbjzlpl.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxaHJyanlra3JmcnpiYmp6bHBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU1OTQ3NjAsImV4cCI6MjA1MTE3MDc2MH0.4iHI2Q3NhgKrS6g-KeQvs8XqYqZ6s2GqVq3X0VhQ3CM'
-);
+// Use environment variables instead of hardcoded values
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kqhrrjykkrfrzbbjzlpl.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseAnonKey) {
+  console.error('Error: NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable is required');
+  console.error('Please create a .env.local file with:');
+  console.error('NEXT_PUBLIC_SUPABASE_URL=your_supabase_url');
+  console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+interface Batch {
+  id: string;
+  batch_number: string;
+  shift: string;
+  status: string;
+  actual_quantity: number;
+  created_at: string;
+  start_time: string;
+  bread_types?: {
+    id: string;
+    name: string;
+    unit_price: number;
+    size: string;
+  };
+}
 
 async function checkDatabase() {
   console.log('=== DIRECT DATABASE CHECK ===');
@@ -34,7 +59,7 @@ async function checkDatabase() {
 
   console.log(`Found ${batches?.length || 0} batches from last 2 days:`);
   
-  batches?.forEach((batch, index) => {
+  batches?.forEach((batch: Batch, index: number) => {
     const createdAt = new Date(batch.created_at);
     const startTime = new Date(batch.start_time);
     const nigeriaCreated = createdAt.toLocaleString('en-US', { timeZone: 'Africa/Lagos' });
