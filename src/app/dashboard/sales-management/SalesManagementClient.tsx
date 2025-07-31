@@ -5,33 +5,28 @@ import { useRouter } from 'next/navigation';
 import { useShift } from '@/contexts/ShiftContext';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
+import { cn } from '@/lib/utils';
 import { 
-  ArrowLeft, 
   Package, 
   TrendingUp, 
   Clock, 
   Plus, 
-  RotateCcw, 
   FileText,
   Search,
   RefreshCw,
   CheckCircle,
   AlertTriangle,
   XCircle,
-  History,
   BarChart3,
-  Target,
-  DollarSign,
-  ShoppingCart
+  Target
 } from 'lucide-react';
 import { SalesModal } from '@/components/dashboards/sales/SalesModal';
 import { QuickRecordAllModal } from '@/components/dashboards/sales/QuickRecordAllModal';
 import { FinalReportModal } from '@/components/dashboards/sales/FinalReportModal';
 import { ViewAllSalesModal } from '@/components/modals/ViewAllSalesModal';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import { useSalesRepProduction } from '@/hooks/use-sales-rep-production';
 import { useAuth } from '@/hooks/use-auth';
+import { useSalesRepProduction } from '@/hooks/use-sales-rep-production';
 
 interface SalesRecord {
   id: string;
@@ -60,14 +55,12 @@ interface SalesManagementClientProps {
   userId: string;
   userName: string;
   userRole: string;
-  breadTypes: any[];
 }
 
 export default function SalesManagementClient({
   userId,
   userName,
-  userRole,
-  breadTypes
+  userRole
 }: SalesManagementClientProps) {
   console.log('🔄 SalesManagementClient: Component rendering...', { userId, userName, userRole });
   
@@ -129,15 +122,11 @@ export default function SalesManagementClient({
   const [showQuickRecordModal, setShowQuickRecordModal] = useState(false);
   const [showFinalReportModal, setShowFinalReportModal] = useState(false);
   const [showViewAllSalesModal, setShowViewAllSalesModal] = useState(false);
-  const [finalReportData, setFinalReportData] = useState<any>(null);
+  const [finalReportData, setFinalReportData] = useState<unknown>(null);
   
   // Transition state management
   const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [isInModalTransition, setIsInModalTransition] = useState(false);
-
-  // Check if any modal is open
-  const isAnyModalOpen = showSalesModal || showQuickRecordModal || showFinalReportModal || showViewAllSalesModal;
 
   // Fetch sales data for current shift and current user only - NO DATE FILTERING
   const fetchSalesData = async () => {
@@ -215,7 +204,7 @@ export default function SalesManagementClient({
 
   // Calculate available quantities based on production items and sales
   const calculateAvailableQuantities = () => {
-    const processedItems = productionItems.map((item: any) => {
+    const processedItems = productionItems.map((item: { id: string; bread_type_id: string; quantity: number; unit_price: number; name: string; size: string | null; produced: number }) => {
       // Calculate total sold for this bread type in current shift
       const sold = salesRecords
         .filter(sale => sale.bread_types.name === item.name)
@@ -251,14 +240,13 @@ export default function SalesManagementClient({
     toast.success('Sale recorded successfully');
   };
 
-  const handleFinalSubmit = async (feedbackData: any) => {
+  const handleFinalSubmit = async (feedbackData: unknown) => {
     try {
       setShowTransitionOverlay(true);
       setIsTransitioning(true);
-      setIsInModalTransition(true);
       
       const processedData = {
-        ...feedbackData,
+        ...feedbackData as Record<string, unknown>,
         submittedAt: new Date().toISOString(),
       };
     
@@ -269,42 +257,22 @@ export default function SalesManagementClient({
       setTimeout(() => {
         setShowTransitionOverlay(false);
         setIsTransitioning(false);
-        setIsInModalTransition(false);
       }, 100);
       
     } catch (error) {
       console.error('Error processing feedback:', error);
       setShowTransitionOverlay(false);
       setIsTransitioning(false);
-      setIsInModalTransition(false);
       toast.error('Failed to process report');
     }
-  };
-
-  const handleModalClose = () => {
-    setShowQuickRecordModal(false);
-    setShowFinalReportModal(false);
-    setFinalReportData(null);
-    setIsTransitioning(false);
-    setIsInModalTransition(false);
-    setShowTransitionOverlay(false);
   };
 
   const goBack = () => {
     router.back();
   };
 
-  const quickSale = (breadType: string) => {
-    setShowSalesModal(true);
-    toast.info(`Quick sale for ${breadType} bread initiated!`);
-  };
-
   const recordNewSale = () => {
     setShowSalesModal(true);
-  };
-
-  const recordBulkSale = () => {
-    setShowQuickRecordModal(true);
   };
 
   const viewReportsHistory = () => {
@@ -368,6 +336,7 @@ export default function SalesManagementClient({
             <button
               onClick={goBack}
               className="text-2xl text-gray-600 hover:text-gray-900 transition-colors"
+              title="Go back"
             >
               ←
             </button>
@@ -508,8 +477,8 @@ export default function SalesManagementClient({
                 <p className="font-medium">Production cleared for current shift</p>
                 <p className="text-sm">
                   {shift === 'morning' 
-                    ? 'Morning shift clears at 3:00 PM' 
-                    : 'Night shift clears at 12:00 AM'
+                    ? 'Morning shift clears at midnight (12:00 AM)' 
+                    : 'Night shift clears at 3:00 PM'
                   }
                 </p>
                 {currentTime && (

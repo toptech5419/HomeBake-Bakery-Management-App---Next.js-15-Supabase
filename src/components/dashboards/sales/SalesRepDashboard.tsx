@@ -12,21 +12,16 @@ import {
   Plus,
   BarChart3,
   RotateCcw,
-  History,
-  TrendingDown
+  History
 } from 'lucide-react';
-import { GridContainer } from '../shared/GridContainer';
-import { MetricCard } from '../shared/MetricCard';
 import { SalesLog } from '../shared/SalesLog';
 import { ModernButton } from '@/components/ui/modern-button';
 import { ModernCard, ModernCardHeader, ModernCardContent } from '@/components/ui/modern-card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { useShift } from '@/contexts/ShiftContext';
 import { useEndShiftContext } from '@/contexts/EndShiftContext';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { clearDashboardExceptProductionTabs } from '@/lib/utils/dashboard-clear';
 import { SalesModal } from '@/components/dashboards/sales/SalesModal';
 import { QuickRecordAllModal } from '@/components/dashboards/sales/QuickRecordAllModal';
 import { FinalReportModal } from '@/components/dashboards/sales/FinalReportModal';
@@ -60,16 +55,6 @@ interface DashboardMetrics {
     paymentMethod: 'cash' | 'card' | 'mobile' | 'transfer';
     timestamp: string;
   }>;
-}
-
-interface ProductionLog {
-  id: string;
-  quantity: number;
-  bread_types?: {
-    id: string;
-    name: string;
-    unit_price: number;
-  };
 }
 
 interface SalesLog {
@@ -106,7 +91,7 @@ interface SalesReportData {
   totalRevenue: number;
   totalItemsSold: number;
   totalRemaining: number;
-  feedback?: string; // Changed from string | null to string to match FinalReportModal
+  feedback?: string;
   shift?: string;
   timeOfSales?: string;
   userId?: string;
@@ -170,13 +155,9 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
         `);
 
       if (remainingBreadError) throw remainingBreadError;
-
-      // Fetch inventory data for current shift to calculate sales target
-      const inventoryResponse = await fetch(`/api/inventory/shift?shift=${currentShift}&date=${new Date().toISOString().split('T')[0]}`);
-      let inventoryData = null;
-      if (inventoryResponse.ok) {
-        inventoryData = await inventoryResponse.json();
-      }
+      
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _remainingBreadData = remainingBreadData; // Prevent unused variable warning
 
       // Calculate total monetary value of remaining bread
       const totalRemainingMonetaryValue = remainingBreadData?.reduce((sum: number, item) => {
@@ -195,57 +176,37 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
       // Calculate total units sold (sum of all quantities)
       const totalUnitsSold = salesData?.reduce((sum, sale) => sum + sale.quantity, 0) || 0;
       
-      // Calculate unique bread types sold
-      const uniqueBreadTypes = new Set(salesData?.map(sale => sale.bread_type_id) || []);
-      const itemsSold = totalUnitsSold; // Changed to total units instead of unique types
+      const itemsSold = totalUnitsSold;
 
-      // Debug logging to help identify issues
-      console.log('📊 Dashboard Data Debug:', {
-        salesDataLength: salesData?.length || 0,
-        transactions,
-        itemsSold,
-        uniqueBreadTypes: Array.from(uniqueBreadTypes),
-        totalUnitsSold: salesData?.reduce((sum, sale) => sum + sale.quantity, 0) || 0,
-        salesBreakdown: salesData?.map(sale => ({
-          breadType: sale.bread_types?.name,
-          quantity: sale.quantity,
-          unitPrice: sale.unit_price,
-          totalAmount: (sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0)
-        })),
-        filters: {
-          shift: currentShift,
-          userId
-        }
-      });
-
-      // Calculate production total amount from inventory data
+      // Calculate production total amount from actual production items (batches)
       let productionTotalAmount = 0;
 
-      if (inventoryData && inventoryData.data) {
-        // Calculate production total amount: sum of (unit_price * quantity) for each bread type
-        productionTotalAmount = inventoryData.data.reduce((sum: number, item: any) => {
-          const unitPrice = item.price || 0;
-          const quantity = item.quantity || 0;
-          return sum + (unitPrice * quantity);
-        }, 0);
-
-        console.log('📊 Production Total Amount Calculation:', {
-          productionTotalAmount,
-          inventoryItems: inventoryData.data.map((item: any) => ({
-            name: item.name,
-            unitPrice: item.price,
-            quantity: item.quantity,
-            total: (item.price || 0) * (item.quantity || 0)
-          })),
-          inventoryDataLength: inventoryData.data.length
-        });
+      // Fetch production items for current shift to calculate total production value
+      try {
+        // Use Nigeria current date for proper clearing - always use current date
+        const nigeriaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+        const nigeriaDate = nigeriaTime.toISOString().split('T')[0];
+        
+        const productionResponse = await fetch(`/api/sales-rep/production?shift=${currentShift}&date=${nigeriaDate}`);
+        if (productionResponse.ok) {
+          const productionData = await productionResponse.json();
+          
+          // Calculate production total amount: sum of (unit_price * actual_quantity) for each production item
+          productionTotalAmount = productionData.productionItems.reduce((sum: number, item: { unit_price: number; quantity: number }) => {
+            const unitPrice = item.unit_price || 0;
+            const quantity = item.quantity || 0;
+            return sum + (unitPrice * quantity);
+          }, 0);
+        }
+      } catch (error) {
+        console.error('Error fetching production data:', error);
       }
 
       // Calculate remaining target in monetary terms - only remaining bread total
       const remainingTarget = totalRemainingMonetaryValue;
       
-      // Sales target equals production monetary value
-      const salesTarget = productionTotalAmount;
+      // Sales target equals production monetary value PLUS remaining target amount
+      const salesTarget = productionTotalAmount + remainingTarget;
 
       // Calculate top products for current shift
       const productSales = new Map<string, { breadTypeId: string; name: string; quantity: number; revenue: number }>();
@@ -288,7 +249,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
         recentSales
       });
     } catch (error) {
-  
+      console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -299,7 +260,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
   }, [currentShift, userId]);
 
   // Enhanced transition handler with proper state coordination
-  const handleQuickRecordComplete = useCallback(async (reportData: any) => {
+  const handleQuickRecordComplete = useCallback(async (reportData: SalesReportData) => {
     try {
       // Step 1: Set transition states immediately
       setIsTransitioning(true);
@@ -313,7 +274,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
       await new Promise(resolve => setTimeout(resolve, 300));
       
       // Step 4: Set final report data with proper typing
-      setFinalReportData(reportData as SalesReportData);
+      setFinalReportData(reportData);
       
       // Step 5: Open FinalReportModal
       setShowFinalReportModal(true);
@@ -673,10 +634,10 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
         <ModernCardContent>
           <div className="space-y-4">
             {metrics.topProducts.length === 0 ? (
-              <div className="text-center py-8">
-                <Package className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500">No products sold in this shift yet</p>
-              </div>
+            <div className="text-center py-8">
+              <Package className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-500">No products sold in this shift yet</p>
+            </div>
             ) : (
               metrics.topProducts.map((product, index) => (
                 <div
@@ -756,7 +717,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
             <ModernButton
               variant="secondary"
               size="lg"
-              leftIcon={<History className="h-5 w-5" />}
+              leftIcon={<History className="h-4 w-5" />}
               onClick={() => router.push('/dashboard/sales-reports-history')}
               className="hover-lift"
               fullWidth
@@ -815,6 +776,6 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
   );
 }
 
-function cn(...inputs: any[]) {
+function cn(...inputs: (string | undefined | null | false)[]) {
   return inputs.filter(Boolean).join(' ');
 }

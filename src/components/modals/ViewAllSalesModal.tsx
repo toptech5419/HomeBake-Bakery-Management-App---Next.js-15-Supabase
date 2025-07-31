@@ -1,15 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { X, Search, TrendingUp, Clock, User, Calendar, ArrowLeft, DollarSign, Package } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, Search, TrendingUp, Calendar, ArrowLeft, DollarSign, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
 interface ViewAllSalesModalProps {
@@ -57,10 +55,6 @@ export function ViewAllSalesModal({
   } = useQuery({
     queryKey: ['sales', 'all', 'details', currentShift, userId],
     queryFn: async () => {
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-
       const { data, error } = await supabase
         .from('sales_logs')
         .select(`
@@ -73,8 +67,6 @@ export function ViewAllSalesModal({
             name
           )
         `)
-        .gte('created_at', startOfDay.toISOString())
-        .lt('created_at', endOfDay.toISOString())
         .eq('shift', currentShift)
         .eq('recorded_by', userId)
         .order('created_at', { ascending: false });
@@ -153,7 +145,7 @@ export function ViewAllSalesModal({
               <div>
                 <h2 className="text-2xl font-bold">All Sales</h2>
                 <p className="text-green-100 text-sm">
-                  View all sales for today's {currentShift} shift
+                  View all sales for the {currentShift} shift
                 </p>
               </div>
             </div>
@@ -245,12 +237,12 @@ export function ViewAllSalesModal({
             <div className="flex flex-col items-center justify-center py-20">
               <TrendingUp className="h-12 w-12 text-gray-400 mb-4" />
               <p className="text-gray-600 text-lg mb-2">No sales found</p>
-              <p className="text-gray-500 text-sm">
-                {searchTerm 
-                  ? 'Try adjusting your search terms'
-                  : 'No sales recorded for today\'s shift yet'
-                }
-              </p>
+                <p className="text-gray-500 text-sm">
+                  {searchTerm 
+                    ? 'Try adjusting your search terms'
+                    : 'No sales recorded for this shift yet'
+                  }
+                </p>
             </div>
           ) : (
             <div className="p-6">
@@ -386,4 +378,4 @@ export function ViewAllSalesModal({
       </div>
     </div>
   );
-} 
+}

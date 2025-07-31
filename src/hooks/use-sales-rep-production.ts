@@ -32,15 +32,18 @@ interface SalesRepProductionData {
 
 // Fetch production items for sales rep via API
 async function fetchSalesRepProduction(
-  shift: 'morning' | 'night',
-  date: string
+  shift: 'morning' | 'night'
 ): Promise<SalesRepProductionData> {
+  // Always use current Nigeria date for clearing logic
+  const nigeriaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+  const currentDate = nigeriaTime.toISOString().split('T')[0];
+  
   const params = new URLSearchParams({
     shift,
-    date,
+    date: currentDate,
   });
 
-  console.log('🔄 useSalesRepProduction: Starting fetch...', { shift, date });
+  console.log('🔄 useSalesRepProduction: Starting fetch...', { shift, currentDate });
 
   const response = await fetch(`/api/sales-rep/production?${params.toString()}`, {
     headers: {
@@ -107,7 +110,7 @@ export function useSalesRepProduction() {
     isFetching,
   } = useQuery({
     queryKey: ['sales-rep-production', currentShift, targetDate],
-    queryFn: () => fetchSalesRepProduction(currentShift, targetDate),
+    queryFn: () => fetchSalesRepProduction(currentShift),
     enabled: !!currentShift, // Only need shift to be available
     staleTime: 15 * 1000, // 15 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes

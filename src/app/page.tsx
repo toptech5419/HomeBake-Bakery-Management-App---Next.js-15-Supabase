@@ -1,282 +1,213 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  BarChart3,
-  Users,
-  Package,
-  TrendingUp,
-  Shield,
-  Zap,
-  ArrowRight,
-  CheckCircle,
-  Mail,
-  UserPlus,
-  Wheat
-} from "lucide-react";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Package, 
+  TrendingUp, 
+  Users, 
+  Clock,
+  Star
+} from 'lucide-react';
 
 export default function HomePage() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50">
-      {/* Header */}
-      <header className="relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
-                <Wheat className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-gray-900">HomeBake</span>
-            </div>
-            {/* Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              <Link href="#features" className="text-gray-600 hover:text-orange-600 transition-colors">
-                Features
-              </Link>
-              <Link href="#about" className="text-gray-600 hover:text-orange-600 transition-colors">
-                About
-              </Link>
-              <Link href="/login">
-                <Button variant="outline" size="sm">
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+  const features = [
+    {
+      icon: Package,
+      title: 'Batch Management',
+      description: 'Track production batches from start to finish with real-time updates'
+    },
+    {
+      icon: TrendingUp,
+      title: 'Sales Analytics',
+      description: 'Get detailed insights into your bakery performance and trends'
+    },
+    {
+      icon: Users,
+      title: 'User Management',
+      description: 'Manage staff roles and permissions with role-based access control'
+    },
+    {
+      icon: Clock,
+      title: 'Shift Management',
+      description: 'Organize and track shifts with automated reporting'
+    }
+  ];
 
+  const testimonials = [
+    {
+      name: 'Sarah Johnson',
+      role: 'Bakery Owner',
+      content: 'HomeBake has transformed how we manage our bakery. The real-time tracking and analytics have helped us increase efficiency by 40%.',
+      rating: 5
+    },
+    {
+      name: 'Michael Chen',
+      role: 'Production Manager',
+      content: 'The batch management system is incredible. We can now track every loaf from oven to sale with complete transparency.',
+      rating: 5
+    }
+  ];
+
+  return (
+    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
       {/* Hero Section */}
-      <section className="relative pt-16 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center">
-            <Badge variant="secondary" className="mb-6">
-              🏆 Professional Bakery Management
-            </Badge>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
-              Streamline Your
-              <span className="text-gradient block">Bakery Operations</span>
-            </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Professional bakery management system for tracking production, sales, and inventory. Optimized for efficiency with real-time updates and offline capabilities.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/login">
-                <Button size="lg" className="w-full sm:w-auto">
-                  Sign In to Dashboard
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-              <Link href="#contact">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                  <UserPlus className="mr-2 w-4 h-4" />
-                  Request Access
-                </Button>
-              </Link>
-            </div>
-            <p className="text-sm text-gray-500 mt-4">
-              Need access? <Link href="#contact" className="text-orange-600 hover:text-orange-700 font-medium">Contact your bakery owner</Link>
-            </p>
+      <section className="container mx-auto px-4 py-20">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+            Manage Your Bakery Like Never Before
+          </h1>
+          <p className="text-xl text-gray-600 mb-8">
+            Streamline production, track sales, and grow your bakery business with HomeBake comprehensive management platform
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button asChild size="lg" className="bg-orange-600 hover:bg-orange-700">
+              <Link href="/signup">Get Started Free</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link href="/login">Sign In</Link>
+            </Button>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
               Everything You Need to Run Your Bakery
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              From production tracking to sales management, we've got you covered
+            <p className="text-xl text-gray-600">
+              From production to sales, manage every aspect of your bakery in one place
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Production Tracking */}
-            <Card className="p-6 hover-lift border-0 shadow-lg">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4">
-                <Package className="w-6 h-6 text-orange-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Production Tracking
-              </h3>
-              <p className="text-gray-600">
-                Monitor daily bread production and inventory levels with real-time updates and offline capabilities.
-              </p>
-            </Card>
-            {/* Sales Management */}
-            <Card className="p-6 hover-lift border-0 shadow-lg">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4">
-                <Users className="w-6 h-6 text-orange-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Sales Management
-              </h3>
-              <p className="text-gray-600">
-                Track sales, shifts, and customer transactions with detailed reporting and analytics.
-              </p>
-            </Card>
-            {/* Analytics & Reports */}
-            <Card className="p-6 hover-lift border-0 shadow-lg">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4">
-                <BarChart3 className="w-6 h-6 text-orange-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Analytics & Reports
-              </h3>
-              <p className="text-gray-600">
-                Generate insights and performance reports to optimize your bakery operations.
-              </p>
-            </Card>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+                <CardHeader>
+                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+                    <feature.icon className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>{feature.description}</CardDescription>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Why Choose HomeBake Section */}
-      <section id="about" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      {/* Stats Section */}
+      <section className="py-20 bg-orange-50">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-8 text-center">
             <div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
-                Why Choose HomeBake?
-              </h2>
-              <p className="text-lg text-gray-600 mb-8">
-                Built specifically for bakeries, our platform combines powerful features with intuitive design to help you focus on what matters most - creating amazing baked goods.
-              </p>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Secure Access Control</h4>
-                    <p className="text-gray-600">Invitation-based system ensures only authorized personnel can access your bakery data</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Real-time Updates</h4>
-                    <p className="text-gray-600">Stay synchronized across all devices with live data updates</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Role-based Access</h4>
-                    <p className="text-gray-600">Secure access control for owners, managers, and sales representatives</p>
-                  </div>
-                </div>
-              </div>
+              <div className="text-4xl font-bold text-orange-600 mb-2">500+</div>
+              <div className="text-gray-600">Bakeries Using HomeBake</div>
             </div>
-            <div className="relative">
-              <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-8 text-white">
-                <div className="space-y-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Performance Insights</h4>
-                      <p className="text-orange-100 text-sm">Track your bakery's growth</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                      <Shield className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Secure & Reliable</h4>
-                      <p className="text-orange-100 text-sm">Enterprise-grade security</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                      <Zap className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Lightning Fast</h4>
-                      <p className="text-orange-100 text-sm">Optimized for speed</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div>
+              <div className="text-4xl font-bold text-orange-600 mb-2">50K+</div>
+              <div className="text-gray-600">Batches Tracked</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-orange-600 mb-2">99.9%</div>
+              <div className="text-gray-600">Uptime Guaranteed</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Access Information Section */}
-      <section id="contact" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
-            Get Access to HomeBake
-          </h2>
-          <p className="text-xl text-gray-600 mb-8">
-            HomeBake uses an invitation-based system to ensure secure access to your bakery's data. Contact your bakery owner or manager to request access.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
-            <Card className="p-6 hover-lift border-0 shadow-lg">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                <UserPlus className="w-6 h-6 text-orange-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                For New Users
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Contact your bakery owner to receive an invitation link. You'll need this to create your account.
-              </p>
-              <Link href="/login">
-                <Button variant="outline" className="w-full">
-                  I Have an Invitation
-                </Button>
-              </Link>
-            </Card>
-            <Card className="p-6 hover-lift border-0 shadow-lg">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                <Mail className="w-6 h-6 text-orange-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                For Bakery Owners
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Already have an account? Sign in to manage your team and send invitations to new users.
-              </p>
-              <Link href="/login">
-                <Button className="w-full">
-                  Sign In to Dashboard
-                </Button>
-              </Link>
-            </Card>
+      {/* Testimonials Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Loved by Bakery Owners
+            </h2>
+            <p className="text-xl text-gray-600">
+              See what our users are saying about HomeBake
+            </p>
           </div>
+          
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="border-0 shadow-lg">
+                <CardContent className="pt-6">
+                  <div className="flex mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-gray-700 mb-4 italic">&quot;{testimonial.content}&quot;</p>
+                  <div>
+                    <div className="font-semibold">{testimonial.name}</div>
+                    <div className="text-sm text-gray-600">{testimonial.role}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-orange-600">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-4xl font-bold text-white mb-4">
+            Ready to Transform Your Bakery?
+          </h2>
+          <p className="text-xl text-orange-100 mb-8">
+            Join hundreds of bakeries already using HomeBake to streamline their operations
+          </p>
+          <Button asChild size="lg" variant="secondary" className="bg-white text-orange-600 hover:bg-orange-50">
+            <Link href="/signup">Start Your Free Trial</Link>
+          </Button>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-3 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                <Wheat className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-xl font-bold">HomeBake</span>
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-xl font-bold mb-4">HomeBake</h3>
+              <p className="text-gray-400">
+                The complete bakery management solution for modern bakeries
+              </p>
             </div>
-            <div className="flex space-x-6 text-sm">
-              <Link href="/login" className="text-gray-300 hover:text-white transition-colors">
-                Sign In
-              </Link>
-              <Link href="#contact" className="text-gray-300 hover:text-white transition-colors">
-                Request Access
-              </Link>
+            <div>
+              <h4 className="font-semibold mb-4">Product</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link href="/features" className="hover:text-white">Features</Link></li>
+                <li><Link href="/pricing" className="hover:text-white">Pricing</Link></li>
+                <li><Link href="/integrations" className="hover:text-white">Integrations</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Support</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link href="/help" className="hover:text-white">Help Center</Link></li>
+                <li><Link href="/contact" className="hover:text-white">Contact</Link></li>
+                <li><Link href="/docs" className="hover:text-white">Documentation</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Company</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link href="/about" className="hover:text-white">About</Link></li>
+                <li><Link href="/blog" className="hover:text-white">Blog</Link></li>
+                <li><Link href="/careers" className="hover:text-white">Careers</Link></li>
+              </ul>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
             <p>&copy; 2024 HomeBake. All rights reserved.</p>
           </div>
         </div>
       </footer>
-    </div>
+    </main>
   );
 }
