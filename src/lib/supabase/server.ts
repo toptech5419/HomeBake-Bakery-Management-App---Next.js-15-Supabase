@@ -29,57 +29,84 @@ export async function createServer() {
           autoRefreshToken: true,
           persistSession: true,
           detectSessionInUrl: true,
-          flowType: 'pkce',
+          flowType: 'pkce'
         },
         global: {
           headers: {
             'X-Client-Info': 'homebake-pwa@2.0.0',
+            'x-application-name': 'homebake'
           },
-          fetch: (url, options = {}) => {
-            // Increase timeout for better reliability
+          fetch: async (url: RequestInfo | URL, options: RequestInit = {}): Promise<Response> => {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-            
-            return fetch(url, {
-              ...options,
-              signal: controller.signal,
-            }).finally(() => {
+
+            try {
+              const response = await fetch(url, {
+                ...options,
+                signal: controller.signal,
+                ...((!options.method || options.method === 'GET') && { 
+                  keepalive: true,
+                  cache: 'no-cache'
+                }),
+                ...(options.method === 'POST' && {
+                  keepalive: true
+                })
+              });
+
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+
+              return response;
+            } catch (error) {
+              if (error instanceof Error) {
+                if (error.name === 'AbortError') {
+                  throw new Error('Request timeout after 30 seconds');
+                }
+                console.error('Fetch error:', error.message);
+                throw new Error(`Connection failed: ${error.message}`);
+              }
+              throw new Error('An unknown error occurred');
+            } finally {
               clearTimeout(timeoutId);
-            });
-          },
+            }
+          }
+        },
+        realtime: {
+          params: {
+            eventsPerSecond: 10
+          }
+        },
+        db: {
+          schema: 'public'
         },
         cookies: {
-          get(name: string) {
+          get(key: string) {
             try {
-              return cookieStore.get(name)?.value
-            } catch (error) {
-              // Silently handle cookie get errors
+              return cookieStore.get(key)?.value
+            } catch {
               return undefined
             }
           },
-          set(name: string, value: string, options: CookieOptions) {
+          set(key: string, value: string, options: CookieOptions) {
             try {
-              // Only set cookies in Server Actions or Route Handlers
               if (typeof window === 'undefined') {
-                cookieStore.set({ name, value, ...options })
+                cookieStore.set({ name: key, value, ...options })
               }
             } catch (error) {
-              // Silently ignore cookie set errors in Server Components
-              // This is expected behavior in Next.js 15
+              console.warn('Cookie set failed:', error)
             }
           },
-          remove(name: string, options: CookieOptions) {
+          remove(key: string, options: CookieOptions) {
             try {
-              // Only remove cookies in Server Actions or Route Handlers
               if (typeof window === 'undefined') {
-                cookieStore.set({ name, value: '', ...options })
+                cookieStore.set({ name: key, value: '', ...options })
               }
             } catch (error) {
-              // Silently ignore cookie remove errors in Server Components
-              // This is expected behavior in Next.js 15
+              console.warn('Cookie remove failed:', error)
             }
-          },
-        },
+          }
+        }
       }
     )
   } catch (error) {

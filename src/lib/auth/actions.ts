@@ -2,7 +2,6 @@
 
 import { createServer } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { canViewUsers, User } from './rbac'
 import { UserRole } from '@/types'
 
 export async function login(prevState: { error?: string }, formData: FormData) {
@@ -17,14 +16,23 @@ export async function login(prevState: { error?: string }, formData: FormData) {
     return { error: 'Email and password are required.' }
   }
 
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword(data)
+  let authData;
+  try {
+    const authResult = await supabase.auth.signInWithPassword(data);
+    
+    if (authResult.error) {
+      console.error('Auth error:', authResult.error);
+      return { error: authResult.error.message };
+    }
 
-  if (authError) {
-    return { error: authError.message }
-  }
+    if (!authResult.data?.user) {
+      return { error: 'Authentication failed. Please try again.' };
+    }
 
-  if (!authData.user) {
-    return { error: 'Authentication failed. Please try again.' }
+    authData = authResult.data;
+  } catch (error) {
+    console.error('Login error:', error);
+    return { error: 'Connection failed. Please check your internet connection and try again.' };
   }
 
   // Fetch user profile from users table
@@ -33,9 +41,12 @@ export async function login(prevState: { error?: string }, formData: FormData) {
 
   try {
     // First try to get from user metadata (faster)
-    if (authData.user.user_metadata?.role) {
-      userRole = authData.user.user_metadata.role as UserRole;
-      displayName = authData.user.user_metadata.name || displayName;
+    const metadata = authData.user.user_metadata;
+    if (metadata?.role && typeof metadata.role === 'string') {
+      userRole = metadata.role as UserRole;
+      if (metadata.name && typeof metadata.name === 'string') {
+        displayName = metadata.name;
+      }
     } else {
       // Fetch from users table
       const { data: profile, error: profileError } = await supabase
@@ -59,11 +70,12 @@ export async function login(prevState: { error?: string }, formData: FormData) {
             return { error: 'User profile not found. Please contact your bakery owner for access.' }
           }
         } else {
+          console.error('Profile fetch error:', profileError);
           return { error: 'Failed to verify user account. Please try again.' }
         }
-      } else {
-        userRole = profile?.role as UserRole || 'sales_rep';
-        displayName = profile?.name || displayName;
+      } else if (profile) {
+        userRole = profile.role as UserRole;
+        displayName = profile.name || displayName;
       }
     }
 
@@ -75,7 +87,8 @@ export async function login(prevState: { error?: string }, formData: FormData) {
       }
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error('Setup error:', error);
     return { error: 'Failed to set up user account. Please contact support.' }
   }
 
