@@ -1,5 +1,5 @@
-import LoadingSpinner from '@/components/ui/loading';
+import { DashboardLoader } from '@/components/ui/page-loader';
 
 export default function Loading() {
-  return <LoadingSpinner message="Loading production history..." />;
+  return <DashboardLoader message="Loading production history..." />;
 } 

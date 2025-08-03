@@ -16,6 +16,16 @@ export { Checkbox } from './checkbox';
 
 // Loading components
 export { LoadingSpinner } from './loading';
+export { LoadingButton } from './loading-button';
+export { 
+  PageLoader, 
+  DashboardLoader, 
+  ModalLoader, 
+  FormLoader, 
+  BakeryLoader, 
+  InlineLoader, 
+  SkeletonLoader 
+} from './page-loader';
 export { 
   OptimizedLoadingSpinner,
   SkeletonCard,

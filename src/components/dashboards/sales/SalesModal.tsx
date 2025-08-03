@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Minus, ShoppingCart, Calculator, AlertCircle, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
 interface SalesModalProps {
   isOpen: boolean;
@@ -34,6 +34,7 @@ interface SaleForm {
 export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecorded }: SalesModalProps) {
   const [breadTypes, setBreadTypes] = useState<BreadType[]>([]);
   const [selectedBreadType, setSelectedBreadType] = useState<BreadType | null>(null);
+  const toast = useToast();
   const [formData, setFormData] = useState<SaleForm>({
     breadTypeId: '',
     breadTypeName: '',
@@ -76,7 +77,7 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
 
       if (!data || data.length === 0) {
         console.log('No bread types found in database');
-        toast.info('No bread types found. Please add bread types first.');
+        toast.info('No Bread Types Found', 'Please add bread types first before recording sales.');
         
         // Debug: Try without ordering to see if it's an ordering issue
         const { data: debugData, error: debugError } = await supabase
@@ -93,12 +94,12 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
     } catch (error) {
       console.error('Error fetching bread types:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      toast.error(`Failed to load bread types: ${errorMessage}`);
+      toast.error('Failed to Load Bread Types', errorMessage);
       
       // Additional debugging for RLS issues
       if (error instanceof Error && (error.message?.includes('permission') || error.message?.includes('policy'))) {
         console.error('RLS Policy Issue Detected:', error);
-        toast.error('Permission denied. Please check database policies.');
+        toast.error('Permission Denied', 'Please check database policies.');
       }
     } finally {
       setLoading(false);
@@ -177,12 +178,12 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
 
   const handleSubmit = async () => {
     if (!formData.breadTypeId) {
-      toast.error('Please select a bread type');
+      toast.validationError('bread type');
       return;
     }
 
     if (formData.quantity <= 0) {
-      toast.error('Please enter a valid quantity');
+      toast.validationError('quantity');
       return;
     }
 
@@ -215,15 +216,15 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
         
         // Handle RLS errors specifically
         if (error.code === '42501') {
-          toast.error('Permission denied. Please check database policies for sales_logs table.');
+          toast.error('Permission Denied', 'Please check database policies for sales_logs table.');
           console.error('RLS Policy Error - Run the fix-sales-rls-policies.sql script');
         } else {
-          toast.error(`Failed to record sales: ${error.message}`);
+          toast.error('Failed to Record Sale', error.message);
         }
         throw error;
       }
 
-      toast.success('Sales record added successfully!');
+      toast.saleRecorded(formData.breadTypeName, formData.quantity);
       
       // Call the callback immediately to refresh dashboard
       onSalesRecorded();
@@ -445,28 +446,26 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
           {/* Footer */}
           <div className="p-6 bg-gray-50 border-t flex-shrink-0">
             <div className="flex gap-4">
-              <Button
+              <LoadingButton
                 variant="outline"
                 onClick={onClose}
                 disabled={submitting}
                 className="flex-1 py-4 rounded-2xl border-2 hover:border-orange-400 transition-all duration-200 text-lg font-medium"
+                size="lg"
               >
                 Cancel
-              </Button>
-              <Button
+              </LoadingButton>
+              <LoadingButton
                 onClick={handleSubmit}
-                disabled={submitting || !formData.breadTypeId || formData.quantity <= 0}
-                className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-lg font-medium"
+                isLoading={submitting}
+                loadingText="Recording Sale..."
+                icon={ShoppingCart}
+                disabled={!formData.breadTypeId || formData.quantity <= 0}
+                className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-lg font-medium"
+                size="lg"
               >
-                {submitting ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                    <span>Recording...</span>
-                  </div>
-                ) : (
-                  'Record Sales'
-                )}
-              </Button>
+                Record Sale
+              </LoadingButton>
             </div>
           </div>
         </div>

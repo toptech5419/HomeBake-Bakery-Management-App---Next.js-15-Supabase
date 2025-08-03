@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Plus, Minus, Loader2, Sparkles, Package, Clock } from 'lucide-react';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -11,7 +11,7 @@ import { useBatchMutations } from '@/hooks/use-batches-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useShift } from '@/contexts/ShiftContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Card, CardContent } from '@/components/ui/card';
 
 // Configure dayjs plugins
@@ -42,6 +42,7 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
   const { createBatch, isCreatingBatch } = useBatchMutations();
   const { user } = useAuth();
   const { currentShift: contextShift } = useShift();
+  const toast = useToast();
   
   // Use prop currentShift or fallback to context
   const shift = currentShift || contextShift;
@@ -88,7 +89,7 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
       
       if (result.error) {
         console.error('❌ Error fetching bread types:', result.error);
-        toast.error('Failed to load bread types');
+        toast.error('Failed to load bread types', 'Please check your connection and try again');
         return;
       }
 
@@ -96,7 +97,7 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
       console.log('✅ Bread types loaded:', result.data?.length || 0, 'items');
     } catch (error) {
       console.error('❌ Error fetching bread types:', error);
-      toast.error('Failed to load bread types');
+      toast.error('Failed to load bread types', 'Please check your connection and try again');
     } finally {
       setLoading(false);
     }
@@ -126,14 +127,14 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
     // Validate form data
     if (!formData.breadTypeId || !formData.quantity) {
       console.error('❌ Validation failed - missing required fields');
-      toast.error('Please fill in all required fields');
+      toast.validationError('required fields');
       return;
     }
 
     const quantity = parseInt(formData.quantity);
     if (isNaN(quantity) || quantity <= 0) {
       console.error('❌ Validation failed - invalid quantity');
-      toast.error('Please enter a valid quantity');
+      toast.validationError('quantity');
       return;
     }
 
@@ -159,7 +160,11 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
       console.log('✅ Batch created successfully:', newBatch);
 
       // Show success message
-      toast.success(`Batch created successfully for ${shift} shift!`);
+      // Find the bread type name for the toast
+      const breadType = breadTypes.find(bt => bt.id === formData.breadTypeId);
+      const breadTypeName = breadType ? `${breadType.name}${breadType.size ? ` (${breadType.size})` : ''}` : 'bread';
+      
+      toast.batchCreated(`${breadTypeName} - ${quantity} units`);
 
       // Reset form
       resetForm();
@@ -182,7 +187,7 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
         errorMessage = error.message;
       }
       
-      toast.error(errorMessage);
+      toast.error('Failed to Create Batch', errorMessage);
     } finally {
       setIsSubmitting(false);
       console.log('⏳ Setting submitting state to false');
@@ -387,14 +392,17 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <Button
+              <LoadingButton
                 type="submit"
-                disabled={isSubmitting || !formData.breadTypeId || !formData.quantity}
+                isLoading={isSubmitting}
+                loadingText="Creating Batch..."
+                icon={Sparkles}
+                disabled={!formData.breadTypeId || !formData.quantity}
                 className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white text-base font-semibold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                leftIcon={isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+                size="lg"
               >
-                {isSubmitting ? 'Creating Batch...' : 'Create Batch'}
-              </Button>
+                Create Batch
+              </LoadingButton>
             </motion.div>
           </form>
         </motion.div>

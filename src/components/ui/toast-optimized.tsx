@@ -129,10 +129,12 @@ export function OptimizedToastProvider({ children }: { children: React.ReactNode
 // Individual Toast Component
 const ToastItem = React.memo(({ 
   toast, 
-  onDismiss 
+  onDismiss,
+  isMobile = false
 }: { 
   toast: Toast; 
   onDismiss: (id: string) => void;
+  isMobile?: boolean;
 }) => {
   const getIcon = () => {
     switch (toast.type) {
@@ -152,7 +154,10 @@ const ToastItem = React.memo(({
   };
 
   const getStyles = () => {
-    const baseStyles = "flex items-start gap-3 p-4 rounded-lg shadow-lg border transition-all duration-300 ease-in-out transform";
+    const baseStyles = cn(
+      "flex items-start gap-3 rounded-lg shadow-lg border transition-all duration-300 ease-in-out transform",
+      isMobile ? "p-4 min-h-[64px] touch-manipulation" : "p-4"
+    );
     
     switch (toast.type) {
       case 'success':
@@ -201,10 +206,13 @@ const ToastItem = React.memo(({
       
       <button
         onClick={() => onDismiss(toast.id)}
-        className="flex-shrink-0 ml-2 p-1 rounded-md hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-current transition-colors"
+        className={cn(
+          "flex-shrink-0 ml-2 rounded-md hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-current transition-colors",
+          isMobile ? "p-2 min-h-[44px] min-w-[44px] touch-manipulation" : "p-1"
+        )}
         aria-label="Dismiss notification"
       >
-        <X className="w-4 h-4" />
+        <X className={cn(isMobile ? "w-5 h-5" : "w-4 h-4")} />
       </button>
     </div>
   );
@@ -219,13 +227,25 @@ const ToastContainer = React.memo(({
   onDismiss: (id: string) => void;
 }) => {
   return (
-    <div className="fixed z-50 bottom-4 left-4 right-4 sm:bottom-auto sm:top-4 sm:right-4 sm:left-auto flex flex-col gap-3 max-w-sm pointer-events-none">
-      {toasts.map((toast) => (
-        <div key={toast.id} className="pointer-events-auto">
-          <ToastItem toast={toast} onDismiss={onDismiss} />
-        </div>
-      ))}
-    </div>
+    <>
+      {/* Mobile toasts - bottom positioned */}
+      <div className="fixed z-50 bottom-4 left-4 right-4 sm:hidden flex flex-col gap-3 pointer-events-none">
+        {toasts.map((toast) => (
+          <div key={toast.id} className="pointer-events-auto">
+            <ToastItem toast={toast} onDismiss={onDismiss} isMobile />
+          </div>
+        ))}
+      </div>
+      
+      {/* Desktop toasts - top-right positioned */}
+      <div className="hidden sm:flex fixed z-50 top-4 right-4 flex-col gap-3 max-w-sm pointer-events-none">
+        {toasts.map((toast) => (
+          <div key={toast.id} className="pointer-events-auto">
+            <ToastItem toast={toast} onDismiss={onDismiss} />
+          </div>
+        ))}
+      </div>
+    </>
   );
 });
 

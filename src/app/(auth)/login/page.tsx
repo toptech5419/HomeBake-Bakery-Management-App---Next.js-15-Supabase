@@ -3,23 +3,9 @@
 import { useState, useTransition, useEffect, memo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { login } from '@/lib/auth/actions';
-
-// Lightweight toast function to avoid importing heavy sonner
-const showToast = (message: string, type: 'error' | 'success' = 'error') => {
-  // Create a simple toast notification
-  const toast = document.createElement('div');
-  toast.className = `fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg text-white max-w-sm transition-all duration-300 ${
-    type === 'error' ? 'bg-red-500' : 'bg-green-500'
-  }`;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  
-  // Auto remove after 3 seconds
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => document.body.removeChild(toast), 300);
-  }, 3000);
-};
+import { LoadingButton } from '@/components/ui/loading-button';
+import { useToast } from '@/hooks/use-toast';
+import { LogIn, Mail, Lock } from 'lucide-react';
 
 const LoginPage = memo(function LoginPage() {
   const [email, setEmail] = useState('');
@@ -27,6 +13,7 @@ const LoginPage = memo(function LoginPage() {
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
   const searchParams = useSearchParams();
+  const toast = useToast();
 
   // Handle error messages from URL parameters
   useEffect(() => {
@@ -47,13 +34,18 @@ const LoginPage = memo(function LoginPage() {
           errorMessage = 'An error occurred. Please try again.';
       }
       setError(errorMessage);
-      showToast(errorMessage);
+      toast.loginError(errorMessage);
     }
-  }, [searchParams]);
+  }, [searchParams, toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    if (!email || !password) {
+      toast.validationError('email and password');
+      return;
+    }
     
     const formData = new FormData();
     formData.append('email', email);
@@ -64,7 +56,7 @@ const LoginPage = memo(function LoginPage() {
         const result = await login({ error: undefined }, formData);
         if (result?.error) {
           setError(result.error);
-          showToast(result.error);
+          toast.loginError(result.error);
         }
         // If no error and no result, the server action redirected successfully
         // Don't show any error message in this case
@@ -78,70 +70,80 @@ const LoginPage = memo(function LoginPage() {
         
         const errorMsg = 'An unexpected error occurred. Please try again.';
         setError(errorMsg);
-        showToast(errorMsg);
+        toast.loginError(errorMsg);
       }
     });
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 text-center shadow-lg">
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">Welcome to HomeBake</h1>
-        <form onSubmit={handleLogin} className="space-y-4">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 p-4">
+      <div className="w-full max-w-md rounded-lg border border-orange-200 bg-white p-8 text-center shadow-xl">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome to HomeBake</h1>
+          <p className="text-gray-600 text-sm">Sign in to your bakery account</p>
+        </div>
+        
+        <form onSubmit={handleLogin} className="space-y-5">
           <div className="text-left">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address
             </label>
-            <input 
-              id="email" 
-              name="email" 
-              type="email" 
-              required 
-              value={email} 
-              onChange={e => setEmail(e.target.value)}
-              disabled={isPending}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:bg-gray-50 disabled:text-gray-500"
-              placeholder="your@email.com"
-            />
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input 
+                id="email" 
+                name="email" 
+                type="email" 
+                required 
+                value={email} 
+                onChange={e => setEmail(e.target.value)}
+                disabled={isPending}
+                className="w-full pl-10 pr-4 py-3 rounded-md border border-gray-300 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
+                placeholder="your@email.com"
+              />
+            </div>
           </div>
+          
           <div className="text-left">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
               Password
             </label>
-            <input 
-              id="password" 
-              name="password" 
-              type="password" 
-              required 
-              value={password} 
-              onChange={e => setPassword(e.target.value)}
-              disabled={isPending}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:bg-gray-50 disabled:text-gray-500"
-              placeholder="Enter your password"
-            />
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input 
+                id="password" 
+                name="password" 
+                type="password" 
+                required 
+                value={password} 
+                onChange={e => setPassword(e.target.value)}
+                disabled={isPending}
+                className="w-full pl-10 pr-4 py-3 rounded-md border border-gray-300 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
+                placeholder="Enter your password"
+              />
+            </div>
           </div>
+          
           {error && (
-            <div className="text-sm text-red-500 bg-red-50 p-3 rounded-md border border-red-200">
+            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
               {error}
             </div>
           )}
-          <button 
+          
+          <LoadingButton 
             type="submit" 
-            disabled={isPending}
-            className="w-full rounded-md bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            isLoading={isPending}
+            loadingText="Logging In..."
+            icon={LogIn}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+            size="lg"
           >
-            {isPending ? (
-              <span className="flex items-center justify-center gap-2">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                Logging In...
-              </span>
-            ) : (
-              'Log In'
-            )}
-          </button>
+            Log In
+          </LoadingButton>
         </form>
-        <div className="mt-4 text-sm text-gray-600">
-          <p>Don&apos;t have an account? <a href="/signup" className="text-orange-600 hover:underline">Sign up</a></p>
+        
+        <div className="mt-6 pt-6 border-t border-gray-200 text-sm text-gray-600">
+          <p>Don&apos;t have an account? <a href="/signup" className="text-orange-600 hover:underline font-medium">Sign up</a></p>
           <p className="mt-2">Need access? Contact your bakery owner for an invite.</p>
         </div>
       </div>
