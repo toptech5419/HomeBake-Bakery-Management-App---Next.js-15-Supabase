@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle, Wifi } from 'lucide-react';
 
@@ -76,7 +77,20 @@ export function OptimizedToastProvider({ children }: { children: React.ReactNode
     const unsubscribe = toastQueue.subscribe(() => {
       setToasts(toastQueue.getAll());
     });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const dismiss = useCallback((id: string) => {
+    // Clear timer if exists
+    const timer = timers.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      timers.current.delete(id);
+    }
+    
+    toastQueue.remove(id);
   }, []);
 
   const toast = useCallback((props: Omit<Toast, 'id'>) => {
@@ -98,17 +112,6 @@ export function OptimizedToastProvider({ children }: { children: React.ReactNode
       timers.current.set(id, timer);
     }
   }, [dismiss]);
-
-  const dismiss = useCallback((id: string) => {
-    // Clear timer if exists
-    const timer = timers.current.get(id);
-    if (timer) {
-      clearTimeout(timer);
-      timers.current.delete(id);
-    }
-    
-    toastQueue.remove(id);
-  }, []);
 
   const dismissAll = useCallback(() => {
     // Clear all timers
@@ -155,71 +158,117 @@ const ToastItem = React.memo(({
 
   const getStyles = () => {
     const baseStyles = cn(
-      "flex items-start gap-3 rounded-lg shadow-lg border transition-all duration-300 ease-in-out transform",
-      isMobile ? "p-4 min-h-[64px] touch-manipulation" : "p-4"
+      "flex items-start gap-3 rounded-xl shadow-lg border backdrop-blur-sm transition-all duration-300 ease-in-out transform",
+      isMobile 
+        ? "p-4 min-h-[64px] touch-manipulation" 
+        : "p-4 max-w-md"
     );
     
     switch (toast.type) {
       case 'success':
-        return cn(baseStyles, "bg-green-50 border-green-200 text-green-800");
+        return cn(baseStyles, "bg-green-50/95 border-green-200 text-green-900 shadow-green-100");
       case 'error':
-        return cn(baseStyles, "bg-red-50 border-red-200 text-red-800");
+        return cn(baseStyles, "bg-red-50/95 border-red-200 text-red-900 shadow-red-100");
       case 'warning':
-        return cn(baseStyles, "bg-yellow-50 border-yellow-200 text-yellow-800");
+        return cn(baseStyles, "bg-yellow-50/95 border-yellow-200 text-yellow-900 shadow-yellow-100");
       case 'info':
-        return cn(baseStyles, "bg-blue-50 border-blue-200 text-blue-800");
+        return cn(baseStyles, "bg-blue-50/95 border-blue-200 text-blue-900 shadow-blue-100");
       case 'network':
-        return cn(baseStyles, "bg-orange-50 border-orange-200 text-orange-800");
+        return cn(baseStyles, "bg-orange-50/95 border-orange-200 text-orange-900 shadow-orange-100");
       default:
-        return cn(baseStyles, "bg-gray-50 border-gray-200 text-gray-800");
+        return cn(baseStyles, "bg-white/95 border-gray-200 text-gray-900 shadow-gray-100");
     }
   };
 
   return (
-    <div
-      className={cn(
-        getStyles(),
-        "animate-in slide-in-from-bottom-2"
-      )}
+    <motion.div
+      initial={{ opacity: 0, y: isMobile ? 50 : -50, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ 
+        opacity: 0, 
+        y: isMobile ? 50 : -50, 
+        scale: 0.95,
+        transition: { duration: 0.2 }
+      }}
+      transition={{ 
+        type: "spring", 
+        stiffness: 300, 
+        damping: 30,
+        duration: 0.3
+      }}
+      layout
+      className={getStyles()}
       role="alert"
       aria-live="assertive"
       aria-atomic="true"
     >
-      <div className="flex-shrink-0 mt-0.5">
+      <motion.div 
+        className="flex-shrink-0 mt-0.5"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 0.1, type: "spring", stiffness: 400 }}
+      >
         {getIcon()}
-      </div>
+      </motion.div>
       
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-sm mb-1">{toast.title}</div>
+        <motion.div 
+          className="font-medium text-sm mb-1"
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          {toast.title}
+        </motion.div>
         {toast.description && (
-          <div className="text-sm leading-relaxed">{toast.description}</div>
+          <motion.div 
+            className="text-sm leading-relaxed"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            {toast.description}
+          </motion.div>
         )}
         {toast.action && (
-          <button
+          <motion.button
             onClick={toast.action.onClick}
-            className="mt-2 text-xs font-medium underline hover:no-underline"
+            className={cn(
+              "mt-2 text-xs font-medium underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-current rounded",
+              isMobile ? "min-h-[44px] px-2 py-1 touch-manipulation" : ""
+            )}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             {toast.action.label}
-          </button>
+          </motion.button>
         )}
       </div>
       
-      <button
+      <motion.button
         onClick={() => onDismiss(toast.id)}
         className={cn(
           "flex-shrink-0 ml-2 rounded-md hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-current transition-colors",
           isMobile ? "p-2 min-h-[44px] min-w-[44px] touch-manipulation" : "p-1"
         )}
         aria-label="Dismiss notification"
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.2 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
       >
         <X className={cn(isMobile ? "w-5 h-5" : "w-4 h-4")} />
-      </button>
-    </div>
+      </motion.button>
+    </motion.div>
   );
 });
 ToastItem.displayName = 'ToastItem';
 
-// Toast Container with mobile-first positioning
+// Toast Container with mobile-first positioning and smooth animations
 const ToastContainer = React.memo(({ 
   toasts, 
   onDismiss 
@@ -230,21 +279,35 @@ const ToastContainer = React.memo(({
   return (
     <>
       {/* Mobile toasts - bottom positioned */}
-      <div className="fixed z-50 bottom-4 left-4 right-4 sm:hidden flex flex-col gap-3 pointer-events-none">
-        {toasts.map((toast) => (
-          <div key={toast.id} className="pointer-events-auto">
-            <ToastItem toast={toast} onDismiss={onDismiss} isMobile />
-          </div>
-        ))}
+      <div className="fixed z-50 bottom-4 left-4 right-4 sm:hidden pointer-events-none">
+        <AnimatePresence mode="popLayout">
+          <motion.div
+            className="flex flex-col gap-3"
+            layout
+          >
+            {toasts.map((toast) => (
+              <div key={toast.id} className="pointer-events-auto">
+                <ToastItem toast={toast} onDismiss={onDismiss} isMobile />
+              </div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
       
       {/* Desktop toasts - top-right positioned */}
-      <div className="hidden sm:flex fixed z-50 top-4 right-4 flex-col gap-3 max-w-sm pointer-events-none">
-        {toasts.map((toast) => (
-          <div key={toast.id} className="pointer-events-auto">
-            <ToastItem toast={toast} onDismiss={onDismiss} />
-          </div>
-        ))}
+      <div className="hidden sm:flex fixed z-50 top-4 right-4 max-w-sm pointer-events-none">
+        <AnimatePresence mode="popLayout">
+          <motion.div
+            className="flex flex-col gap-3"
+            layout
+          >
+            {toasts.map((toast) => (
+              <div key={toast.id} className="pointer-events-auto">
+                <ToastItem toast={toast} onDismiss={onDismiss} />
+              </div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </>
   );
@@ -318,7 +381,7 @@ export const showErrorWithRetry = (
 };
 
 // Success toast helper
-export const showSuccess = (title: string, description?: string, toast: ToastContextType['toast']) => {
+export const showSuccess = (title: string, toast: ToastContextType['toast'], description?: string) => {
   toast({
     title,
     description,
@@ -328,7 +391,7 @@ export const showSuccess = (title: string, description?: string, toast: ToastCon
 };
 
 // Info toast helper
-export const showInfo = (title: string, description?: string, toast: ToastContextType['toast']) => {
+export const showInfo = (title: string, toast: ToastContextType['toast'], description?: string) => {
   toast({
     title,
     description,

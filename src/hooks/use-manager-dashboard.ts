@@ -45,7 +45,7 @@ export function useManagerDashboard(options: UseManagerDashboardOptions = {}) {
   // Process data for dashboard
   const activeBatchesCount = batches.length;
   
-  const recentBatches = batches.slice(0, 5).map(batch => ({
+  const recentBatches = batches.slice(0, 3).map(batch => ({
     id: batch.id,
     product: (batch as any).bread_type?.name || 'Unknown',
     quantity: batch.actual_quantity || 0,

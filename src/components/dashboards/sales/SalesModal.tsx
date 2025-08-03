@@ -35,7 +35,7 @@ interface SaleForm {
 export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecorded }: SalesModalProps) {
   const [breadTypes, setBreadTypes] = useState<BreadType[]>([]);
   const [selectedBreadType, setSelectedBreadType] = useState<BreadType | null>(null);
-  const { toast } = useToast();
+  const toast = useToast();
   const [formData, setFormData] = useState<SaleForm>({
     breadTypeId: '',
     breadTypeName: '',

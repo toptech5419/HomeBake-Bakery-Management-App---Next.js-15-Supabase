@@ -158,7 +158,7 @@ export default function ReportsPage() {
           };
         }
         groups[key].batches.push(batch);
-        let breadTypeName = getName(batch.bread_types);
+        const breadTypeName = getName(batch.bread_types);
         if (breadTypeName && breadTypeName !== 'Unknown') groups[key].breadTypes.add(breadTypeName);
         if (batch.end_time) groups[key].endTimes.push(batch.end_time);
         groups[key].statuses.push(batch.status);
