@@ -11,7 +11,8 @@
       "Bash(pkill:*)",
       "Bash(cp:*)",
       "Bash(timeout 20 npm run dev)",
-      "Bash(timeout 15 npm run dev)"
+      "Bash(timeout 15 npm run dev)",
+      "Bash(npm run lint)"
     ],
     "deny": []
   }

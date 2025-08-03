@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Minus, ShoppingCart, Calculator, AlertCircle, Check } from 'lucide-react';
 import { LoadingButton } from '@/components/ui/loading-button';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';

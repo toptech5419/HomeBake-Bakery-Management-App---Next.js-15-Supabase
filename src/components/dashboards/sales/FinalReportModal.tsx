@@ -298,96 +298,131 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
 
   return (
     <div 
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-lg transition-all duration-300 animate-modal-backdrop ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}
       onClick={handleBackdropClick}
     >
-      {/* Loading Overlay */}
+      {/* Enhanced Loading Overlay */}
       {isSaving && (
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-20">
-          <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent"></div>
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-20">
+          <div className="bg-card rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-6 border border-border/20 animate-modal-content">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/20 border-t-primary"></div>
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-primary/20 to-transparent animate-pulse"></div>
+            </div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Saving Report</h3>
-              <p className="text-sm text-gray-600">Please wait while we save your shift report...</p>
+              <h3 className="text-xl font-display font-bold text-foreground mb-3">Saving Your Report</h3>
+              <p className="text-muted-foreground">Please wait while we securely save your shift report...</p>
+              <div className="mt-4 flex justify-center">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
       
       <div 
-        className={`bg-white rounded-2xl shadow-2xl w-[95%] max-w-md max-h-[90vh] overflow-y-auto transition-all duration-300 ${
+        className={`bg-card rounded-2xl shadow-2xl w-[95%] max-w-lg max-h-[90vh] overflow-y-auto transition-all duration-300 border border-border/20 animate-modal-content ${
           isClosing ? 'scale-95 opacity-0' : 'scale-100 opacity-100'
         } ${isSaving ? 'pointer-events-none opacity-50' : ''}`}
       >
-        {/* Header */}
-        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 md:p-5 sticky top-0 z-10">
+        {/* Enhanced Header */}
+        <div className="gradient-primary text-white p-6 sticky top-0 z-10 rounded-t-2xl">
           <button
             onClick={handleClose}
-            className="absolute top-3 right-3 md:top-4 md:right-4 bg-white/20 hover:bg-white/30 text-white w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
+            className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover-scale backdrop-blur-sm border border-white/20"
             aria-label="Close report"
             disabled={isSaving}
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
-          <h1 className="text-xl md:text-2xl font-bold mb-1 pr-8">
-            {viewOnly ? 'Shift Report' : 'Final Shift Report'}
-          </h1>
-          <div className="text-xs md:text-sm opacity-90 font-medium">
-            {reportData.shift || currentShift} Shift - {viewOnly ? 'Viewing' : 'Completed'} • {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
+          <div className="pr-12">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm border border-white/30">
+                <span className="text-xl">📊</span>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-display font-bold text-shadow">
+                {viewOnly ? 'Shift Report' : 'Final Shift Report'}
+              </h1>
+            </div>
+            <div className="text-sm md:text-base text-white/90 font-medium">
+              {reportData.shift || currentShift} Shift - {viewOnly ? 'Viewing' : 'Successfully Completed'}
+            </div>
+            <div className="text-xs text-white/80 mt-1">
+              {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
+            </div>
           </div>
           
-          {/* Save Status Indicator - Only show when not in viewOnly mode */}
+          {/* Enhanced Save Status Indicator */}
           {!viewOnly && (
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-4 flex items-center gap-2">
             {saveStatus === 'saving' && (
-              <div className="flex items-center gap-2 text-xs">
-                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span>Saving report...</span>
+              <div className="flex items-center gap-2 text-sm bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span className="text-white/90 font-medium">Saving report...</span>
               </div>
             )}
             {saveStatus === 'success' && (
-              <div className="flex items-center gap-2 text-xs text-green-200">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <div className="flex items-center gap-2 text-sm bg-green-500/20 backdrop-blur-sm rounded-lg px-3 py-2 border border-green-400/30">
+                <svg className="w-4 h-4 text-green-200" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                 </svg>
-                <span>
+                <span className="text-green-200 font-medium">
                   {reportAction === 'updated' ? 'Report updated successfully!' : 'Report created successfully!'}
                 </span>
               </div>
             )}
             {saveStatus === 'error' && (
-              <div className="flex items-center gap-2 text-xs text-red-200">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <div className="flex items-center gap-2 text-sm bg-red-500/20 backdrop-blur-sm rounded-lg px-3 py-2 border border-red-400/30">
+                <svg className="w-4 h-4 text-red-200" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
                 </svg>
-                <span>Failed to save report</span>
+                <span className="text-red-200 font-medium">Failed to save report</span>
               </div>
             )}
           </div>
           )}
         </div>
 
-        {/* Content */}
-        <div className="p-4 md:p-6">
-          {/* Summary Cards */}
-          <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
-            <div className="col-span-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 md:p-5 text-center border border-green-100">
-              <h3 className="text-xs md:text-sm font-semibold text-gray-600 mb-1 md:mb-2">Total Revenue</h3>
-              <div className="text-2xl md:text-3xl font-extrabold text-green-600">
+        {/* Enhanced Content */}
+        <div className="p-6">
+          {/* Enhanced Summary Cards with 3D effect */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="col-span-2 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl p-6 text-center border border-green-200/50 shadow-lg hover-lift-subtle">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-green-500 rounded-xl flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">💰</span>
+                </div>
+                <h3 className="text-sm font-bold text-green-700 uppercase tracking-wide">Total Revenue</h3>
+              </div>
+              <div className="text-3xl md:text-4xl font-display font-extrabold text-green-800 animate-count-in">
                 {formatCurrencyNGN(reportData.totalRevenue)}
               </div>
             </div>
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 md:p-5 text-center border border-blue-100">
-              <h3 className="text-xs md:text-sm font-semibold text-gray-600 mb-1 md:mb-2">Items Sold</h3>
-              <div className="text-2xl md:text-3xl font-extrabold text-gray-900">
+            <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl p-5 text-center border border-blue-200/50 shadow-lg hover-lift-subtle">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold">📦</span>
+                </div>
+                <h3 className="text-xs font-bold text-blue-700 uppercase tracking-wide">Items Sold</h3>
+              </div>
+              <div className="text-2xl md:text-3xl font-display font-extrabold text-blue-800 animate-count-in">
                 {reportData.totalItemsSold}
               </div>
             </div>
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 md:p-5 text-center border border-amber-100">
-              <h3 className="text-xs md:text-sm font-semibold text-gray-600 mb-1 md:mb-2">Remaining</h3>
-              <div className="text-2xl md:text-3xl font-extrabold text-amber-600">
+            <div className="bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl p-5 text-center border border-amber-200/50 shadow-lg hover-lift-subtle">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="w-6 h-6 bg-amber-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold">🍞</span>
+                </div>
+                <h3 className="text-xs font-bold text-amber-700 uppercase tracking-wide">Remaining</h3>
+              </div>
+              <div className="text-2xl md:text-3xl font-display font-extrabold text-amber-800 animate-count-in">
                 {formatCurrencyNGN(reportData.totalRemaining)}
               </div>
             </div>

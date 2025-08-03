@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Loader2, Bread } from 'lucide-react';
+import { Loader2, Cookie } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface PageLoaderProps {
@@ -45,7 +45,7 @@ export function PageLoader({
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
             className="relative"
           >
-            <Bread className={cn("text-orange-500", sizeClasses[size])} />
+            <Cookie className={cn("text-orange-500", sizeClasses[size])} />
           </motion.div>
         );
       

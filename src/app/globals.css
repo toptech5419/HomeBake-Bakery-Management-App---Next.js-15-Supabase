@@ -1,51 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Bakery-themed color palette */
+    --background: 30 60% 98%;
+    --foreground: 30 12% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 30 12% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --popover-foreground: 30 12% 15%;
+    
+    /* Orange-focused primary colors for bakery theme */
+    --primary: 24 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 40% 95%;
+    --secondary-foreground: 30 12% 15%;
+    
+    /* Warm, bakery-inspired accent colors */
+    --muted: 30 40% 96%;
+    --muted-foreground: 30 8% 45%;
+    --accent: 24 75% 95%;
+    --accent-foreground: 24 100% 40%;
+    
+    /* Status colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 45 93% 47%;
+    --warning-foreground: 0 0% 100%;
+    
+    /* Borders and inputs */
+    --border: 30 25% 88%;
+    --input: 30 25% 92%;
+    --ring: 24 100% 50%;
+    --radius: 0.75rem;
+    
+    /* Bakery gradients */
+    --gradient-primary: linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%);
+    --gradient-secondary: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #f59e0b 100%);
+    --gradient-warm: linear-gradient(135deg, #fed7aa 0%, #fdba74 50%, #fb923c 100%);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
+    --background: 30 12% 6%;
+    --foreground: 30 60% 95%;
+    --card: 30 12% 8%;
+    --card-foreground: 30 60% 95%;
+    --popover: 30 12% 8%;
+    --popover-foreground: 30 60% 95%;
+    --primary: 24 100% 55%;
+    --primary-foreground: 30 12% 8%;
+    --secondary: 30 12% 12%;
+    --secondary-foreground: 30 60% 90%;
+    --muted: 30 12% 12%;
+    --muted-foreground: 30 15% 65%;
+    --accent: 30 12% 15%;
+    --accent-foreground: 24 100% 60%;
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 12% 18%;
+    --input: 30 12% 18%;
+    --ring: 24 100% 55%;
   }
 }
 
@@ -53,20 +73,44 @@
   * {
     @apply border-border;
   }
+  
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    background: radial-gradient(ellipse at top, hsl(var(--accent)) 0%, hsl(var(--background)) 40%);
+    min-height: 100vh;
+  }
+  
+  /* Custom font classes */
+  .font-display {
+    font-family: 'Manrope', 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  
+  .font-sans {
+    font-family: 'Inter', system-ui, sans-serif;
   }
 }
 
-/* Custom animations for inventory page */
+/* Enhanced Bakery-themed Animations */
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(24px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -84,68 +128,214 @@
 @keyframes pulse-glow {
   0%, 100% {
     opacity: 1;
+    box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.7);
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.8;
+    box-shadow: 0 0 0 8px rgba(251, 146, 60, 0);
   }
 }
 
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes modal-backdrop {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
+}
+
+@keyframes modal-content {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Animation classes */
 .animate-fade-in-up {
-  animation: fade-in-up 0.5s ease-out forwards;
+  animation: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-count-in {
-  animation: count-in 0.6s ease-out forwards;
+  animation: count-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-/* Custom scrollbar for better aesthetics */
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-modal-backdrop {
+  animation: modal-backdrop 0.3s ease-out forwards;
+}
+
+.animate-modal-content {
+  animation: modal-content 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Enhanced Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: hsl(var(--muted));
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #fb923c;
-  border-radius: 3px;
+  background: linear-gradient(135deg, #fb923c, #f97316);
+  border-radius: 6px;
+  border: 1px solid hsl(var(--background));
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #f97316;
+  background: linear-gradient(135deg, #f97316, #ea580c);
 }
 
-/* Gradient text utility */
+::-webkit-scrollbar-corner {
+  background: hsl(var(--muted));
+}
+
+/* Bakery Gradient Utilities */
 .gradient-text {
-  @apply bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent;
+  @apply bg-gradient-to-r from-orange-600 via-amber-600 to-orange-500 bg-clip-text text-transparent;
 }
 
-/* Glass morphism effect */
+.gradient-primary {
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%);
+}
+
+.gradient-secondary {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #f59e0b 100%);
+}
+
+.gradient-warm {
+  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 50%, #fb923c 100%);
+}
+
+.gradient-card {
+  background: linear-gradient(135deg, 
+    hsl(var(--card)) 0%, 
+    hsl(var(--accent)) 100%
+  );
+}
+
+/* Glass Morphism Effects */
 .glass {
-  @apply bg-white/80 backdrop-blur-sm border border-white/20;
+  @apply bg-white/90 backdrop-blur-md border border-white/30;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }
 
-/* Hover effects */
+.glass-dark {
+  @apply bg-gray-900/80 backdrop-blur-md border border-gray-700/30;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Enhanced Hover Effects */
 .hover-lift {
-  @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg;
+  @apply transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-xl;
 }
 
-/* Loading shimmer effect */
+.hover-lift-subtle {
+  @apply transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg;
+}
+
+.hover-glow {
+  @apply transition-all duration-300 ease-out hover:shadow-lg hover:shadow-orange-500/25;
+}
+
+.hover-scale {
+  @apply transition-transform duration-200 ease-out hover:scale-105;
+}
+
+/* Interactive Button Effects */
+.btn-bounce {
+  @apply transition-transform duration-150 ease-out active:scale-95;
+}
+
+.btn-glow {
+  @apply relative overflow-hidden;
+}
+
+.btn-glow::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transition: width 0.6s, height 0.6s;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}
+
+.btn-glow:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Loading Shimmer Effect */
 .shimmer {
   background: linear-gradient(
     90deg,
-    #f1f5f9 0%,
-    #e2e8f0 20%,
-    #f1f5f9 40%,
-    #f1f5f9 100%
+    hsl(var(--muted)) 0%,
+    hsl(var(--accent)) 20%,
+    hsl(var(--muted)) 40%,
+    hsl(var(--muted)) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 2s infinite;
+  animation: shimmer 2s ease-in-out infinite;
 }
 
 @keyframes shimmer {
@@ -155,4 +345,58 @@
   100% {
     background-position: 200% 0;
   }
+}
+
+/* Card Variants */
+.card-elevated {
+  @apply bg-card border border-border shadow-lg hover:shadow-xl transition-shadow duration-300;
+}
+
+.card-flat {
+  @apply bg-card border border-border;
+}
+
+.card-gradient {
+  @apply gradient-card border border-border/50 text-card-foreground;
+}
+
+/* Text Effects */
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.text-shadow-lg {
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Focus Styles */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .hover-lift,
+  .hover-lift-subtle,
+  .hover-glow,
+  .hover-scale {
+    @apply hover:transform-none hover:shadow-none;
+  }
+}
+
+/* Responsive Typography */
+.heading-xl {
+  @apply text-3xl md:text-4xl lg:text-5xl font-display font-bold tracking-tight;
+}
+
+.heading-lg {
+  @apply text-2xl md:text-3xl lg:text-4xl font-display font-bold tracking-tight;
+}
+
+.heading-md {
+  @apply text-xl md:text-2xl lg:text-3xl font-display font-semibold tracking-tight;
+}
+
+.heading-sm {
+  @apply text-lg md:text-xl lg:text-2xl font-display font-semibold tracking-tight;
 }

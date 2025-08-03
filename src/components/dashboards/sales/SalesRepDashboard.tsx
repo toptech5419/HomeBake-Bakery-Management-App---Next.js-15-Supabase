@@ -447,14 +447,14 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Enhanced Header */}
+      <div className="flex items-center justify-between mb-2">
         <div>
-          <h1 className="text-3xl font-display font-bold text-gray-900">
-            Welcome back, {userName}
+          <h1 className="heading-lg text-foreground animate-fade-in-up">
+            Welcome back, {userName} 👋
           </h1>
-          <p className="text-gray-600 mt-1">
-            Track your sales performance for the {currentShift} shift
+          <p className="text-muted-foreground mt-2 font-medium animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            Track your sales performance for the <span className="text-primary font-semibold">{currentShift} shift</span>
           </p>
         </div>
       </div>
