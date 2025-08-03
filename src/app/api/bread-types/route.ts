@@ -1,10 +1,10 @@
 import { createServer } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // Force dynamic rendering for API routes that require authentication
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createServer();
     

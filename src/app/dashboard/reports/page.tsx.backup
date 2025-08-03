@@ -293,7 +293,7 @@ export default function ReportsPage() {
     `🍞 Production Report - ${report.shift.charAt(0).toUpperCase() + report.shift.slice(1)} (${formatDate(report.date)})\n👤 Manager: ${report.manager}\n📦 Batches: ${report.totalBatches}\n🔢 Units: ${report.totalUnits}\n🍞 Bread Types: ${(report.breadTypes || []).join(", ")}\nStatus: ${report.status}`;
 
   // Share handler
-  const handleShare = async (report: GroupedReport) => {
+  const handleShare = async (report: GroupedReport) =>
     setShareReport(report);
     setShareModalOpen(true);
   };
@@ -452,7 +452,7 @@ export default function ReportsPage() {
             <div className="text-center text-gray-500 py-8">No batches in this group.</div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {modalBatches.map((batch) => (
+              {modalBatches.map((batch, i) => (
                 <Card key={batch.id} variant="filled" className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shadow-none border-0">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -497,13 +497,7 @@ export default function ReportsPage() {
   );
 }
 
-interface ShareModalProps {
-  report: GroupedReport;
-  onClose: () => void;
-  getShareText: (r: GroupedReport) => string;
-}
-
-function ShareModal({ report, onClose, getShareText }: ShareModalProps) {
+function ShareModal({ report, onClose, getShareText }: { report: GroupedReport; onClose: () => void; getShareText: (r: GroupedReport) => string }) {
   const shareOptions = [
     { platform: 'whatsapp', label: 'WhatsApp', icon: '💬', color: 'bg-green-50 hover:bg-green-100 text-green-600' },
     { platform: 'email', label: 'Email', icon: '📧', color: 'bg-blue-50 hover:bg-blue-100 text-blue-600' },

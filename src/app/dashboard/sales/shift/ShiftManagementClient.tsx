@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BreadType, SalesLog, UserRole, ShiftFeedback } from '@/types';
 import { useShift } from '@/hooks/use-shift';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { Clock, TrendingUp, Package, FileText, ArrowLeft } from 'lucide-react';
+import { Clock, FileText, ArrowLeft } from 'lucide-react';
 
 interface ShiftManagementClientProps {
   todaysSales: (SalesLog & { bread_types: BreadType })[];
@@ -19,8 +18,7 @@ interface ShiftManagementClientProps {
 export default function ShiftManagementClient({
   todaysSales,
   shiftFeedback,
-  userRole,
-  userId
+  userRole
 }: ShiftManagementClientProps) {
   const { shift: currentShift, setShift: setCurrentShift } = useShift();
 
@@ -220,7 +218,7 @@ export default function ShiftManagementClient({
           <div className="mb-4">
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Today's Feedback
+              Today&apos;s Feedback
             </h2>
             <p className="text-muted-foreground">
               Feedback submitted during shifts

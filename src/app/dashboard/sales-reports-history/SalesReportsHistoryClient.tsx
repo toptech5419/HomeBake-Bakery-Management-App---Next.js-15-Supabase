@@ -23,6 +23,23 @@ import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { FinalReportModal } from '@/components/dashboards/sales/FinalReportModal';
 
+// Type for sales data items
+interface SalesDataItem {
+  breadType?: string;
+  quantity?: number;
+  unitPrice?: number;
+  totalAmount?: number;
+  timestamp?: string;
+}
+
+// Type for remaining bread items
+interface RemainingBreadItem {
+  breadType?: string;
+  quantity?: number;
+  unitPrice?: number;
+  totalAmount?: number;
+}
+
 // Type for shift report data from database
 interface ShiftReport {
   id: string;
@@ -33,8 +50,8 @@ interface ShiftReport {
   total_items_sold: number;
   total_remaining: number;
   feedback: string | null;
-  sales_data: any[];
-  remaining_breads: any[];
+  sales_data: SalesDataItem[];
+  remaining_breads: RemainingBreadItem[];
   created_at: string;
   updated_at: string;
 }
@@ -73,7 +90,6 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedReport, setSelectedReport] = useState<ShiftReport | null>(null);
-  const [showReportModal, setShowReportModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareReportId, setShareReportId] = useState<string | null>(null);
   const [reportDataForModal, setReportDataForModal] = useState<ReportData | null>(null);
@@ -162,14 +178,14 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
   // Convert ShiftReport to ReportData for FinalReportModal
   const convertToReportData = (report: ShiftReport): ReportData => {
     return {
-      salesRecords: (report.sales_data || []).map((sale: any) => ({
+      salesRecords: (report.sales_data || []).map((sale) => ({
         breadType: sale.breadType || 'Unknown',
         quantity: sale.quantity || 0,
         unitPrice: sale.unitPrice || 0,
         totalAmount: sale.totalAmount || 0,
         timestamp: sale.timestamp || report.created_at
       })),
-      remainingBreads: (report.remaining_breads || []).map((bread: any) => ({
+      remainingBreads: (report.remaining_breads || []).map((bread) => ({
         breadType: bread.breadType || 'Unknown',
         quantity: bread.quantity || 0,
         unitPrice: bread.unitPrice || 0,
@@ -178,16 +194,13 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
       totalRevenue: report.total_revenue,
       totalItemsSold: report.total_items_sold,
       totalRemaining: report.total_remaining,
-      shift: report.shift,
-      feedback: report.feedback,
-      userId: report.user_id
+      shift: report.shift
     };
   };
 
   const handleViewReport = (report: ShiftReport) => {
     setSelectedReport(report);
     setReportDataForModal(convertToReportData(report));
-    setShowReportModal(true);
   };
 
   const handleDownloadReport = (report: ShiftReport) => {
@@ -201,7 +214,7 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
       [''],
       ['Sales Data'],
       ['Bread Type', 'Quantity', 'Unit Price', 'Total Amount'],
-      ...(report.sales_data || []).map((sale: any) => [
+      ...(report.sales_data || []).map((sale) => [
         sale.breadType || 'N/A',
         sale.quantity || 0,
         sale.unitPrice || 0,
@@ -210,7 +223,7 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
       [''],
       ['Remaining Breads'],
       ['Bread Type', 'Quantity', 'Unit Price', 'Total Value'],
-      ...(report.remaining_breads || []).map((bread: any) => [
+      ...(report.remaining_breads || []).map((bread) => [
         bread.breadType || 'N/A',
         bread.quantity || 0,
         bread.unitPrice || 0,
@@ -256,11 +269,11 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
     }
   };
 
-  const getTopItems = (salesData: any[]) => {
+  const getTopItems = (salesData: SalesDataItem[]) => {
     if (!salesData || salesData.length === 0) return [];
     
     const itemMap = new Map<string, number>();
-    salesData.forEach((item: any) => {
+    salesData.forEach((item) => {
       const name = item.breadType || 'Unknown';
       itemMap.set(name, (itemMap.get(name) || 0) + (item.quantity || 0));
     });
@@ -601,7 +614,13 @@ function ShareModal({
   const report = reports.find(r => r.id === reportId);
   const [isClosing, setIsClosing] = useState(false);
   
-  if (!report) return null;
+  const handleClose = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+      setIsClosing(false);
+    }, 300);
+  }, [onClose]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -617,15 +636,9 @@ function ShareModal({
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, []);
+  }, [handleClose]);
 
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      onClose();
-      setIsClosing(false);
-    }, 300);
-  };
+  if (!report) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -780,7 +793,7 @@ function ShareModal({
                     [''],
                     ['Sales Data'],
                     ['Bread Type', 'Quantity', 'Unit Price', 'Total Amount'],
-                    ...(report.sales_data || []).map((sale: any) => [
+                    ...(report.sales_data || []).map((sale) => [
                       sale.breadType || 'N/A',
                       sale.quantity || 0,
                       sale.unitPrice || 0,
@@ -789,7 +802,7 @@ function ShareModal({
                     [''],
                     ['Remaining Breads'],
                     ['Bread Type', 'Quantity', 'Unit Price', 'Total Value'],
-                    ...(report.remaining_breads || []).map((bread: any) => [
+                    ...(report.remaining_breads || []).map((bread) => [
                       bread.breadType || 'N/A',
                       bread.quantity || 0,
                       bread.unitPrice || 0,

@@ -74,16 +74,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : "button"
-    
     const isDisabled = disabled || loading
-
-    // Motion variants for smooth animations
-    const motionVariants = {
-      initial: { scale: 1 },
-      hover: { scale: variant === "link" ? 1 : 1.02 },
-      tap: { scale: variant === "link" ? 1 : 0.98 },
-    }
 
     const buttonContent = (
       <div className="flex items-center justify-center gap-2">

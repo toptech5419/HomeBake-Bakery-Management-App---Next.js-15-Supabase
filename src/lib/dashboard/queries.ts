@@ -174,7 +174,6 @@ export async function getShiftMetrics(shift: ShiftType, date?: string) {
 // Get production logs for a specific date range
 export async function getProductionLogs(startDate?: string, endDate?: string, shift?: ShiftType) {
   const supabase = await createServer();
-  const today = formatDate(new Date());
   
   let query = supabase
     .from('production_logs')

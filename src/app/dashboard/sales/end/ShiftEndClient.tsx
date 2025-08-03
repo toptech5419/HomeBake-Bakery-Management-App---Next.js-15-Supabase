@@ -23,7 +23,6 @@ interface ShiftEndClientProps {
 export default function ShiftEndClient({
   todaysSales,
   breadTypes,
-  userRole,
   userId
 }: ShiftEndClientProps) {
   const { shift: currentShift } = useShift();

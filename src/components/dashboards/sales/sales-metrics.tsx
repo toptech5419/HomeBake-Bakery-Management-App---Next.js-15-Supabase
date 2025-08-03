@@ -3,20 +3,18 @@
 import { 
   DollarSign, 
   TrendingUp,
-  Users,
   Target,
   Clock,
   ShoppingCart,
+  Users,
   Award,
-  Zap,
   BarChart3,
-  ArrowUp,
-  ArrowDown
+  Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { MetricCard } from '@/components/ui/card';
-import { formatNigeriaDate, getRelativeTime } from '@/lib/utils/timezone';
+import { getRelativeTime } from '@/lib/utils/timezone';
 
 interface SalesRecord {
   id: string;

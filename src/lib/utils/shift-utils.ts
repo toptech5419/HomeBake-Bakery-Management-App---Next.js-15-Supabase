@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client';
+// Utility functions for shift management
 
 export type ShiftType = 'morning' | 'night';
 
@@ -37,7 +37,6 @@ function getNigeriaTime(): Date {
 export function getCurrentShiftInfo(): ShiftInfo {
   const nigeriaTime = getNigeriaTime();
   const hours = nigeriaTime.getHours();
-  const minutes = nigeriaTime.getMinutes();
   
   // Determine current shift using constants
   const isMorningShift = hours >= SHIFT_CONSTANTS.MORNING_START_HOUR && hours < SHIFT_CONSTANTS.MORNING_END_HOUR;

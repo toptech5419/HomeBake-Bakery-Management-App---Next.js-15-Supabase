@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { TrendingUp, Package, BarChart3 } from 'lucide-react';
 
 export default function ProductionLoading() {
   return (

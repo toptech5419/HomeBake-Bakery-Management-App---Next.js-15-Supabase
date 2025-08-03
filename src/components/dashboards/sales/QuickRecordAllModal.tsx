@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Minus, TrendingUp, Package, Check, FileText, Clock, AlertTriangle, Send, RotateCcw } from 'lucide-react';
+import { X, Plus, Minus, TrendingUp, Package, FileText, Clock, AlertTriangle, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+// Card components removed as they're not used in this modal
 import { Badge } from '@/components/ui/badge';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { supabase } from '@/lib/supabase/client';
@@ -45,7 +45,28 @@ interface QuickRecordAllModalProps {
   userId: string;
   onSalesRecorded: () => void;
   onRemainingUpdated: () => void;
-  onReportComplete: (reportData: any) => void;
+  onReportComplete: (reportData: {
+    salesRecords: Array<{
+      breadType: string;
+      quantity: number;
+      unitPrice: number;
+      totalAmount: number;
+      timestamp: string;
+    }>;
+    remainingBreads: Array<{
+      breadType: string;
+      quantity: number;
+      unitPrice: number;
+      totalAmount: number;
+    }>;
+    totalRevenue: number;
+    totalItemsSold: number;
+    totalRemaining: number;
+    feedback?: string | null;
+    shift?: string;
+    timeOfSales?: string;
+    userId?: string;
+  }) => void;
 }
 
 export function QuickRecordAllModal({ 
@@ -66,7 +87,24 @@ export function QuickRecordAllModal({
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedback, setFeedback] = useState('');
-  const [pendingReportData, setPendingReportData] = useState<any>(null);
+  const [pendingReportData, setPendingReportData] = useState<{
+    salesRecords: Array<{
+      breadType: string;
+      quantity: number;
+      unitPrice: number;
+      totalAmount: number;
+      timestamp: string;
+    }>;
+    remainingBreads: Array<{
+      breadType: string;
+      quantity: number;
+      unitPrice: number;
+      totalAmount: number;
+    }>;
+    totalRevenue: number;
+    totalItemsSold: number;
+    totalRemaining: number;
+  } | null>(null);
 
 
   useEffect(() => {
@@ -310,11 +348,11 @@ export function QuickRecordAllModal({
       }
 
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error recording sale:', error);
       
       // Handle specific database errors
-      if (error.message?.includes('Duplicate sales record')) {
+      if (error instanceof Error && error.message?.includes('Duplicate sales record')) {
         toast.error('This sale was already recorded. Please check your entries.');
       } else {
         toast.error('Failed to record sale. Please try again.');
@@ -327,7 +365,7 @@ export function QuickRecordAllModal({
     const remainingToRecord = quickRemainingItems.filter(item => item.quantity > 0);
 
       // Calculate monetary values for remaining bread
-      const totalRemainingMonetaryValue = remainingToRecord.reduce((sum: number, item) => {
+      const totalRemainingMonetaryValue = remainingToRecord.reduce((sum, item) => {
         return sum + (item.quantity * item.breadType.unit_price);
       }, 0);
 
@@ -346,9 +384,9 @@ export function QuickRecordAllModal({
           unitPrice: item.breadType.unit_price,
           totalAmount: item.quantity * item.breadType.unit_price
         })),
-        totalRevenue: salesToRecord.reduce((sum: number, item: any) => 
+        totalRevenue: salesToRecord.reduce((sum, item) => 
           sum + (item.quantity * item.breadType.unit_price), 0),
-        totalItemsSold: salesToRecord.reduce((sum: number, item: any) => 
+        totalItemsSold: salesToRecord.reduce((sum, item) => 
           sum + item.quantity, 0),
         totalRemaining: totalRemainingMonetaryValue
       };

@@ -52,7 +52,7 @@ export default function SignupConfirmPage() {
         </div>
         
         <p className="mt-6 text-sm text-muted-foreground">
-          Didn't get redirected?{' '}
+          Didn&apos;t get redirected?{' '}
           <Link href="/login" className="font-semibold text-orange-600 underline">
             Click here to log in
           </Link>

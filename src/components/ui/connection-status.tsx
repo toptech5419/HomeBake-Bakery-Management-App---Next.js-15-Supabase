@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { checkConnection } from '@/lib/supabase/client'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle, CheckCircle, Wifi, WifiOff } from 'lucide-react'
+import { CheckCircle, Wifi, WifiOff } from 'lucide-react'
 
 interface ConnectionStatusProps {
   showDetails?: boolean
@@ -21,7 +21,7 @@ export function ConnectionStatus({ showDetails = false, className = '' }: Connec
       const connected = await checkConnection()
       setIsConnected(connected)
       setLastChecked(new Date())
-    } catch (error) {
+    } catch {
       setIsConnected(false)
       setLastChecked(new Date())
     } finally {

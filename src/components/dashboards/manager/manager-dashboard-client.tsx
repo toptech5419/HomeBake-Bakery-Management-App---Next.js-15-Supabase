@@ -61,7 +61,29 @@ function QuickActionsLoading() {
 }
 
 interface ManagerDashboardClientProps {
-  data: any; // You may want to type this more strictly
+  data: {
+    user: {
+      id: string;
+      name: string;
+    };
+    productionData: {
+      activeBatches: Array<{
+        id: string;
+        batch_number: string;
+        status: string;
+      }>;
+    };
+    breadTypes: Array<{
+      id: string;
+      name: string;
+      unit_price: number;
+    }>;
+    alerts: Array<{
+      id: string;
+      message: string;
+      type: string;
+    }>;
+  };
 }
 
 export function ManagerDashboardClient({ data }: ManagerDashboardClientProps) {

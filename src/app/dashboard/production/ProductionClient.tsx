@@ -26,8 +26,8 @@ import { ExportAllBatchesModal } from '@/components/modals/ExportAllBatchesModal
 import { ViewAllBatchesModal } from '@/components/modals/ViewAllBatchesModal';
 import { format } from 'date-fns';
 import { useOptimizedToast } from '@/components/ui/toast-optimized';
-import { motion, AnimatePresence, MotionValue, useMotionValue, useTransform, animate } from 'framer-motion';
-import { OptimizedLoadingSpinner, SkeletonCard, MobileLoading } from '@/components/ui/loading-optimized';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
+import { SkeletonCard } from '@/components/ui/loading-optimized';
 
 interface ProductionClientProps {
   userRole: string;
@@ -107,7 +107,7 @@ const BatchItem = ({
   batch, 
   index 
 }: { 
-  batch: any; 
+  batch: unknown; 
   index: number;
 }) => (
   <motion.div
@@ -130,7 +130,7 @@ const BatchItem = ({
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h3 className="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">
-              {(batch as any).bread_type?.name || 'Unknown'}
+              {(batch as { bread_type?: { name?: string } }).bread_type?.name || 'Unknown'}
             </h3>
             <Badge 
               variant="secondary" 
@@ -224,7 +224,7 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-export function ProductionClient({ userRole, userId }: ProductionClientProps) {
+export function ProductionClient({ }: ProductionClientProps) {
   const { currentShift } = useShift();
   const { toast } = useOptimizedToast();
   
@@ -263,7 +263,7 @@ export function ProductionClient({ userRole, userId }: ProductionClientProps) {
         description: 'Production data has been updated',
         type: 'success'
       });
-    } catch (error) {
+    } catch {
       toast({
         title: '❌ Refresh Failed',
         description: 'Unable to refresh data. Please try again.',
@@ -283,7 +283,7 @@ export function ProductionClient({ userRole, userId }: ProductionClientProps) {
   };
 
   const totalProduction = activeBatches.reduce((sum, batch) => sum + (batch.actual_quantity || 0), 0);
-  const uniqueBreadTypes = new Set(activeBatches.map(batch => (batch as any).bread_type?.name)).size;
+  const uniqueBreadTypes = new Set(activeBatches.map(batch => (batch as { bread_type?: { name?: string } }).bread_type?.name)).size;
 
   if (isLoading || !mounted) {
     return (

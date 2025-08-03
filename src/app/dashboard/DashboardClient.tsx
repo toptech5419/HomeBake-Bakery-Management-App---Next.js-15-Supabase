@@ -1,13 +1,14 @@
 'use client';
 
 import { UserRole } from '@/types';
+import Link from 'next/link';
 
 interface DashboardClientProps {
   userRole: UserRole;
   displayName: string;
 }
 
-export default function DashboardClient({ userRole, displayName }: DashboardClientProps) {
+export default function DashboardClient({ displayName }: DashboardClientProps) {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto">
@@ -34,9 +35,9 @@ export default function DashboardClient({ userRole, displayName }: DashboardClie
             </div>
             <h3 className="text-lg font-semibold mb-2">Record Sales</h3>
             <p className="text-gray-600 mb-4 text-sm">Log bread sales and leftover inventory</p>
-            <a href="/dashboard/sales-management" className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
+            <Link href="/dashboard/sales-management" className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
               Start Recording
-            </a>
+            </Link>
           </div>
 
           <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
@@ -49,9 +50,9 @@ export default function DashboardClient({ userRole, displayName }: DashboardClie
             </div>
             <h3 className="text-lg font-semibold mb-2">View Metrics</h3>
             <p className="text-gray-600 mb-4 text-sm">Check your sales performance</p>
-            <a href="/dashboard/sales/metrics" className="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm">
+            <Link href="/dashboard/sales/metrics" className="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm">
               View Performance
-            </a>
+            </Link>
           </div>
 
           <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
@@ -64,9 +65,9 @@ export default function DashboardClient({ userRole, displayName }: DashboardClie
             </div>
             <h3 className="text-lg font-semibold mb-2">Reports</h3>
             <p className="text-gray-600 mb-4 text-sm">View detailed sales reports</p>
-            <a href="/dashboard/reports" className="inline-block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 text-sm">
+            <Link href="/dashboard/reports" className="inline-block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 text-sm">
               View Reports
-            </a>
+            </Link>
           </div>
 
           <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
@@ -79,9 +80,9 @@ export default function DashboardClient({ userRole, displayName }: DashboardClie
             </div>
             <h3 className="text-lg font-semibold mb-2">Production</h3>
             <p className="text-gray-600 mb-4 text-sm">Track production and inventory</p>
-            <a href="/dashboard/production" className="inline-block bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 text-sm">
+            <Link href="/dashboard/production" className="inline-block bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 text-sm">
               View Production
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -91,7 +92,7 @@ export default function DashboardClient({ userRole, displayName }: DashboardClie
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-center p-3 bg-gray-50 rounded-lg">
               <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-              <span className="text-sm text-gray-600">Ready to record today's sales</span>
+              <span className="text-sm text-gray-600">Ready to record today&apos;s sales</span>
             </div>
             <div className="flex items-center p-3 bg-gray-50 rounded-lg">
               <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>

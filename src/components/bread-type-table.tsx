@@ -2,14 +2,7 @@ import React from 'react';
 import { Edit, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
-interface BreadType {
-  id: string;
-  name: string;
-  size?: string;
-  unit_price: number;
-  is_active?: boolean;
-}
+import { BreadType } from '@/types/database';
 
 interface BreadTypeTableProps {
   breadTypes: BreadType[];

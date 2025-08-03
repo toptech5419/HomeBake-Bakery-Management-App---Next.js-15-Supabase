@@ -35,7 +35,7 @@ interface SaleForm {
 export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecorded }: SalesModalProps) {
   const [breadTypes, setBreadTypes] = useState<BreadType[]>([]);
   const [selectedBreadType, setSelectedBreadType] = useState<BreadType | null>(null);
-  const toast = useToast();
+  const { toast } = useToast();
   const [formData, setFormData] = useState<SaleForm>({
     breadTypeId: '',
     breadTypeName: '',
@@ -50,6 +50,18 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
   // Ref for auto-scroll functionality
   const selectedBreadRef = useRef<HTMLDivElement>(null);
   const breadTypesContainerRef = useRef<HTMLDivElement>(null);
+
+  const resetForm = () => {
+    setSelectedBreadType(null);
+    setFormData({
+      breadTypeId: '',
+      breadTypeName: '',
+      unitPrice: 0,
+      quantity: 0,
+      discount: 0,
+      totalAmount: 0
+    });
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -105,18 +117,6 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
     } finally {
       setLoading(false);
     }
-  };
-
-  const resetForm = () => {
-    setSelectedBreadType(null);
-    setFormData({
-      breadTypeId: '',
-      breadTypeName: '',
-      unitPrice: 0,
-      quantity: 0,
-      discount: 0,
-      totalAmount: 0
-    });
   };
 
   const handleBreadTypeSelect = (breadType: BreadType) => {

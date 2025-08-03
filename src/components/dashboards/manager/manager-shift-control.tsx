@@ -35,7 +35,7 @@ interface ShiftSummary {
   staffCount: number;
 }
 
-export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps) {
+export function ManagerShiftControl({ }: ManagerShiftControlProps) {
   const { currentShift, toggleShift } = useShift();
   const { productionLogs } = useData();
   const [showHandover, setShowHandover] = useState(false);
@@ -74,10 +74,10 @@ export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps)
       // For morning shift, get previous night's data
       // For night shift, get previous morning's data (same day)
       const targetDate = currentShift === 'morning' 
-        ? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Yesterday
-        : today; // Same day
+        ? new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        : today;
 
-              const previousShiftLogs = productionLogs.filter(log => 
+      const previousShiftLogs = productionLogs.filter(log => 
           log.shift === previousShift && 
           log.created_at.startsWith(targetDate)
         );
@@ -183,7 +183,7 @@ export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps)
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-semibold">
-                    {currentShift === 'morning' ? '🌅 Morning Shift' : '🌙 Night Shift'}
+                    {currentShift === 'morning' ? 'Morning Shift' : 'Night Shift'}
                   </h3>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -241,7 +241,7 @@ export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps)
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-600">
-                  {nigeriaTime.getCurrentShift() === currentShift ? '⚡' : '💤'}
+                  {nigeriaTime.getCurrentShift() === currentShift ? 'Active' : 'Inactive'}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {nigeriaTime.getCurrentShift() === currentShift ? 'On Schedule' : 'Off Schedule'}
@@ -360,7 +360,7 @@ export function ManagerShiftControl({ currentUserId }: ManagerShiftControlProps)
           <span className="font-medium text-blue-900">Shift Management:</span>
         </div>
         <p className="mt-1 text-blue-800">
-          End Shift will save current batches to reports and clear only the current shift's batches.
+          End Shift will save current batches to reports and clear only the current shift&apos;s batches.
         </p>
       </div>
     </div>

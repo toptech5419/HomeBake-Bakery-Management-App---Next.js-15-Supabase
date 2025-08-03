@@ -12,7 +12,7 @@ import {
   ArrowRight,
   MoreHorizontal
 } from 'lucide-react';
-import { formatNigeriaDate, getRelativeTime } from '@/lib/utils/timezone';
+import { getRelativeTime } from '@/lib/utils/timezone';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -189,10 +189,10 @@ export function OwnerActivityFeed({ activities, loading = false }: OwnerActivity
                   className="flex items-start gap-3 p-4 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group"
                 >
                   {/* Icon */}
-                  <div className={cn(
+                  <div className={[
                     "w-10 h-10 rounded-lg flex items-center justify-center border",
                     getActivityColor(activity.type, activity.status)
-                  )}>
+                  ].filter(Boolean).join(' ')}>
                     {getActivityIcon(activity.type)}
                   </div>
 
@@ -301,6 +301,3 @@ export function OwnerActivityFeed({ activities, loading = false }: OwnerActivity
   );
 }
 
-function cn(...classes: (string | undefined | false)[]): string {
-  return classes.filter(Boolean).join(' ');
-}

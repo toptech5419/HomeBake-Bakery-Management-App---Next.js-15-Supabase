@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
       const { searchParams } = new URL(request.url);
       const status = searchParams.get('status');
       const shift = searchParams.get('shift');
-      const includeDetails = searchParams.get('include') === 'details';
+      // const includeDetails = searchParams.get('include') === 'details';
 
       let query = supabase
         .from('batches')

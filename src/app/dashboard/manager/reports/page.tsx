@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { BarChart3, FileText, TrendingUp, Package, Search, Filter, Download, ChevronDown, Plus, Clock, User, Eye, Share2, ArrowUpRight, ArrowDownRight, Calendar } from "lucide-react";
+import { BarChart3, Package, Search, Filter, Download, Plus, Clock, User, Eye, Share2, Calendar } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
@@ -38,7 +38,7 @@ const LoadingSkeleton = () => (
 
 export default function ManagerReportsPage() {
   const [loading, setLoading] = useState(true);
-  const [groupedReports, setGroupedReports] = useState<any[]>([]);
+  const [groupedReports, setGroupedReports] = useState<unknown[]>([]);
   const [search, setSearch] = useState("");
   const [filterShift, setFilterShift] = useState("All");
 
@@ -57,7 +57,7 @@ export default function ManagerReportsPage() {
         return;
       }
       // Group by date+shift
-      const groups: Record<string, any> = {};
+      const groups: Record<string, unknown> = {};
       for (const batch of batches) {
         const date = batch.start_time ? batch.start_time.split('T')[0] : 'unknown';
         const shift = batch.shift;
@@ -82,7 +82,7 @@ export default function ManagerReportsPage() {
         groups[key].totalUnits += batch.actual_quantity || 0;
       }
       // Build array
-      const arr = Object.values(groups).map((g: any) => {
+      const arr = Object.values(groups).map((g: unknown) => {
         const allCompleted = g.statuses.every((s: string) => s === 'completed');
         return {
           ...g,

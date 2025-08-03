@@ -2,7 +2,6 @@
 
 import { createServer } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
 export interface Batch {
   id: string;
@@ -300,7 +299,7 @@ export async function checkAndSaveBatchesToAllBatches(shift?: 'morning' | 'night
 
     // Log details of batches that will be saved
     batchesToSave.forEach(batch => {
-      console.log(`📝 Will save batch: ${batch.id} (${batch.batch_number}) - ${(batch as any).shift} shift`);
+      console.log(`📝 Will save batch: ${batch.id} (${batch.batch_number}) - ${(batch as Batch & { shift?: string }).shift} shift`);
     });
 
     // Validate batch data before insertion
@@ -319,7 +318,7 @@ export async function checkAndSaveBatchesToAllBatches(shift?: 'morning' | 'night
         end_time: batch.end_time,
         actual_quantity: batch.actual_quantity || 0,
         status: batch.status || 'active',
-        shift: (batch as any).shift || 'morning',
+        shift: (batch as Batch & { shift?: string }).shift || 'morning',
         notes: batch.notes,
         created_by: batch.created_by,
         created_at: batch.created_at,
@@ -433,9 +432,9 @@ export async function getBatchStats() {
     };
   }
 
-  const activeBatches = stats?.filter((b: any) => b.status === 'active').length || 0;
-  const completedBatches = stats?.filter((b: any) => b.status === 'completed').length || 0;
-  const totalActualQuantity = stats?.reduce((sum: number, b: any) => sum + (b.actual_quantity || 0), 0) || 0;
+  const activeBatches = stats?.filter((b: { status: string; actual_quantity: number }) => b.status === 'active').length || 0;
+  const completedBatches = stats?.filter((b: { status: string; actual_quantity: number }) => b.status === 'completed').length || 0;
+  const totalActualQuantity = stats?.reduce((sum: number, b: { status: string; actual_quantity: number }) => sum + (b.actual_quantity || 0), 0) || 0;
 
   return {
     activeBatches,

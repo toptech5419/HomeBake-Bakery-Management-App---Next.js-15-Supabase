@@ -34,7 +34,7 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
         setUsers([]);
         toast.error(result.error || 'Failed to fetch users. Please refresh the page.');
       }
-    } catch (err) {
+    } catch {
       setUsers([]);
       toast.error('An unexpected error occurred while fetching users.');
     } finally {
@@ -60,7 +60,7 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
       } else {
         toast.error(result.error || 'Failed to update user role.');
       }
-    } catch (err: unknown) {
+    } catch {
       toast.error('An unexpected error occurred while updating the role.');
     } finally {
       setLoadingId(null);
@@ -79,7 +79,7 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
       } else {
         toast.error(result.error || 'Failed to deactivate user.');
       }
-    } catch (err: unknown) {
+    } catch {
       toast.error('An unexpected error occurred while deactivating the user.');
     } finally {
       setLoadingId(null);
@@ -98,7 +98,7 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
       } else {
         toast.error(result.error || 'Failed to reactivate user.');
       }
-    } catch (err: unknown) {
+    } catch {
       toast.error('An unexpected error occurred while reactivating the user.');
     } finally {
       setLoadingId(null);
@@ -111,14 +111,14 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
     setLoadingId(target.id);
     setLoadingAction('delete');
     try {
-      const result = await deleteUserAction(user, target.id, target.email);
+      const result = await deleteUserAction(user, target.id);
       if (result.success) {
         toast.success('User deleted and access removed successfully!');
         await refetchUsers();
       } else {
         toast.error(result.error || 'Failed to delete user.');
       }
-    } catch (err: unknown) {
+    } catch {
       toast.error('An unexpected error occurred while deleting the user.');
     } finally {
       setLoadingId(null);

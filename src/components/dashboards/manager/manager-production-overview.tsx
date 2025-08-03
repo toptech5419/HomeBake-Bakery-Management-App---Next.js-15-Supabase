@@ -2,15 +2,9 @@
 
 import { 
   Package, 
-  Clock, 
-  Users, 
-  TrendingUp,
-  AlertTriangle,
   CheckCircle2,
   Timer,
-  Zap,
-  Target,
-  Activity
+  Target
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
@@ -223,7 +217,7 @@ export function ManagerProductionOverview({ data, loading = false }: ManagerProd
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {data.activeBatches.slice(0, 6).map((batch, index) => (
+          {data.activeBatches.slice(0, 6).map((batch) => (
             <motion.div
               key={batch.id}
               variants={itemVariants}

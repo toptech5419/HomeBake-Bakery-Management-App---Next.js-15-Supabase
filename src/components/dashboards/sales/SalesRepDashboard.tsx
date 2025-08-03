@@ -6,13 +6,13 @@ import {
   DollarSign,
   ShoppingCart,
   Package,
-  Target,
   TrendingUp,
   Clock,
   Plus,
   BarChart3,
-  RotateCcw,
-  History
+  History,
+  Target,
+  RotateCcw
 } from 'lucide-react';
 import { SalesLog } from '../shared/SalesLog';
 import { ModernButton } from '@/components/ui/modern-button';

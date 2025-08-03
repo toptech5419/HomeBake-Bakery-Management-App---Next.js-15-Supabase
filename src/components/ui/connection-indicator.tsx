@@ -166,7 +166,7 @@ export function ConnectionIndicator({
           >
             <div className="flex items-center gap-2">
               <WifiOff className="w-4 h-4" />
-              <span className="text-sm font-medium">You're offline</span>
+              <span className="text-sm font-medium">You&apos;re offline</span>
             </div>
             <p className="text-xs mt-1 opacity-90">
               Some features may not work until you reconnect

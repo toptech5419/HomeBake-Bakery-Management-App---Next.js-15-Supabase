@@ -21,7 +21,7 @@ export default async function UsersPage() {
       .eq('id', user.id)
       .single();
     if (profile?.role) {
-      user.role = profile.role;
+      user = { ...user, role: profile.role };
     }
   }
 

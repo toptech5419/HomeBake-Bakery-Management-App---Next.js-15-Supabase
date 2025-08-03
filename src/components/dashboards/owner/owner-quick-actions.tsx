@@ -13,8 +13,7 @@ import {
   Plus,
   Download,
   Bell,
-  Zap,
-  Wifi
+  Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
@@ -201,11 +200,11 @@ export function OwnerQuickActions({ alerts }: OwnerQuickActionsProps) {
             onMouseLeave={() => setHoveredAction(null)}
           >
             <Link href={action.href}>
-              <div className={cn(
+              <div className={[
                 "relative p-6 bg-white rounded-lg border border-gray-200 shadow-sm transition-all duration-200 cursor-pointer group",
                 "hover:shadow-md hover:border-gray-300 hover:-translate-y-1",
                 hoveredAction === action.id && "ring-2 ring-orange-200"
-              )}>
+              ].filter(Boolean).join(' ')}>
                 {/* Badge */}
                 {action.badge > 0 && (
                   <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
@@ -214,11 +213,11 @@ export function OwnerQuickActions({ alerts }: OwnerQuickActionsProps) {
                 )}
 
                 {/* Icon */}
-                <div className={cn(
+                <div className={[
                   "w-12 h-12 rounded-lg flex items-center justify-center mb-4 transition-colors",
                   getColorClasses(action.color, 'bg'),
                   getColorClasses(action.color, 'hover')
-                )}>
+                ].filter(Boolean).join(' ')}>
                   <div className={getColorClasses(action.color, 'text')}>
                     {action.icon}
                   </div>
@@ -345,11 +344,11 @@ export function OwnerQuickActions({ alerts }: OwnerQuickActionsProps) {
                     {action.badge > 9 ? '9+' : action.badge}
                   </div>
                 )}
-                <div className={cn(
+                <div className={[
                   "w-8 h-8 rounded-lg flex items-center justify-center",
                   getColorClasses(action.color, 'bg'),
                   getColorClasses(action.color, 'text')
-                )}>
+                ].filter(Boolean).join(' ')}>
                   {action.icon}
                 </div>
                 <span className="text-xs font-medium text-gray-600">
@@ -364,6 +363,3 @@ export function OwnerQuickActions({ alerts }: OwnerQuickActionsProps) {
   );
 }
 
-function cn(...classes: (string | undefined | false)[]): string {
-  return classes.filter(Boolean).join(' ');
-}

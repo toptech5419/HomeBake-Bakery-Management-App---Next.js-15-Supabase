@@ -71,12 +71,6 @@ interface ManagerDashboardProps {
 export function ManagerDashboard({ data }: ManagerDashboardProps) {
   const { metrics, batches, targets } = data;
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-    }).format(amount);
-  };
 
   const getStatusColor = (status: string) => {
     const colors = {

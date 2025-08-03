@@ -23,6 +23,7 @@ export interface ProductionManagementData {
 
 export interface StockUpdateData {
   bread_type_id: string;
+  bread_type_name: string;
   quantity: number;
   unit_price: number;
 }
@@ -232,6 +233,7 @@ export async function updateAvailableStock(data: StockUpdateData) {
       .from('available_stock')
       .upsert({
         bread_type_id: data.bread_type_id,
+        bread_type_name: data.bread_type_name,
         quantity: data.quantity,
         unit_price: data.unit_price,
         last_updated: new Date().toISOString(),

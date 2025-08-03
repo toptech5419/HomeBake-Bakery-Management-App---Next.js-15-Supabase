@@ -6,10 +6,6 @@ import {
   DollarSign,
   Users,
   Package,
-  ClipboardList,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
   FileText,
   BarChart3,
   Clock,
@@ -67,7 +63,7 @@ interface OwnerDashboardProps {
 
 export function OwnerDashboard({ data }: OwnerDashboardProps) {
   const router = useRouter();
-  const { productionLogs, salesLogs, users, isLoading } = useData();
+  const { productionLogs, salesLogs, users } = useData();
   
   const { metrics, alerts, activities } = data;
 
@@ -86,7 +82,6 @@ export function OwnerDashboard({ data }: OwnerDashboardProps) {
   );
 
   const totalProductionToday = todayProduction.reduce((sum, log) => sum + log.quantity, 0);
-  const totalSalesToday = todaySales.reduce((sum, log) => sum + log.quantity, 0);
   const totalRevenueToday = todaySales.reduce((sum, log) => sum + (log.quantity * (log.unit_price || 0)), 0);
 
   // Get active staff count
@@ -164,7 +159,7 @@ export function OwnerDashboard({ data }: OwnerDashboardProps) {
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-600">Today's Revenue</span>
+                <span className="text-sm text-slate-600">Today&apos;s Revenue</span>
                 <span className="font-semibold">{formatCurrency(totalRevenueToday)}</span>
               </div>
               <div className="flex justify-between items-center">

@@ -221,7 +221,7 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, reportData, handleSaveReport, handleClose, fetchShiftFeedback]);
+  }, [isOpen, reportData, viewOnly, handleSaveReport, handleClose, fetchShiftFeedback]);
 
   const handleBackdropClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {

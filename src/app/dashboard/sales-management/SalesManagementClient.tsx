@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useShift } from '@/contexts/ShiftContext';
 import { supabase } from '@/lib/supabase/client';
@@ -29,7 +29,6 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { ProductionTableSkeleton } from '@/components/ui/loading-skeleton';
 import { Pagination } from '@/components/ui/pagination';
 import { toast } from 'sonner';
-import { useAuth } from '@/hooks/use-auth';
 import { useSalesRepProduction } from '@/hooks/use-sales-rep-production';
 
 interface SalesRecord {
@@ -62,16 +61,10 @@ interface SalesManagementClientProps {
 }
 
 export default function SalesManagementClient({
-  userId,
-  userName,
-  userRole
+  userId
 }: SalesManagementClientProps) {
   const { currentShift } = useShift();
   const router = useRouter();
-  const { user: clientUser } = useAuth();
-  
-  // Use server user if available, otherwise fall back to client user
-  const user = clientUser || { id: userId };
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -80,7 +73,6 @@ export default function SalesManagementClient({
   // Use sales rep production hook for production items
   const { 
     productionItems, 
-    totalUnits, 
     isLoading, 
     error, 
     refetch,
@@ -88,8 +80,6 @@ export default function SalesManagementClient({
     isEmpty,
     shift,
     currentTime,
-    currentHour,
-    currentDate,
     reason,
     nextClearTime,
     isCleared,
@@ -155,7 +145,7 @@ export default function SalesManagementClient({
   }, [searchTerm, activeFilter]);
 
   // Fetch sales data for current shift and current user only - NO DATE FILTERING
-  const fetchSalesData = async () => {
+  const fetchSalesData = useCallback(async () => {
     if (isTransitioning) {
       return;
     }
@@ -222,37 +212,12 @@ export default function SalesManagementClient({
       console.error('Error fetching sales data:', error);
       toast.error('Failed to fetch sales data');
     }
-  };
+  }, [userId, currentShift, isTransitioning]);
 
   useEffect(() => {
     fetchSalesData();
-  }, [currentShift, userId]);
+  }, [currentShift, userId, fetchSalesData]);
 
-  // Calculate available quantities based on production items and sales
-  const calculateAvailableQuantities = () => {
-    const processedItems = productionItems.map((item: { id: string; bread_type_id: string; quantity: number; unit_price: number; name: string; size: string | null; produced: number }) => {
-      // Calculate total sold for this bread type in current shift
-      const sold = salesRecords
-        .filter(sale => sale.bread_types.name === item.name)
-        .reduce((sum, sale) => sum + sale.quantity, 0);
-      
-      return {
-        id: item.id,
-        bread_type_id: item.bread_type_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        name: item.name,
-        size: item.size,
-        produced: item.produced,
-        sold,
-        available: Math.max(0, item.quantity - sold)
-      };
-    });
-
-    return processedItems;
-  };
-
-  const processedProductionItems = calculateAvailableQuantities();
 
   const getStatusIndicator = (available: number) => {
     if (available === 0) return <XCircle className="h-4 w-4 text-red-500" />;
@@ -387,7 +352,7 @@ export default function SalesManagementClient({
               <div className="text-xl font-bold text-gray-900 mb-1">
                 {formatCurrencyNGN(metrics.todaySales)}
               </div>
-              <div className="text-xs text-gray-600 uppercase font-medium">Today's Sales</div>
+              <div className="text-xs text-gray-600 uppercase font-medium">Today&apos;s Sales</div>
             </div>
             <div className="text-center">
               <div className="text-xl font-bold text-gray-900 mb-1">

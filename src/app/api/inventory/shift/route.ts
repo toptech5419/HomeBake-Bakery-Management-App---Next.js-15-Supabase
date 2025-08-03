@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
     console.log(`📊 Active batches query result: ${batchesData?.length || 0} records`);
     
     let dataSource = 'batches';
-    let archivedData: any[] = [];
+    const archivedData: unknown[] = [];
 
     if (batchesData && batchesData.length > 0) {
       console.log(`✅ Found ${batchesData.length} active batches`);
@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
     const inventoryMap = new Map();
     
     for (const batch of allBatches) {
-      const breadType = batch.bread_type;
+      const breadType = (batch as any).bread_type;
       if (!breadType) continue;
 
       const key = breadType.id;
@@ -205,11 +205,11 @@ export async function GET(request: NextRequest) {
       }
 
       const item = inventoryMap.get(key);
-      item.quantity += batch.actual_quantity || 0;
+      item.quantity += (batch as any).actual_quantity || 0;
       item.batches += 1;
       
       // Track archived batches separately
-      if (archivedData.some(archived => archived.id === batch.id)) {
+      if (archivedData.some((archived: any) => archived.id === (batch as any).id)) {
         item.archivedBatches += 1;
       }
     }

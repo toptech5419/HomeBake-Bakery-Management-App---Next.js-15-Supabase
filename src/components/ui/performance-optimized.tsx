@@ -23,7 +23,7 @@ interface DataTableProps<T> {
   className?: string;
 }
 
-export const OptimizedDataTable = React.memo(<T extends Record<string, any>>({
+export const OptimizedDataTable = React.memo(<T extends Record<string, unknown>>({
   data,
   columns,
   sortBy,
@@ -108,6 +108,7 @@ export const OptimizedDataTable = React.memo(<T extends Record<string, any>>({
     </div>
   );
 });
+OptimizedDataTable.displayName = 'OptimizedDataTable';
 
 // Performance-optimized Search Input
 interface SearchInputProps {
@@ -154,6 +155,7 @@ export const OptimizedSearchInput = React.memo(({
     />
   );
 });
+OptimizedSearchInput.displayName = 'OptimizedSearchInput';
 
 // Performance-optimized Pagination
 interface PaginationProps {
@@ -251,6 +253,7 @@ export const OptimizedPagination = React.memo(({
     </div>
   );
 });
+OptimizedPagination.displayName = 'OptimizedPagination';
 
 // Performance-optimized Virtual List (for large datasets)
 interface VirtualListProps<T> {
@@ -308,6 +311,7 @@ export const OptimizedVirtualList = React.memo(<T,>({
     </div>
   );
 });
+OptimizedVirtualList.displayName = 'OptimizedVirtualList';
 
 // Performance-optimized Infinite Scroll
 interface InfiniteScrollProps {
@@ -359,6 +363,7 @@ export const OptimizedInfiniteScroll = React.memo(({
     </div>
   );
 });
+OptimizedInfiniteScroll.displayName = 'OptimizedInfiniteScroll';
 
 // Performance-optimized Modal
 interface OptimizedModalProps {
@@ -423,10 +428,11 @@ export const OptimizedModal = React.memo(({
     </div>
   );
 });
+OptimizedModal.displayName = 'OptimizedModal';
 
 // Performance-optimized Form with validation
 interface OptimizedFormProps {
-  onSubmit: (data: any) => void;
+  onSubmit: (data: Record<string, FormDataEntryValue>) => void;
   children: React.ReactNode;
   className?: string;
   loading?: boolean;
@@ -453,6 +459,7 @@ export const OptimizedForm = React.memo(({
     </form>
   );
 });
+OptimizedForm.displayName = 'OptimizedForm';
 
 // Performance-optimized Image with lazy loading
 interface OptimizedImageProps {
@@ -492,6 +499,7 @@ export const OptimizedImage = React.memo(({
       {!isLoaded && !hasError && (
         <div className="absolute inset-0 bg-gray-200 animate-pulse" />
       )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
         alt={alt}
@@ -505,4 +513,5 @@ export const OptimizedImage = React.memo(({
       />
     </div>
   );
-}); 
+});
+OptimizedImage.displayName = 'OptimizedImage'; 

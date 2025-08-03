@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   Clock,
   Play,
@@ -17,7 +16,6 @@ import {
   Timer,
   Users,
   Package,
-  Star,
   ChefHat,
   AlertCircle,
   Loader2,
@@ -33,15 +31,11 @@ interface BatchSystemProps {
   breadTypes: Array<{ id: string; name: string; unit_price: number }>;
 }
 
-export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: BatchSystemProps) {
+export function ManagerBatchSystem({ currentShift, breadTypes }: BatchSystemProps) {
   const { toast } = useOptimizedToast();
   const {
     batches,
-    activeBatches,
-    batchStats,
     isLoadingBatches,
-    isLoadingActiveBatches,
-    isLoadingStats,
     isCreatingBatch,
     isUpdatingBatch,
     isCompletingBatch,
@@ -52,10 +46,6 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
     cancelExistingBatch,
     generateBatchNumber,
     batchesError,
-    createBatchError,
-    updateBatchError,
-    completeBatchError,
-    cancelBatchError,
   } = useBatches();
 
   const [showCreateBatch, setShowCreateBatch] = useState(false);
@@ -104,7 +94,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
           setIsGeneratingBatchNumber(false);
         });
     }
-  }, [newBatch.breadTypeId, generateBatchNumber, toast]);
+  }, [newBatch.breadTypeId, newBatch.batchNumber, generateBatchNumber, toast]);
 
   const handleCreateBatch = async () => {
     if (!newBatch.breadTypeId || !newBatch.batchNumber || !newBatch.actualQuantity) {
@@ -138,7 +128,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
         notes: ''
       });
       setShowCreateBatch(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating batch:', error);
       toast({
         title: "Error",
@@ -174,7 +164,7 @@ export function ManagerBatchSystem({ currentShift, managerId, breadTypes }: Batc
         description: "Batch completed successfully",
         type: "success"
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error completing batch:', error);
       toast({
         title: "Error",

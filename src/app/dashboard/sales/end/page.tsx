@@ -26,7 +26,7 @@ export default async function ShiftEndPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">End Shift</h1>
         <p className="text-gray-600 mt-2">
-          Review today's sales and end your shift
+          Review today&apos;s sales and end your shift
         </p>
       </div>
 

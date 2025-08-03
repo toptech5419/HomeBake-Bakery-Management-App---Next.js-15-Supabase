@@ -1,10 +1,11 @@
 'use server';
 import { createBreadType, updateBreadType, deleteBreadType, getBreadTypes } from '@/lib/bread-types/actions';
 import { revalidatePath } from 'next/cache';
+import { User } from '@/types/database';
 
-export async function createBreadTypeAction(user: any, input: any) {
+export async function createBreadTypeAction(user: unknown, input: unknown) {
   try {
-    await createBreadType(user, input);
+    await createBreadType(user as User, input as any);
     revalidatePath('/dashboard/bread-types');
     return { success: true };
   } catch {
@@ -12,9 +13,9 @@ export async function createBreadTypeAction(user: any, input: any) {
   }
 }
 
-export async function updateBreadTypeAction(user: any, id: string, input: any) {
+export async function updateBreadTypeAction(user: unknown, id: string, input: unknown) {
   try {
-    await updateBreadType(user, id, input);
+    await updateBreadType(user as User, id, input as any);
     revalidatePath('/dashboard/bread-types');
     return { success: true };
   } catch {
@@ -22,9 +23,9 @@ export async function updateBreadTypeAction(user: any, id: string, input: any) {
   }
 }
 
-export async function deleteBreadTypeAction(user: any, id: string) {
+export async function deleteBreadTypeAction(user: unknown, id: string) {
   try {
-    await deleteBreadType(user, id);
+    await deleteBreadType(user as User, id);
     revalidatePath('/dashboard/bread-types');
     return { success: true };
   } catch (error) {

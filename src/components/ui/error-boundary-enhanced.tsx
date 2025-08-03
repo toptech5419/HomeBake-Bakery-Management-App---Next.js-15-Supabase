@@ -82,7 +82,7 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
   };
 
   handleReset = () => {
-    const { retryCount, maxRetries = 3 } = this.props;
+    const { maxRetries = 3 } = this.props;
     
     if (this.state.retryCount < maxRetries) {
       this.setState(prevState => ({

@@ -84,7 +84,7 @@ export function ConnectionDiagnostics() {
 
     // Test 3: Supabase Connection
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('bread_types')
         .select('count')
         .limit(1);
@@ -222,7 +222,7 @@ export function ConnectionDiagnostics() {
 
       {results.length === 0 && !isRunning && (
         <div className="text-center py-8 text-gray-500">
-          Click "Run Tests" to diagnose connection issues
+          Click &quot;Run Tests&quot; to diagnose connection issues
         </div>
       )}
     </Card>

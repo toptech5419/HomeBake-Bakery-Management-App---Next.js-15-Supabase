@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Clock, Package, TrendingUp, FileText, LogOut, ChevronRight, Download, AlertTriangle } from 'lucide-react';
+import { Plus, Clock, Package, FileText, LogOut, ChevronRight, Download, AlertTriangle } from 'lucide-react';
 import { CreateBatchModal } from '@/components/modals/CreateBatchModal';
 import { ViewAllBatchesModal } from '@/components/modals/ViewAllBatchesModal';
 import { ExportAllBatchesModal } from '@/components/modals/ExportAllBatchesModal';
-import { useAuth } from '@/hooks/use-auth';
 import { useManagerDashboard } from '@/hooks/use-manager-dashboard';
 import { useShift } from '@/contexts/ShiftContext';
 import { useData } from '@/contexts/DataContext';
@@ -16,26 +15,32 @@ import { Button } from '@/components/ui/button';
 import { useOptimizedToast } from '@/components/ui/toast-optimized';
 import { useQueryClient } from '@tanstack/react-query';
 
+interface RecentBatch {
+  id: string;
+  product: string;
+  quantity: number;
+  status: string;
+  time: string;
+  batchNumber: string;
+}
+
 interface ManagerDashboardClientProps {
   userName: string;
   currentShift: 'morning' | 'night';
   shiftStartTime: string | null;
   activeBatchesCount: number;
-  recentBatches: any[];
+  recentBatches: RecentBatch[];
   totalBatches: number;
   progressPercentage: number;
 }
 
 export default function ManagerDashboardClient({
-  userName,
-  currentShift: initialShift,
   shiftStartTime,
   activeBatchesCount: initialActiveBatchesCount,
   recentBatches: initialRecentBatches,
   totalBatches: initialTotalBatches,
   progressPercentage: initialProgressPercentage,
 }: ManagerDashboardClientProps) {
-  const { user } = useAuth();
   const { toast } = useOptimizedToast();
   const { currentShift, setCurrentShift } = useShift();
   const { refreshBatches } = useData();

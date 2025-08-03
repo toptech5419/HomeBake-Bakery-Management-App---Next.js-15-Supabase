@@ -22,8 +22,7 @@ import {
   useInventory,
   useTodaysSales,
   useTodaysProduction,
-  useManualRefresh,
-  useAutoRefresh
+  useManualRefresh
 } from '@/hooks/use-inventory';
 
 interface InventoryDashboardClientProps {

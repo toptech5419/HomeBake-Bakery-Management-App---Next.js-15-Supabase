@@ -644,8 +644,8 @@ export interface Database {
           total_items_sold: number
           total_remaining: number
           feedback: string | null
-          sales_data: any[]
-          remaining_breads: any[]
+          sales_data: Record<string, unknown>[]
+          remaining_breads: Record<string, unknown>[]
           created_at: string
           updated_at: string
         }
@@ -658,8 +658,8 @@ export interface Database {
           total_items_sold: number
           total_remaining: number
           feedback?: string | null
-          sales_data?: any[]
-          remaining_breads?: any[]
+          sales_data?: Record<string, unknown>[]
+          remaining_breads?: Record<string, unknown>[]
           created_at?: string
           updated_at?: string
         }
@@ -672,8 +672,8 @@ export interface Database {
           total_items_sold?: number
           total_remaining?: number
           feedback?: string | null
-          sales_data?: any[]
-          remaining_breads?: any[]
+          sales_data?: Record<string, unknown>[]
+          remaining_breads?: Record<string, unknown>[]
           created_at?: string
           updated_at?: string
         }

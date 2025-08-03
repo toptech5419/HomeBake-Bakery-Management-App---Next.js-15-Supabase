@@ -1,7 +1,6 @@
 import { createServer } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { UserRole } from '@/types';
-import DashboardClient from './DashboardClient';
 
 export default async function DashboardPage() {
   const supabase = await createServer();
@@ -81,7 +80,7 @@ export default async function DashboardPage() {
         });
       }
     }
-  } catch (error) {
+  } catch {
     // If we can't determine role, redirect to login
     return redirect('/login?error=auth-error');
   }

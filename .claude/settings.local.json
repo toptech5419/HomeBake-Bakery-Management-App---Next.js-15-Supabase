@@ -12,7 +12,13 @@
       "Bash(cp:*)",
       "Bash(timeout 20 npm run dev)",
       "Bash(timeout 15 npm run dev)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(npx eslint:*)",
+      "Bash(npm run lint:*)",
+      "Bash(sed:*)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "Bash(awk:*)"
     ],
     "deny": []
   }

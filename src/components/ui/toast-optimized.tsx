@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { X, CheckCircle, AlertCircle, Info, AlertTriangle, Wifi, WifiOff } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Info, AlertTriangle, Wifi } from 'lucide-react';
 
 interface Toast {
   id: string;
@@ -97,7 +97,7 @@ export function OptimizedToastProvider({ children }: { children: React.ReactNode
       
       timers.current.set(id, timer);
     }
-  }, []);
+  }, [dismiss]);
 
   const dismiss = useCallback((id: string) => {
     // Clear timer if exists
@@ -217,6 +217,7 @@ const ToastItem = React.memo(({
     </div>
   );
 });
+ToastItem.displayName = 'ToastItem';
 
 // Toast Container with mobile-first positioning
 const ToastContainer = React.memo(({ 
@@ -248,6 +249,7 @@ const ToastContainer = React.memo(({
     </>
   );
 });
+ToastContainer.displayName = 'ToastContainer';
 
 // Hook for using toast
 export function useOptimizedToast() {
@@ -333,4 +335,4 @@ export const showInfo = (title: string, description?: string, toast: ToastContex
     type: 'info',
     duration: 4000
   });
-}; 
+};

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Package, TrendingUp, Clock, RefreshCw, Archive, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Package, TrendingUp, Clock, RefreshCw, Archive, AlertTriangle } from 'lucide-react';
 import { useInventoryData } from '@/hooks/use-inventory-data';
 import { useAuth } from '@/hooks/use-auth';
 import { useAutoShift } from '@/hooks/use-auto-shift';
@@ -22,7 +22,7 @@ interface InventoryClientProps {
 }
 
 export default function InventoryClient({ serverUser }: InventoryClientProps) {
-  const { user: clientUser, loading: authLoading } = useAuth();
+  const { user: clientUser } = useAuth();
   const { currentShift, isLoading: shiftLoading } = useAutoShift();
 
   // Use server user if available, otherwise fall back to client user
@@ -73,39 +73,6 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
     );
   }
 
-  // Enhanced shift status display
-  const getShiftStatusIcon = () => {
-    if (shiftStatus.alignmentStatus === 'aligned') {
-      return <CheckCircle className="w-5 h-5 text-green-500" />;
-    } else if (shiftStatus.alignmentStatus === 'transitioning') {
-      return <Clock className="w-5 h-5 text-yellow-500" />;
-    } else {
-      return <AlertTriangle className="w-5 h-5 text-orange-500" />;
-    }
-  };
-
-  const getShiftStatusText = () => {
-    if (shiftStatus.alignmentStatus === 'aligned') {
-      return 'Shift Aligned';
-    } else if (shiftStatus.alignmentStatus === 'transitioning') {
-      return 'Shift Transitioning';
-    } else {
-      return 'Shift Misaligned';
-    }
-  };
-
-  const getDataSourceBadge = () => {
-    switch (dataSourceInfo.source) {
-      case 'batches':
-        return <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">Live Data</span>;
-      case 'all_batches':
-        return <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">Archive</span>;
-      case 'archived':
-        return <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800">Historical</span>;
-      default:
-        return <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800">Unknown</span>;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-white">

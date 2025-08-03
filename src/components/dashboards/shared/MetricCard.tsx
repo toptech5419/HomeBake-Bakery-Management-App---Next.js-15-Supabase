@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils';
-import { LucideIcon } from 'lucide-react';
 
 interface MetricCardProps {
   title: string;

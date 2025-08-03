@@ -9,7 +9,6 @@ import { BreadType, UserRole } from '@/types';
 import { ReportSummary, ReportFilters } from '@/lib/reports/queries';
 import { fetchReportData } from '@/lib/reports/actions';
 import { useShift } from '@/contexts/ShiftContext';
-import { toast } from 'sonner';
 import { useToast } from '@/components/ui/ToastProvider';
 import { exportToCSV, exportToPDF } from '@/lib/reports/export';
 
@@ -28,7 +27,6 @@ import {
   Search,
   Filter,
   Download,
-  TrendingUp,
   Package,
   ChevronDown,
   Plus,
@@ -219,7 +217,7 @@ export default function ReportsClient({
         await exportToPDF('', shift, { title: 'HomeBake Report', subtitle: `${shift.date} - ${shift.shift} shift`, filename: `homebake-report-${shift.date}-${shift.shift}.pdf` });
         toast.success('PDF exported!');
       }
-    } catch (e) {
+    } catch {
       toast.error('Export failed');
     } finally {
       setExportingId(null);

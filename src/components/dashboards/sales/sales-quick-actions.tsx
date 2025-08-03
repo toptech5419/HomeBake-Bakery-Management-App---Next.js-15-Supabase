@@ -5,17 +5,14 @@ import {
   Plus,
   ShoppingCart,
   Users,
-  BarChart3,
-  Clock,
   Target,
-  Award,
-  FileText,
-  RefreshCw,
-  TrendingUp,
   Package,
-  DollarSign,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  Clock,
+  TrendingUp,
+  RefreshCw
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState } from 'react';

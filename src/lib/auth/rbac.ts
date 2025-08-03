@@ -1,7 +1,7 @@
 export type Role = 'owner' | 'manager' | 'sales_rep';
 export interface User {
   id: string;
-  email: string;
+  email?: string;
   role: Role;
 }
 
@@ -18,7 +18,7 @@ export function canViewUsers(user?: User) {
   // Only owners can view users
   return isOwner(user);
 }
-export function canEditUser(user?: User, target?: User) {
+export function canEditUser(user?: User) {
   // Only owners can edit users
   return isOwner(user);
 }

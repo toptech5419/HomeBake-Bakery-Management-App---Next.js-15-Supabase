@@ -1,6 +1,5 @@
 import { createServer } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { UserRole } from '@/types';
 import ShiftManagementClient from './ShiftManagementClient';
 
 export default async function ShiftManagementPage() {

@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { OwnerMetrics } from '@/components/dashboards/owner/owner-metrics';
 import { OwnerQuickActions } from '@/components/dashboards/owner/owner-quick-actions';
-import { OwnerActivityFeed } from '@/components/dashboards/owner/owner-activity-feed';
 import { createServer } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -243,38 +242,6 @@ function QuickActionsLoading() {
   );
 }
 
-function ActivityFeedLoading() {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <div className="space-y-2">
-            <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-4 w-40" />
-          </div>
-          <Skeleton className="h-6 w-16" />
-        </div>
-        <div className="flex items-center gap-2">
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-8 w-20" />
-          ))}
-        </div>
-      </div>
-      <div className="p-6 space-y-4">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <Skeleton className="w-10 h-10 rounded-lg" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-3 w-1/2" />
-            </div>
-            <Skeleton className="w-16 h-4" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default async function OwnerDashboardPage() {
   const data = await getOwnerDashboardData();

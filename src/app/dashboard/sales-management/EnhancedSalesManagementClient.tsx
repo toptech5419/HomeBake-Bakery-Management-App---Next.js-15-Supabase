@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,7 +59,6 @@ export default function EnhancedSalesManagementClient({
   userName
 }: EnhancedSalesManagementClientProps) {
   const { currentShift } = useShift();
-  const router = useRouter();
   
   // State management
   const [salesRecords, setSalesRecords] = useState<SalesRecord[]>([]);
@@ -237,7 +235,7 @@ export default function EnhancedSalesManagementClient({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-green-800">Today's Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium text-green-800">Today&apos;s Revenue</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-900">
@@ -829,7 +827,7 @@ export default function EnhancedSalesManagementClient({
             </CardHeader>
             <CardContent className="p-6">
               <p className="text-gray-600 mb-4">
-                You haven't added any remaining breads. Do you still want to proceed?
+                You haven&apos;t added any remaining breads. Do you still want to proceed?
               </p>
               <div className="flex gap-3">
                 <Button

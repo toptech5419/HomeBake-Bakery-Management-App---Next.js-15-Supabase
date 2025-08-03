@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle, CheckCircle, RefreshCw, Wifi, WifiOff } from 'lucide-react'
+import { AlertCircle, CheckCircle, RefreshCw, Wifi } from 'lucide-react'
 import { checkConnection, withRetry } from '@/lib/supabase/client'
 
 export function ConnectionTroubleshooting() {

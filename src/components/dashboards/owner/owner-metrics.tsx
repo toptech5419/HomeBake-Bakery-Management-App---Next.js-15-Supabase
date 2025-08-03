@@ -4,14 +4,13 @@ import { MetricCard } from '@/components/ui/card';
 import { 
   DollarSign, 
   Package, 
-  TrendingUp, 
   Users, 
   Clock,
   AlertTriangle,
   CheckCircle,
   BarChart3
 } from 'lucide-react';
-import { formatNigeriaDate, getRelativeTime, nigeriaTime } from '@/lib/utils/timezone';
+import { getRelativeTime } from '@/lib/utils/timezone';
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 
@@ -85,10 +84,10 @@ export function OwnerMetrics({ data, loading = false }: OwnerMetricsProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className={cn(
+          <div className={[
             "w-3 h-3 rounded-full",
             loading ? "bg-yellow-400 animate-pulse" : "bg-green-400"
-          )} />
+          ].filter(Boolean).join(' ')} />
           <span className="text-sm font-medium text-gray-600">
             {loading ? 'Updating...' : 'Live'}
           </span>
@@ -110,7 +109,7 @@ export function OwnerMetrics({ data, loading = false }: OwnerMetricsProps) {
             description="Total sales revenue"
             change={revenueChange ? {
               value: `${revenueChange.value}%`,
-              type: revenueChange.type as any,
+              type: revenueChange.type as 'increase' | 'decrease' | 'neutral',
               period: 'vs yesterday'
             } : undefined}
             icon={<DollarSign className="w-5 h-5" />}
@@ -127,7 +126,7 @@ export function OwnerMetrics({ data, loading = false }: OwnerMetricsProps) {
             description="Batches in progress"
             change={{
               value: `${productionEfficiency.value}%`,
-              type: productionEfficiency.type as any,
+              type: productionEfficiency.type as 'increase' | 'decrease' | 'neutral',
               period: 'efficiency'
             }}
             icon={<Package className="w-5 h-5" />}
@@ -144,11 +143,11 @@ export function OwnerMetrics({ data, loading = false }: OwnerMetricsProps) {
             description={`${data.lowStockItems} low stock alerts`}
             change={data.lowStockItems > 0 ? {
               value: `${data.lowStockItems}`,
-              type: 'decrease' as any,
+              type: 'decrease' as 'increase' | 'decrease' | 'neutral',
               period: 'items low'
             } : {
               value: 'All Good',
-              type: 'increase' as any,
+              type: 'increase' as 'increase' | 'decrease' | 'neutral',
               period: 'stock levels'
             }}
             icon={data.lowStockItems > 0 ? 
@@ -168,7 +167,7 @@ export function OwnerMetrics({ data, loading = false }: OwnerMetricsProps) {
             description="Active team members"
             change={{
               value: `${staffUtilization.value}%`,
-              type: staffUtilization.type as any,
+              type: staffUtilization.type as 'increase' | 'decrease' | 'neutral',
               period: 'utilization'
             }}
             icon={<Users className="w-5 h-5" />}
@@ -288,10 +287,10 @@ export function OwnerMetrics({ data, loading = false }: OwnerMetricsProps) {
         <motion.div variants={itemVariants}>
           <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <div className={cn(
+              <div className={[
                 "w-10 h-10 rounded-lg flex items-center justify-center",
                 data.lowStockItems > 0 ? "bg-red-100" : "bg-green-100"
-              )}>
+              ].filter(Boolean).join(' ')}>
                 {data.lowStockItems > 0 ? (
                   <AlertTriangle className="w-5 h-5 text-red-600" />
                 ) : (
@@ -338,6 +337,3 @@ export function OwnerMetrics({ data, loading = false }: OwnerMetricsProps) {
   );
 }
 
-function cn(...classes: (string | undefined | false)[]): string {
-  return classes.filter(Boolean).join(' ');
-}

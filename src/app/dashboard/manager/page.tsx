@@ -1,7 +1,6 @@
 import { createServer } from '@/lib/supabase/server';
 import { getRelativeTime } from '@/lib/utils/timezone';
-import { notFound, redirect } from 'next/navigation';
-import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
 import ManagerDashboardClient from './ManagerDashboardClient';
 

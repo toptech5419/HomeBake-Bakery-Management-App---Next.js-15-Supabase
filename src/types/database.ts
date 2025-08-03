@@ -14,10 +14,10 @@ export interface User {
 export interface BreadType {
   id: string
   name: string
-  size?: string | null
+  size: string | null
   unit_price: number
-  created_by?: string
-  created_at?: string
+  created_by: string
+  created_at: string
 }
 
 // Alternative BreadType for database operations
@@ -143,16 +143,16 @@ export interface BatchStatus {
 }
 
 // Error handling types
-export interface APIResponse<T = any> {
+export interface APIResponse<T = unknown> {
   data?: T
   error?: string
   success: boolean
   message?: string
 }
 
-export interface DatabaseOperation<T = any> {
+export interface DatabaseOperation<T = unknown> {
   data: T | null
-  error: any
+  error: Error | null
   count?: number
 }
 

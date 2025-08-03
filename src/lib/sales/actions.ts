@@ -1,8 +1,6 @@
 'use server';
 
 import { createServer } from '@/lib/supabase/server';
-import { salesEntrySchema } from '@/lib/validations/sales';
-import { revalidatePath } from 'next/cache';
 
 export async function createSalesLog(data: {
   bread_type_id: string;

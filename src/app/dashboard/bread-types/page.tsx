@@ -23,7 +23,7 @@ export default async function BreadTypesPage() {
       .eq('id', user.id)
       .single();
     if (profile?.role) {
-      user.role = profile.role;
+      user = { ...user, role: profile.role };
     }
   }
 

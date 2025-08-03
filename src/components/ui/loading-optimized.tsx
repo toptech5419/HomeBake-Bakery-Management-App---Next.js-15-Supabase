@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { Skeleton } from './skeleton';
 
 interface LoadingSpinnerProps {
   message?: string;
@@ -157,6 +156,7 @@ export const SkeletonCard = React.memo(({ className }: { className?: string }) =
     <div className="h-8 bg-gray-200 rounded animate-pulse w-full"></div>
   </div>
 ));
+SkeletonCard.displayName = 'SkeletonCard';
 
 export const SkeletonTable = React.memo(({ rows = 5, columns = 4 }: { rows?: number; columns?: number }) => (
   <div className="space-y-2">
@@ -176,6 +176,7 @@ export const SkeletonTable = React.memo(({ rows = 5, columns = 4 }: { rows?: num
     ))}
   </div>
 ));
+SkeletonTable.displayName = 'SkeletonTable';
 
 export const SkeletonForm = React.memo(() => (
   <div className="space-y-4">
@@ -194,6 +195,7 @@ export const SkeletonForm = React.memo(() => (
     <div className="h-10 bg-gray-200 rounded animate-pulse w-1/3"></div>
   </div>
 ));
+SkeletonForm.displayName = 'SkeletonForm';
 
 export const SkeletonDashboard = React.memo(() => (
   <div className="space-y-6 p-4">
@@ -217,6 +219,7 @@ export const SkeletonDashboard = React.memo(() => (
     </div>
   </div>
 ));
+SkeletonDashboard.displayName = 'SkeletonDashboard';
 
 export const SkeletonList = React.memo(({ items = 5 }: { items?: number }) => (
   <div className="space-y-3">
@@ -232,6 +235,7 @@ export const SkeletonList = React.memo(({ items = 5 }: { items?: number }) => (
     ))}
   </div>
 ));
+SkeletonList.displayName = 'SkeletonList';
 
 // Progressive Loading Component
 export const ProgressiveLoading = React.memo(({ 
@@ -286,6 +290,7 @@ export const ProgressiveLoading = React.memo(({
     </div>
   );
 });
+ProgressiveLoading.displayName = 'ProgressiveLoading';
 
 // Mobile-optimized loading components
 export const MobileLoading = React.memo(({ 
@@ -313,6 +318,7 @@ export const MobileLoading = React.memo(({
     </div>
   );
 });
+MobileLoading.displayName = 'MobileLoading';
 
 export const MobilePageLoading = React.memo(() => (
   <div className="space-y-4 p-4">
@@ -324,6 +330,7 @@ export const MobilePageLoading = React.memo(() => (
     </div>
   </div>
 ));
+MobilePageLoading.displayName = 'MobilePageLoading';
 
 // Export all components
 export default OptimizedLoadingSpinner; 

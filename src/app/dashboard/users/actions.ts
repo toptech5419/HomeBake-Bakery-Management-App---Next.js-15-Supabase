@@ -87,8 +87,7 @@ export async function reactivateUserAction(user: User, targetId: string) {
 
 export async function deleteUserAction(
   user: User, 
-  targetId: string, 
-  targetEmail: string
+  targetId: string
 ) {
   const supabase = await createServer();
 
