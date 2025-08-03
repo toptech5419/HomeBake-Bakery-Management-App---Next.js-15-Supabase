@@ -1,7 +1,6 @@
 import { createServer } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import SalesManagementClient from './SalesManagementClient';
-import { getBreadTypes } from '@/lib/bread-types/actions';
 
 export default async function SalesManagementPage() {
   const supabase = await createServer();
@@ -23,15 +22,11 @@ export default async function SalesManagementPage() {
     redirect('/dashboard');
   }
 
-  // Fetch bread types for the client
-  const breadTypes = await getBreadTypes();
-
   return (
     <SalesManagementClient 
       userId={user.id}
       userName={profile.name}
       userRole={profile.role}
-      breadTypes={breadTypes}
     />
   );
 }

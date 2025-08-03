@@ -1,5 +1,5 @@
 import { createServer } from '@/lib/supabase/server';
-import { ShiftType, ShiftInfo, getCurrentShiftInfo, getShiftDateRange, getShiftBoundaries } from './shift-utils';
+import { ShiftType, ShiftInfo, getCurrentShiftInfo, getShiftDateRange, getShiftBoundaries, SHIFT_CONSTANTS } from './shift-utils';
 
 export interface EnhancedShiftInfo extends ShiftInfo {
   shouldShowArchivedData: boolean;
@@ -63,10 +63,10 @@ async function shouldShowArchivedDataForNightShift(): Promise<boolean> {
     
     // Check if there are any batches from yesterday 10 AM to today 10 AM
     const yesterdayStart = new Date(yesterday);
-    yesterdayStart.setHours(10, 0, 0, 0); // Yesterday 10 AM
+    yesterdayStart.setHours(SHIFT_CONSTANTS.NIGHT_END_HOUR, 0, 0, 0); // Yesterday 10 AM
     
     const todayEnd = new Date();
-    todayEnd.setHours(10, 0, 0, 0); // Today 10 AM
+    todayEnd.setHours(SHIFT_CONSTANTS.NIGHT_END_HOUR, 0, 0, 0); // Today 10 AM
     
     // Convert to UTC for database query - FIXED: Add timezone offset
     const utcStart = new Date(yesterdayStart.getTime() + (yesterdayStart.getTimezoneOffset() * 60000));
@@ -169,8 +169,8 @@ export function getNightShiftBoundariesWithArchive(date: Date = new Date()) {
       endTime: boundaries.nightEnd,
     },
     archivedData: {
-      startTime: new Date(previousDay.setHours(10, 0, 0, 0)), // Yesterday 10 AM
-      endTime: new Date(date.setHours(10, 0, 0, 0)), // Today 10 AM
+      startTime: new Date(previousDay.setHours(SHIFT_CONSTANTS.NIGHT_END_HOUR, 0, 0, 0)), // Yesterday 10 AM
+      endTime: new Date(date.setHours(SHIFT_CONSTANTS.NIGHT_END_HOUR, 0, 0, 0)), // Today 10 AM
     },
     // Check if we should include archived data
     shouldIncludeArchived: true, // This will be determined dynamically

@@ -22,7 +22,18 @@ export async function login(prevState: { error?: string }, formData: FormData) {
     
     if (authResult.error) {
       console.error('Auth error:', authResult.error);
-      return { error: authResult.error.message };
+      
+      // Provide specific error messages based on error type
+      switch (authResult.error.message) {
+        case 'Invalid login credentials':
+          return { error: 'Invalid email or password. Please check your credentials and try again.' };
+        case 'Email not confirmed':
+          return { error: 'Please check your email and click the confirmation link before logging in.' };
+        case 'Too many requests':
+          return { error: 'Too many login attempts. Please wait a few minutes and try again.' };
+        default:
+          return { error: authResult.error.message || 'Authentication failed. Please try again.' };
+      }
     }
 
     if (!authResult.data?.user) {
@@ -32,6 +43,20 @@ export async function login(prevState: { error?: string }, formData: FormData) {
     authData = authResult.data;
   } catch (error) {
     console.error('Login error:', error);
+    
+    // Handle specific network errors
+    if (error instanceof Error) {
+      if (error.message.includes('fetch failed') || error.message.includes('UND_ERR_')) {
+        return { error: 'Network connection failed. Please check your internet connection and try again.' };
+      }
+      if (error.message.includes('timeout')) {
+        return { error: 'Connection timeout. Please try again.' };
+      }
+      if (error.name === 'AbortError') {
+        return { error: 'Request was cancelled. Please try again.' };
+      }
+    }
+    
     return { error: 'Connection failed. Please check your internet connection and try again.' };
   }
 

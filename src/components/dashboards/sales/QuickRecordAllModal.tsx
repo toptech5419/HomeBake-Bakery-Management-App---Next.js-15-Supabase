@@ -98,12 +98,14 @@ export function QuickRecordAllModal({
         setQuickRemainingItems(breadTypesData.map(bt => ({ breadType: bt, quantity: 0 })));
       }
 
-      // Fetch today's sales logs
-      const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      // Fetch all sales logs for current shift (no date filtering)
+      console.log('🔍 QuickRecordAllModal: Fetching sales data...', {
+        currentShift,
+        userId,
+        note: 'Fetching ALL sales for current shift (no date filtering)'
+      });
 
-      const { data: salesData } = await supabase
+      const { data: salesData, error: salesError } = await supabase
         .from('sales_logs')
         .select(`
           *,
@@ -113,30 +115,81 @@ export function QuickRecordAllModal({
             unit_price
           )
         `)
-        .gte('created_at', startOfDay.toISOString())
-        .lt('created_at', endOfDay.toISOString())
         .eq('shift', currentShift)
         .eq('recorded_by', userId)
         .order('created_at', { ascending: false });
+
+      if (salesError) {
+        console.error('❌ Error fetching sales data:', salesError);
+        throw salesError;
+      }
+
+      console.log('📊 Sales data received:', {
+        count: salesData?.length || 0,
+        salesData: salesData?.map(s => ({
+          id: s.id.substring(0, 8),
+          breadType: s.bread_types?.name,
+          quantity: s.quantity,
+          shift: s.shift,
+          createdAt: s.created_at
+        })) || []
+      });
 
       if (salesData) {
         setSalesLogs(salesData);
         
         // Auto-fill "Record Additional Sales" with quantities from sales_logs
         const salesQuantities = new Map<string, number>();
+        
         salesData.forEach((sale: SalesLog) => {
           const breadTypeId = sale.bread_type_id;
           const currentQuantity = salesQuantities.get(breadTypeId) || 0;
-          salesQuantities.set(breadTypeId, currentQuantity + sale.quantity);
+          const newQuantity = currentQuantity + sale.quantity;
+          
+          console.log('🔢 Aggregating sale:', {
+            breadType: sale.bread_types?.name,
+            breadTypeId: breadTypeId.substring(0, 8),
+            saleQuantity: sale.quantity,
+            previousTotal: currentQuantity,
+            newTotal: newQuantity
+          });
+          
+          salesQuantities.set(breadTypeId, newQuantity);
         });
 
-        // Update quickRecordItems with quantities from sales_logs
-        setQuickRecordItems(prevItems => 
-          prevItems.map(item => ({
-            ...item,
-            quantity: salesQuantities.get(item.breadType.id) || 0
+        console.log('📈 Final aggregated quantities:', 
+          Array.from(salesQuantities.entries()).map(([id, qty]) => ({
+            breadTypeId: id.substring(0, 8),
+            quantity: qty
           }))
         );
+
+        // Update quickRecordItems with quantities from sales_logs
+        setQuickRecordItems(prevItems => {
+          const updatedItems = prevItems.map(item => {
+            const aggregatedQuantity = salesQuantities.get(item.breadType.id) || 0;
+            
+            console.log('🍞 Setting quantity for:', {
+              breadType: item.breadType.name,
+              breadTypeId: item.breadType.id.substring(0, 8),
+              aggregatedQuantity
+            });
+            
+            return {
+              ...item,
+              quantity: aggregatedQuantity
+            };
+          });
+          
+          console.log('✅ Updated quickRecordItems:', 
+            updatedItems.filter(item => item.quantity > 0).map(item => ({
+              breadType: item.breadType.name,
+              quantity: item.quantity
+            }))
+          );
+          
+          return updatedItems;
+        });
       }
 
       // Load existing remaining bread data from sales_logs

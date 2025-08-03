@@ -179,7 +179,7 @@ export function useInventoryData(user?: any) {
     totalArchivedBatches: inventoryData.totalArchivedBatches || 0,
     recordCount: inventoryData.recordCount || 0,
     timeUntilNextShift,
-    nextShiftTime: '10:00 AM',
+    nextShiftTime: currentShift === 'morning' ? '10:00 PM' : '10:00 AM',
     refreshData: refetch,
   };
 

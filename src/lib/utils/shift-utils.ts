@@ -10,39 +10,58 @@ export interface ShiftInfo {
   shiftEndDateTime: Date;
 }
 
+// Shift constants for inventory page (Nigeria timezone specific)
+export const SHIFT_CONSTANTS = {
+  MORNING_START_HOUR: 10, // 10:00 AM
+  MORNING_END_HOUR: 22,   // 10:00 PM (22:00)
+  NIGHT_START_HOUR: 22,   // 10:00 PM (22:00)
+  NIGHT_END_HOUR: 10,     // 10:00 AM (next day)
+  NIGERIA_TIMEZONE: 'Africa/Lagos' as const, // UTC+1
+} as const;
+
 /**
- * Get current shift based on local time (10am/10pm boundaries)
+ * Get current time in Nigeria timezone (Africa/Lagos - UTC+1)
+ */
+function getNigeriaTime(): Date {
+  const now = new Date();
+  // Convert to Nigeria time (UTC+1)
+  const nigeriaTime = new Date(now.toLocaleString("en-US", {timeZone: SHIFT_CONSTANTS.NIGERIA_TIMEZONE}));
+  return nigeriaTime;
+}
+
+/**
+ * Get current shift based on Nigeria time (10am/10pm boundaries)
  * Morning: 10:00 AM - 9:59 PM
  * Night: 10:00 PM - 9:59 AM
  */
 export function getCurrentShiftInfo(): ShiftInfo {
-  const now = new Date();
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
+  const nigeriaTime = getNigeriaTime();
+  const hours = nigeriaTime.getHours();
+  const minutes = nigeriaTime.getMinutes();
   
-  // Determine current shift
-  const isMorningShift = hours >= 10 && hours < 22;
+  // Determine current shift using constants
+  const isMorningShift = hours >= SHIFT_CONSTANTS.MORNING_START_HOUR && hours < SHIFT_CONSTANTS.MORNING_END_HOUR;
   const currentShift = isMorningShift ? 'morning' : 'night';
   
-  // Calculate shift start and end times
-  const shiftStart = new Date(now);
-  const shiftEnd = new Date(now);
+  // Calculate shift start and end times in Nigeria timezone
+  const shiftStart = new Date(nigeriaTime);
+  const shiftEnd = new Date(nigeriaTime);
   
   if (isMorningShift) {
     // Morning shift: 10:00 AM today to 10:00 PM today
-    shiftStart.setHours(10, 0, 0, 0);
-    shiftEnd.setHours(22, 0, 0, 0);
+    shiftStart.setHours(SHIFT_CONSTANTS.MORNING_START_HOUR, 0, 0, 0);
+    shiftEnd.setHours(SHIFT_CONSTANTS.MORNING_END_HOUR, 0, 0, 0);
   } else {
-    if (hours >= 22) {
+    if (hours >= SHIFT_CONSTANTS.NIGHT_START_HOUR) {
       // Night shift: 10:00 PM today to 10:00 AM tomorrow
-      shiftStart.setHours(22, 0, 0, 0);
+      shiftStart.setHours(SHIFT_CONSTANTS.NIGHT_START_HOUR, 0, 0, 0);
       shiftEnd.setDate(shiftEnd.getDate() + 1);
-      shiftEnd.setHours(10, 0, 0, 0);
+      shiftEnd.setHours(SHIFT_CONSTANTS.NIGHT_END_HOUR, 0, 0, 0);
     } else {
       // Night shift: 10:00 PM yesterday to 10:00 AM today
       shiftStart.setDate(shiftStart.getDate() - 1);
-      shiftStart.setHours(22, 0, 0, 0);
-      shiftEnd.setHours(10, 0, 0, 0);
+      shiftStart.setHours(SHIFT_CONSTANTS.NIGHT_START_HOUR, 0, 0, 0);
+      shiftEnd.setHours(SHIFT_CONSTANTS.NIGHT_END_HOUR, 0, 0, 0);
     }
   }
   
@@ -72,18 +91,21 @@ export function getShiftBoundaries(date: Date): {
   nightStart: Date;
   nightEnd: Date;
 } {
-  const morningStart = new Date(date);
-  morningStart.setHours(10, 0, 0, 0);
+  // Convert input date to Nigeria timezone
+  const nigeriaDate = new Date(date.toLocaleString("en-US", {timeZone: SHIFT_CONSTANTS.NIGERIA_TIMEZONE}));
   
-  const morningEnd = new Date(date);
-  morningEnd.setHours(22, 0, 0, 0);
+  const morningStart = new Date(nigeriaDate);
+  morningStart.setHours(SHIFT_CONSTANTS.MORNING_START_HOUR, 0, 0, 0);
   
-  const nightStart = new Date(date);
-  nightStart.setHours(22, 0, 0, 0);
+  const morningEnd = new Date(nigeriaDate);
+  morningEnd.setHours(SHIFT_CONSTANTS.MORNING_END_HOUR, 0, 0, 0);
   
-  const nightEnd = new Date(date);
+  const nightStart = new Date(nigeriaDate);
+  nightStart.setHours(SHIFT_CONSTANTS.NIGHT_START_HOUR, 0, 0, 0);
+  
+  const nightEnd = new Date(nigeriaDate);
   nightEnd.setDate(nightEnd.getDate() + 1);
-  nightEnd.setHours(10, 0, 0, 0);
+  nightEnd.setHours(SHIFT_CONSTANTS.NIGHT_END_HOUR, 0, 0, 0);
   
   return {
     morningStart,

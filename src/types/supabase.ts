@@ -17,6 +17,7 @@ export interface Database {
           created_by: string | null
           is_active: boolean
           created_at: string
+          email: string | null
         }
         Insert: {
           id?: string
@@ -25,6 +26,7 @@ export interface Database {
           created_by?: string | null
           is_active?: boolean
           created_at?: string
+          email?: string | null
         }
         Update: {
           id?: string
@@ -33,6 +35,7 @@ export interface Database {
           created_by?: string | null
           is_active?: boolean
           created_at?: string
+          email?: string | null
         }
         Relationships: [
           {
@@ -40,6 +43,47 @@ export interface Database {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      available_stock: {
+        Row: {
+          id: string
+          bread_type_id: string
+          bread_type_name: string
+          quantity: number
+          unit_price: number
+          last_updated: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          bread_type_id: string
+          bread_type_name: string
+          quantity?: number
+          unit_price?: number
+          last_updated?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          bread_type_id?: string
+          bread_type_name?: string
+          quantity?: number
+          unit_price?: number
+          last_updated?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "available_stock_bread_type_id_fkey"
+            columns: ["bread_type_id"]
+            isOneToOne: true
+            referencedRelation: "bread_types"
             referencedColumns: ["id"]
           }
         ]
@@ -117,7 +161,7 @@ export interface Database {
           name: string
           size: string | null
           unit_price: number
-          created_by: string
+          created_by: string | null
           created_at: string
         }
         Insert: {
@@ -125,7 +169,7 @@ export interface Database {
           name: string
           size?: string | null
           unit_price: number
-          created_by: string
+          created_by?: string | null
           created_at?: string
         }
         Update: {
@@ -133,7 +177,7 @@ export interface Database {
           name?: string
           size?: string | null
           unit_price?: number
-          created_by?: string
+          created_by?: string | null
           created_at?: string
         }
         Relationships: [
@@ -316,10 +360,11 @@ export interface Database {
           unit_price: number | null
           discount: number | null
           returned: boolean
-          leftover: number | null
+          leftovers: number
           shift: 'morning' | 'night'
           recorded_by: string
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
@@ -328,10 +373,11 @@ export interface Database {
           unit_price?: number | null
           discount?: number | null
           returned?: boolean
-          leftover?: number | null
+          leftovers?: number
           shift: 'morning' | 'night'
           recorded_by: string
           created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
@@ -340,10 +386,11 @@ export interface Database {
           unit_price?: number | null
           discount?: number | null
           returned?: boolean
-          leftover?: number | null
+          leftovers?: number
           shift?: 'morning' | 'night'
           recorded_by?: string
           created_at?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -442,6 +489,145 @@ export interface Database {
           {
             foreignKeyName: "remaining_bread_recorded_by_fkey"
             columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      inventory: {
+        Row: {
+          id: string
+          bread_type_id: string
+          quantity: number
+          last_updated: string
+        }
+        Insert: {
+          id?: string
+          bread_type_id: string
+          quantity?: number
+          last_updated?: string
+        }
+        Update: {
+          id?: string
+          bread_type_id?: string
+          quantity?: number
+          last_updated?: string
+        }
+        Relationships: []
+      }
+      inventory_logs: {
+        Row: {
+          id: string
+          bread_type_id: string
+          quantity_change: number
+          reason: string
+          user_id: string
+          shift: 'morning' | 'night' | null
+          reference_id: string | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          bread_type_id: string
+          quantity_change: number
+          reason: string
+          user_id: string
+          shift?: 'morning' | 'night' | null
+          reference_id?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          bread_type_id?: string
+          quantity_change?: number
+          reason?: string
+          user_id?: string
+          shift?: 'morning' | 'night' | null
+          reference_id?: string | null
+          notes?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      profiles: {
+        Row: {
+          id: string
+          name: string | null
+          role: 'owner' | 'manager' | 'sales_rep'
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id: string
+          name?: string | null
+          role: 'owner' | 'manager' | 'sales_rep'
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string | null
+          role?: 'owner' | 'manager' | 'sales_rep'
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      shift_handovers: {
+        Row: {
+          id: string
+          from_shift: 'morning' | 'night'
+          to_shift: 'morning' | 'night'
+          handover_date: string
+          manager_id: string
+          notes: string | null
+          total_production: number
+          completed_batches: number
+          pending_batches: number
+          quality_issues: string[] | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          from_shift: 'morning' | 'night'
+          to_shift: 'morning' | 'night'
+          handover_date?: string
+          manager_id: string
+          notes?: string | null
+          total_production?: number
+          completed_batches?: number
+          pending_batches?: number
+          quality_issues?: string[] | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          from_shift?: 'morning' | 'night'
+          to_shift?: 'morning' | 'night'
+          handover_date?: string
+          manager_id?: string
+          notes?: string | null
+          total_production?: number
+          completed_batches?: number
+          pending_batches?: number
+          quality_issues?: string[] | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_handovers_manager_id_fkey"
+            columns: ["manager_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]

@@ -41,26 +41,47 @@ function getNigeriaTime(): Date {
   return new Date(new Date().toLocaleString("en-US", { timeZone: "Africa/Lagos" }));
 }
 
-// Get the correct date range for filtering based on shift and clearing times
+// Get the correct date range for filtering based on shift and clearing times with precise Nigeria timezone
 function getDateRange(shift: 'morning' | 'night', nigeriaTime: Date) {
   const currentHour = nigeriaTime.getHours();
+  const currentMinute = nigeriaTime.getMinutes();
+  const currentSecond = nigeriaTime.getSeconds();
   const currentDate = nigeriaTime.toISOString().split('T')[0];
   
+  console.log('🕒 Nigeria Time Details:', {
+    shift,
+    currentHour,
+    currentMinute,
+    currentSecond,
+    currentDate,
+    fullTime: nigeriaTime.toLocaleString('en-US', { timeZone: 'Africa/Lagos' })
+  });
+  
   if (shift === 'morning') {
-    // Morning shift: Show batches created today only
-    // This will naturally clear when the date changes
-    const startOfDay = new Date(currentDate + 'T00:00:00.000Z');
+    // Morning shift: Clear exactly at midnight (00:00:00)
+    if (currentHour === 0 && currentMinute === 0 && currentSecond < 30) {
+      console.log('⏰ Morning shift: Clearing at midnight');
+      return null; // Clear for the first 30 seconds of midnight
+    }
+    
+    // Show batches created today after midnight
+    const startOfDay = new Date(currentDate + 'T00:00:30.000Z'); // Start 30 seconds after midnight
     const endOfDay = new Date(currentDate + 'T23:59:59.999Z');
     return { start: startOfDay.toISOString(), end: endOfDay.toISOString() };
   } else {
-    // Night shift: Show batches from 15:00 yesterday to 14:59 today
-    // But if it's 15:00 or later, return null to clear
-    if (currentHour >= 15) {
-      return null; // Clear at 15:00
+    // Night shift: Clear exactly at 15:00 (3:00 PM)
+    if (currentHour === 15 && currentMinute === 0 && currentSecond < 30) {
+      console.log('⏰ Night shift: Clearing at 3:00 PM');
+      return null; // Clear for the first 30 seconds of 3:00 PM
     }
     
-    // Night shift runs from 15:00 yesterday to 14:59 today
-    const startDate = new Date(currentDate + 'T15:00:00.000Z');
+    if (currentHour >= 15) {
+      console.log('⏰ Night shift: Still in clearing period after 3:00 PM');
+      return null; // Stay cleared after 3:00 PM
+    }
+    
+    // Night shift runs from 15:00:30 yesterday to 14:59:59 today
+    const startDate = new Date(currentDate + 'T15:00:30.000Z'); // Start 30 seconds after 3 PM
     startDate.setDate(startDate.getDate() - 1);
     const endDate = new Date(currentDate + 'T14:59:59.999Z');
     
@@ -85,10 +106,12 @@ export async function GET(request: NextRequest) {
     const currentHour = nigeriaTime.getHours();
     const currentDate = nigeriaTime.toISOString().split('T')[0];
 
-    console.log('🚀 API Starting with params:', {
+    console.log('🚀 API Starting with enhanced params:', {
       shift,
       currentDate,
       currentHour,
+      currentMinute: nigeriaTime.getMinutes(),
+      currentSecond: nigeriaTime.getSeconds(),
       nigeriaTime: nigeriaTime.toISOString(),
       nigeriaTimeString: nigeriaTime.toLocaleString('en-US', { timeZone: 'Africa/Lagos' })
     });
@@ -107,8 +130,11 @@ export async function GET(request: NextRequest) {
         currentTime: nigeriaTime.toISOString(),
         currentHour,
         reason: shift === 'morning' 
-          ? 'Morning shift cleared for new day' 
-          : 'Night shift cleared at 3:00 PM'
+          ? 'Morning shift cleared at midnight (00:00)' 
+          : 'Night shift cleared at 3:00 PM (15:00)',
+        nextClearTime: shift === 'morning' 
+          ? 'Next clear: Tomorrow at 00:00' 
+          : 'Next clear: Today at 15:00'
       });
     }
 
@@ -190,22 +216,51 @@ export async function GET(request: NextRequest) {
       }))
     });
 
-    // Process the data to create production items
-    const productionItems: ProductionItem[] = finalBatches.map((batch: Batch) => ({
-      id: batch.id,
-      bread_type_id: batch.bread_type_id,
-      name: batch.bread_types?.name || 'Unknown',
-      size: batch.bread_types?.size || null,
-      unit_price: batch.bread_types?.unit_price || 0,
-      quantity: batch.actual_quantity || 0,
-      produced: batch.actual_quantity || 0,
-      sold: 0,
-      available: batch.actual_quantity || 0,
-      batch_number: batch.batch_number,
-      status: batch.status,
-      created_by: batch.created_by,
-      created_at: batch.created_at,
-    }));
+    // Fetch sales data to calculate sold quantities
+    const { data: salesData, error: salesError } = await supabase
+      .from('sales_logs')
+      .select('bread_type_id, quantity')
+      .eq('shift', shift)
+      .gte('created_at', dateRange.start)
+      .lte('created_at', dateRange.end);
+
+    if (salesError) {
+      console.error('❌ Error fetching sales data:', salesError);
+    }
+
+    // Calculate sold quantities by bread type
+    const soldQuantities = new Map<string, number>();
+    if (salesData) {
+      salesData.forEach(sale => {
+        const current = soldQuantities.get(sale.bread_type_id) || 0;
+        soldQuantities.set(sale.bread_type_id, current + sale.quantity);
+      });
+    }
+
+    console.log('📊 Sales quantities:', Object.fromEntries(soldQuantities));
+
+    // Process the data to create production items with proper stock calculations
+    const productionItems: ProductionItem[] = finalBatches.map((batch: Batch) => {
+      const produced = batch.actual_quantity || 0;
+      const sold = soldQuantities.get(batch.bread_type_id) || 0;
+      const available = Math.max(0, produced - sold); // Ensure available never goes negative
+
+      return {
+        id: batch.id,
+        bread_type_id: batch.bread_type_id,
+        name: batch.bread_types?.name || 'Unknown',
+        size: batch.bread_types?.size || null,
+        unit_price: batch.bread_types?.unit_price || 0,
+        quantity: produced,
+        produced: produced,
+        sold: sold,
+        available: available,
+        batch_number: batch.batch_number,
+        status: batch.status,
+        created_by: batch.created_by,
+        created_at: batch.created_at,
+      };
+    });
 
     // Calculate total units
     const totalUnits = productionItems.reduce((sum: number, item: ProductionItem) => sum + item.quantity, 0);

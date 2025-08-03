@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useShift } from '@/contexts/ShiftContext';
 import { supabase } from '@/lib/supabase/client';
@@ -18,12 +18,16 @@ import {
   AlertTriangle,
   XCircle,
   BarChart3,
-  Target
+  Target,
+  Loader2
 } from 'lucide-react';
 import { SalesModal } from '@/components/dashboards/sales/SalesModal';
 import { QuickRecordAllModal } from '@/components/dashboards/sales/QuickRecordAllModal';
 import { FinalReportModal } from '@/components/dashboards/sales/FinalReportModal';
 import { ViewAllSalesModal } from '@/components/modals/ViewAllSalesModal';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { ProductionTableSkeleton } from '@/components/ui/loading-skeleton';
+import { Pagination } from '@/components/ui/pagination';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { useSalesRepProduction } from '@/hooks/use-sales-rep-production';
@@ -62,8 +66,6 @@ export default function SalesManagementClient({
   userName,
   userRole
 }: SalesManagementClientProps) {
-  console.log('🔄 SalesManagementClient: Component rendering...', { userId, userName, userRole });
-  
   const { currentShift } = useShift();
   const router = useRouter();
   const { user: clientUser } = useAuth();
@@ -71,11 +73,9 @@ export default function SalesManagementClient({
   // Use server user if available, otherwise fall back to client user
   const user = clientUser || { id: userId };
   
-  console.log('🔄 SalesManagementClient: Shift and user info:', { 
-    currentShift, 
-    userId, 
-    clientUserId: clientUser?.id 
-  });
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   
   // Use sales rep production hook for production items
   const { 
@@ -89,25 +89,13 @@ export default function SalesManagementClient({
     shift,
     currentTime,
     currentHour,
-    currentDate
+    currentDate,
+    reason,
+    nextClearTime,
+    isCleared,
+    isRealTimeActive,
+    isFetching
   } = useSalesRepProduction();
-  
-  // Debug log the production data
-  useEffect(() => {
-    console.log('🔧 Client Production Debug:', {
-      currentUser: user?.id,
-      userRole: userRole || 'unknown',
-      currentShift,
-      currentDate,
-      productionItemsLength: productionItems.length,
-      totalUnits,
-      isEmpty,
-      source,
-      isLoading,
-      error,
-      note: 'Sales rep viewing ALL production items'
-    });
-  }, [productionItems, totalUnits, isLoading, error, source, isEmpty, shift, currentTime, currentHour, currentShift, user, currentDate, userRole]);
 
   // State management
   const [salesRecords, setSalesRecords] = useState<SalesRecord[]>([]);
@@ -127,6 +115,44 @@ export default function SalesManagementClient({
   // Transition state management
   const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Memoized pagination calculations
+  const paginatedData = useMemo(() => {
+    if (!productionItems.length) {
+      return {
+        items: [],
+        totalPages: 0,
+        filteredCount: 0
+      };
+    }
+
+    // Apply search and filter first
+    const filteredItems = productionItems.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFilter = 
+        activeFilter === 'all' ||
+        (activeFilter === 'available' && item.available > 0) ||
+        (activeFilter === 'low' && item.available <= 5 && item.available > 0);
+      return matchesSearch && matchesFilter;
+    });
+
+    // Then paginate
+    const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedItems = filteredItems.slice(startIndex, endIndex);
+
+    return {
+      items: paginatedItems,
+      totalPages,
+      filteredCount: filteredItems.length
+    };
+  }, [productionItems, searchTerm, activeFilter, currentPage, itemsPerPage]);
+
+  // Reset page when search/filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeFilter]);
 
   // Fetch sales data for current shift and current user only - NO DATE FILTERING
   const fetchSalesData = async () => {
@@ -450,107 +476,152 @@ export default function SalesManagementClient({
           </button>
         </div>
 
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 mb-6">
-          <div className="bg-gray-50 px-4 py-4 border-b border-gray-200 font-semibold text-gray-700 text-sm">
-            Production Items for Current Shift
-            {source && (
-              <span className="ml-2 text-xs text-gray-500">
-                (Source: {source})
-              </span>
-            )}
-            {shift && (
-              <span className="ml-2 text-xs text-gray-500">
-                | Shift: {shift}
-              </span>
-            )}
-            {currentHour !== undefined && (
-              <span className="ml-2 text-xs text-gray-500">
-                | Hour: {currentHour}
-              </span>
-            )}
-          </div>
-          
-          {isEmpty ? (
-            <div className="p-8 text-center text-gray-500">
-              <Package className="mx-auto h-12 w-12 mb-4 text-gray-300" />
-              <div className="space-y-2">
-                <p className="font-medium">Production cleared for current shift</p>
-                <p className="text-sm">
-                  {shift === 'morning' 
-                    ? 'Morning shift clears at midnight (12:00 AM)' 
-                    : 'Night shift clears at 3:00 PM'
-                  }
-                </p>
-                {currentTime && (
-                  <p className="text-xs text-gray-400">
-                    Current time: {new Date(currentTime).toLocaleString('en-US', { timeZone: 'Africa/Lagos' })}
-                  </p>
+        <ErrorBoundary>
+          <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 mb-6">
+            <div className="bg-gray-50 px-4 py-4 border-b border-gray-200 font-semibold text-gray-700 text-sm flex items-center justify-between">
+              <div>
+                Production Items for Current Shift
+                {source && source !== 'cleared' && (
+                  <span className="ml-2 text-xs text-gray-500">
+                    (Source: {source})
+                  </span>
+                )}
+                {isRealTimeActive && (
+                  <span className="ml-2 inline-flex items-center gap-1 text-xs text-green-600">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    Live
+                  </span>
                 )}
               </div>
-            </div>
-          ) : processedProductionItems
-            .filter(item => {
-              const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-              const matchesFilter = 
-                activeFilter === 'all' ||
-                (activeFilter === 'available' && item.available > 0) ||
-                (activeFilter === 'low' && item.available <= 5 && item.available > 0);
-              return matchesSearch && matchesFilter;
-            })
-            .map((item) => (
-              <div key={item.id} className="px-4 py-4 border-b border-gray-100 flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    {getStatusIndicator(item.available)}
-                    <span className="font-semibold text-gray-900">{item.name}</span>
-                  </div>
-                  <div className="flex gap-3 text-xs text-gray-600">
-                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-lg font-medium">
-                      {item.available} available
-                    </span>
-                    <span>{item.produced} produced</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold text-green-600 text-sm mb-1">
-                    {formatCurrencyNGN(item.unit_price)}
-                  </div>
-                  <div className={cn(
-                    "px-3 py-1 rounded-lg text-xs font-medium",
-                    item.available === 0
-                      ? "bg-gray-100 text-gray-400"
-                      : "bg-green-100 text-green-800"
-                  )}>
-                    {item.available === 0 ? 'Sold Out' : 'Available'}
-                  </div>
-                </div>
-              </div>
-            ))}
-          
-          {!isEmpty && processedProductionItems.filter(item => {
-            const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesFilter = 
-              activeFilter === 'all' ||
-              (activeFilter === 'available' && item.available > 0) ||
-              (activeFilter === 'low' && item.available <= 5 && item.available > 0);
-            return matchesSearch && matchesFilter;
-          }).length === 0 && (
-            <div className="p-8 text-center text-gray-500">
-              <Package className="mx-auto h-12 w-12 mb-4 text-gray-300" />
-              <p>No production items for current shift</p>
-            </div>
-          )}
-          
-          {/* Debug info - remove in production */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="p-4 bg-gray-100 text-xs text-gray-600 border-t border-gray-200">
-              <p>Debug: Shift={shift}, Empty={isEmpty.toString()}, Source={source}, Hour={currentHour}</p>
-              {currentTime && (
-                <p>Current Time: {currentTime}</p>
+              {isFetching && (
+                <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
               )}
             </div>
-          )}
-        </div>
+            
+            {/* Loading State */}
+            {isLoading && <ProductionTableSkeleton rows={5} />}
+            
+            {/* Error State */}
+            {error && (
+              <div className="p-8 text-center">
+                <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-red-900 mb-2">Failed to load production data</h3>
+                <p className="text-sm text-red-700 mb-4">{error.message}</p>
+                <button
+                  onClick={() => refetch()}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+            
+            {/* Empty/Cleared State */}
+            {!isLoading && !error && (isEmpty || isCleared) && (
+              <div className="p-8 text-center text-gray-500">
+                <Package className="mx-auto h-12 w-12 mb-4 text-gray-300" />
+                <div className="space-y-3">
+                  <p className="font-medium text-lg">
+                    {isCleared ? 'Production cleared for current shift' : 'No production items yet'}
+                  </p>
+                  <p className="text-sm">
+                    {reason || (shift === 'morning' 
+                      ? 'Morning shift clears at midnight (00:00)' 
+                      : 'Night shift clears at 3:00 PM (15:00)'
+                    )}
+                  </p>
+                  {nextClearTime && (
+                    <p className="text-xs text-blue-600 bg-blue-50 px-3 py-1 rounded-lg inline-block">
+                      {nextClearTime}
+                    </p>
+                  )}
+                  {currentTime && (
+                    <p className="text-xs text-gray-400">
+                      Current time: {new Date(currentTime).toLocaleString('en-US', { timeZone: 'Africa/Lagos' })}
+                    </p>
+                  )}
+                  {!isCleared && (
+                    <p className="text-sm text-blue-600 mt-4">
+                      Waiting for production batches to be created...
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Production Items */}
+            {!isLoading && !error && !isEmpty && !isCleared && (
+              <>
+                {paginatedData.items.map((item) => (
+                  <div key={item.id} className="px-4 py-4 border-b border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        {getStatusIndicator(item.available)}
+                        <span className="font-semibold text-gray-900">{item.name}</span>
+                        {item.size && (
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            {item.size}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-3 text-xs text-gray-600">
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-lg font-medium">
+                          {item.available} available
+                        </span>
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-lg font-medium">
+                          {item.produced} produced
+                        </span>
+                        <span className="text-gray-500">
+                          Batch: {item.batch_number}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-green-600 text-sm mb-1">
+                        {formatCurrencyNGN(item.unit_price)}
+                      </div>
+                      <div className={cn(
+                        "px-3 py-1 rounded-lg text-xs font-medium",
+                        item.available === 0
+                          ? "bg-gray-100 text-gray-400"
+                          : item.available <= 5
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-green-100 text-green-800"
+                      )}>
+                        {item.available === 0 ? 'Sold Out' : 
+                         item.available <= 5 ? 'Low Stock' : 'Available'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {/* No items after filtering */}
+                {paginatedData.items.length === 0 && (
+                  <div className="p-8 text-center text-gray-500">
+                    <Package className="mx-auto h-12 w-12 mb-4 text-gray-300" />
+                    <p className="font-medium">No items match your search criteria</p>
+                    <p className="text-sm mt-1">Try adjusting your search or filter options</p>
+                  </div>
+                )}
+                
+                {/* Pagination */}
+                {paginatedData.totalPages > 1 && (
+                  <div className="px-4 py-4 border-t border-gray-200 bg-gray-50">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={paginatedData.totalPages}
+                      onPageChange={setCurrentPage}
+                      className="justify-center"
+                    />
+                    <div className="text-center text-sm text-gray-600 mt-2">
+                      Showing {paginatedData.items.length} of {paginatedData.filteredCount} items
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </ErrorBoundary>
 
         {/* Recent Sales Section - Updated with proper data */}
         <div className="flex items-center justify-between mb-4">

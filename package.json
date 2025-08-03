@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "npx kill-port 3000 && npm run dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -11,7 +12,9 @@
     "deploy": "vercel --prod",
     "deploy:staging": "vercel",
     "predeploy": "npm run build && npm run type-check",
-    "clean": "rm -rf .next node_modules/.cache"
+    "clean": "rm -rf .next node_modules/.cache",
+    "reset": "npm run clean && npm install",
+    "dev:port": "next dev -p 3001"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",

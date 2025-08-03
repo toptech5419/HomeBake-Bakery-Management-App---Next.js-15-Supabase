@@ -106,9 +106,9 @@ export default function ManagerDashboardClient({
         });
       } else {
         console.log(`ℹ️ All ${currentShift} shift batches are already saved to all_batches`);
-        // Show info toast if no saving was needed
+        // Show "saved already!" message as requested
         toast({
-          title: 'Reports Already Saved',
+          title: 'Saved Already!',
           description: `All ${currentShift} shift batch reports are already saved to history`,
           type: 'success'
         });
@@ -356,7 +356,7 @@ export default function ManagerDashboardClient({
           <button
             className="w-full bg-red-500 text-white rounded-xl p-4 flex items-center justify-center gap-3 shadow-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleEndShift}
-            disabled={isCheckingBatches || isDeletingBatches}
+            disabled={isCheckingBatches || isDeletingBatches || displayData.activeBatchesCount === 0}
           >
             {isCheckingBatches ? (
               <>
@@ -371,12 +371,17 @@ export default function ManagerDashboardClient({
             ) : (
               <>
                 <LogOut size={20} />
-                <span className="font-semibold">End Shift</span>
+                <span className="font-semibold">
+                  {displayData.activeBatchesCount === 0 ? 'No Batches to End' : 'End Shift'}
+                </span>
               </>
             )}
           </button>
           <p className="text-xs text-gray-500 mt-2 text-center">
-            ⚠️ End Shift button saves all batches to reports before ending the current shift only
+            {displayData.activeBatchesCount === 0 
+              ? '⚠️ Create batches first before ending shift'
+              : '⚠️ End Shift button saves all batches to reports before ending the current shift only'
+            }
           </p>
         </div>
       </div>

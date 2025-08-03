@@ -1,8 +1,10 @@
 "use client";
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useShift } from '@/contexts/ShiftContext';
+import { supabase } from '@/lib/supabase/client';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface ProductionItem {
   id: string;
@@ -23,11 +25,13 @@ interface ProductionItem {
 interface SalesRepProductionData {
   productionItems: ProductionItem[];
   totalUnits: number;
-  source: 'batches' | 'all_batches';
+  source: 'batches' | 'all_batches' | 'cleared';
   isEmpty: boolean;
   shift?: 'morning' | 'night';
   currentTime?: string;
   currentHour?: number;
+  reason?: string;
+  nextClearTime?: string;
 }
 
 // Fetch production items for sales rep via API
@@ -48,7 +52,9 @@ async function fetchSalesRepProduction(
   const response = await fetch(`/api/sales-rep/production?${params.toString()}`, {
     headers: {
       'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
     },
+    cache: 'no-store',
   });
   
   console.log('📡 API Response status:', response.status);
@@ -78,6 +84,8 @@ async function fetchSalesRepProduction(
     shift: result.shift,
     currentTime: result.currentTime,
     currentHour: result.currentHour,
+    reason: result.reason,
+    nextClearTime: result.nextClearTime,
   };
 }
 
@@ -85,6 +93,74 @@ async function fetchSalesRepProduction(
 export function useSalesRepProduction() {
   const { currentShift } = useShift();
   const queryClient = useQueryClient();
+  
+  // Real-time subscription callback
+  const invalidateProductionData = useCallback(() => {
+    console.log('🔄 Real-time update: Invalidating production data...');
+    queryClient.invalidateQueries({ queryKey: ['sales-rep-production'] });
+  }, [queryClient]);
+
+  // Set up real-time subscriptions
+  useEffect(() => {
+    if (!currentShift) return;
+
+    console.log('🔴 Setting up real-time subscriptions for:', currentShift);
+    
+    let batchesChannel: RealtimeChannel | null = null;
+    let salesChannel: RealtimeChannel | null = null;
+
+    try {
+      // Subscribe to batches table changes
+      batchesChannel = supabase
+        .channel('batches-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'batches',
+            filter: `shift=eq.${currentShift}`,
+          },
+          (payload) => {
+            console.log('🔄 Batches real-time update:', payload);
+            invalidateProductionData();
+          }
+        )
+        .subscribe();
+
+      // Subscribe to sales_logs changes to update available quantities
+      salesChannel = supabase
+        .channel('sales-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'sales_logs',
+            filter: `shift=eq.${currentShift}`,
+          },
+          (payload) => {
+            console.log('🔄 Sales real-time update:', payload);
+            invalidateProductionData();
+          }
+        )
+        .subscribe();
+
+      console.log('✅ Real-time subscriptions established');
+    } catch (error) {
+      console.error('❌ Error setting up real-time subscriptions:', error);
+    }
+
+    return () => {
+      console.log('🧹 Cleaning up real-time subscriptions...');
+      if (batchesChannel) {
+        supabase.removeChannel(batchesChannel);
+      }
+      if (salesChannel) {
+        supabase.removeChannel(salesChannel);
+      }
+    };
+  }, [currentShift, invalidateProductionData]);
   
   // Get Nigeria current date
   const nigeriaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
@@ -112,9 +188,9 @@ export function useSalesRepProduction() {
     queryKey: ['sales-rep-production', currentShift, targetDate],
     queryFn: () => fetchSalesRepProduction(currentShift),
     enabled: !!currentShift, // Only need shift to be available
-    staleTime: 15 * 1000, // 15 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 15 * 1000, // Refetch every 15 seconds
+    staleTime: 30 * 1000, // 30 seconds (increased for better caching)
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchInterval: 30 * 1000, // Refetch every 30 seconds (reduced frequency due to real-time updates)
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     retry: 3,
@@ -134,16 +210,27 @@ export function useSalesRepProduction() {
     });
   }, [isLoading, error, productionData, isFetching, currentShift]);
 
-  // Invalidate every minute for shift boundary checks
+  // Invalidate every 10 seconds for precise shift boundary checks
   useEffect(() => {
-    console.log('⏰ Setting up minute-based invalidation for shift checks...');
+    console.log('⏰ Setting up enhanced invalidation for precise shift checks...');
     const interval = setInterval(() => {
-      console.log('⏰ Minute passed - invalidating for shift boundary check...');
-      queryClient.invalidateQueries({ queryKey: ['sales-rep-production'] });
-    }, 60 * 1000); // Check every minute for shift changes
+      const nigeriaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+      const currentHour = nigeriaTime.getHours();
+      const currentMinute = nigeriaTime.getMinutes();
+      const currentSecond = nigeriaTime.getSeconds();
+      
+      // Check for exact clearing times
+      const isMorningClearTime = currentHour === 0 && currentMinute === 0 && currentSecond < 30;
+      const isNightClearTime = currentHour === 15 && currentMinute === 0 && currentSecond < 30;
+      
+      if (isMorningClearTime || isNightClearTime) {
+        console.log('⏰ Exact clearing time detected - forcing invalidation...');
+        queryClient.invalidateQueries({ queryKey: ['sales-rep-production'] });
+      }
+    }, 10 * 1000); // Check every 10 seconds for precise timing
     
     return () => {
-      console.log('⏰ Cleaning up minute-based invalidation...');
+      console.log('⏰ Cleaning up enhanced invalidation...');
       clearInterval(interval);
     };
   }, [queryClient]);
@@ -156,6 +243,8 @@ export function useSalesRepProduction() {
     shift: productionData.shift,
     currentTime: productionData.currentTime,
     currentHour: productionData.currentHour,
+    reason: productionData.reason,
+    nextClearTime: productionData.nextClearTime,
     isLoading,
     error,
     refetch,
@@ -165,6 +254,9 @@ export function useSalesRepProduction() {
       console.log('🔄 Manual invalidation triggered...');
       return queryClient.invalidateQueries({ queryKey: ['sales-rep-production'] });
     },
+    // Enhanced utilities
+    isCleared: productionData.source === 'cleared',
+    isRealTimeActive: true,
     // Debug info
     currentDate: targetDate
   };

@@ -1,6 +1,7 @@
 import { createServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getInventoryShiftContext } from '@/lib/utils/enhanced-shift-utils';
+import { SHIFT_CONSTANTS } from '@/lib/utils/shift-utils';
 
 // Force dynamic rendering for API routes that require authentication
 export const dynamic = 'force-dynamic';
@@ -53,33 +54,35 @@ export async function GET(request: NextRequest) {
     console.log(`   Show Archived Data: ${shiftContext.shouldShowArchivedData}`);
     console.log(`   Data Source: ${shiftContext.dataSource}`);
 
-    // Dynamic current shift period calculation
+    // Get current shift period boundaries using Nigeria timezone and correct shift logic
     function getCurrentShiftPeriod(shift: 'morning' | 'night') {
+      // Get current time in Nigeria timezone
       const now = new Date();
-      const currentHour = now.getHours();
+      const nigeriaTime = new Date(now.toLocaleString("en-US", {timeZone: SHIFT_CONSTANTS.NIGERIA_TIMEZONE}));
+      const currentHour = nigeriaTime.getHours();
       
       if (shift === 'morning') {
-        // Morning shift: 3:00 AM to 10:00 PM current day only
-        const searchStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 3, 0, 0);
-        const searchEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 22, 0, 0);
+        // Morning shift: 10:00 AM to 10:00 PM current day
+        const searchStart = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), SHIFT_CONSTANTS.MORNING_START_HOUR, 0, 0);
+        const searchEnd = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), SHIFT_CONSTANTS.MORNING_END_HOUR, 0, 0);
         
-        console.log(`☀️ Morning shift: Searching from ${searchStart.toLocaleDateString()} 3 AM to ${searchEnd.toLocaleDateString()} 10 PM`);
+        console.log(`☀️ Morning shift: Searching from ${searchStart.toLocaleDateString()} ${SHIFT_CONSTANTS.MORNING_START_HOUR}:00 to ${searchEnd.toLocaleDateString()} ${SHIFT_CONSTANTS.MORNING_END_HOUR}:00`);
         return { searchStart, searchEnd };
       } else {
-        // Night shift: 3:00 PM previous day to 10:00 AM current day
-        if (currentHour >= 22) {
+        // Night shift: 10:00 PM to 10:00 AM (spans two days)
+        if (currentHour >= SHIFT_CONSTANTS.NIGHT_START_HOUR) {
           // After 10 PM today - current night shift just started
-          const searchStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 15, 0, 0); // 3 PM today
-          const searchEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 10, 0, 0); // 10 AM tomorrow
+          const searchStart = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), SHIFT_CONSTANTS.NIGHT_START_HOUR, 0, 0);
+          const searchEnd = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate() + 1, SHIFT_CONSTANTS.NIGHT_END_HOUR, 0, 0);
           
-          console.log(`🌙 Night shift (after 10 PM): Searching from ${searchStart.toLocaleDateString()} 3 PM to ${searchEnd.toLocaleDateString()} 10 AM`);
+          console.log(`🌙 Night shift (after 10 PM): Searching from ${searchStart.toLocaleDateString()} ${SHIFT_CONSTANTS.NIGHT_START_HOUR}:00 to ${searchEnd.toLocaleDateString()} ${SHIFT_CONSTANTS.NIGHT_END_HOUR}:00`);
           return { searchStart, searchEnd };
         } else {
           // Before 10 AM today - current night shift ending
-          const searchStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 15, 0, 0); // 3 PM yesterday
-          const searchEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0, 0); // 10 AM today
+          const searchStart = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate() - 1, SHIFT_CONSTANTS.NIGHT_START_HOUR, 0, 0);
+          const searchEnd = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), SHIFT_CONSTANTS.NIGHT_END_HOUR, 0, 0);
           
-          console.log(`🌙 Night shift (before 10 AM): Searching from ${searchStart.toLocaleDateString()} 3 PM to ${searchEnd.toLocaleDateString()} 10 AM`);
+          console.log(`🌙 Night shift (before 10 AM): Searching from ${searchStart.toLocaleDateString()} ${SHIFT_CONSTANTS.NIGHT_START_HOUR}:00 to ${searchEnd.toLocaleDateString()} ${SHIFT_CONSTANTS.NIGHT_END_HOUR}:00`);
           return { searchStart, searchEnd };
         }
       }
@@ -88,10 +91,10 @@ export async function GET(request: NextRequest) {
     // Get current shift period boundaries
     const { searchStart, searchEnd } = getCurrentShiftPeriod(validatedShift);
 
-    // Convert local times to UTC for database query
-    const nigeriaTimezoneOffset = 1; // Nigeria is UTC+1
-    const utcSearchStart = new Date(searchStart.getTime() - (nigeriaTimezoneOffset * 60 * 60 * 1000));
-    const utcSearchEnd = new Date(searchEnd.getTime() - (nigeriaTimezoneOffset * 60 * 60 * 1000));
+    // Convert Nigeria local times to UTC for database query
+    // Nigeria time is UTC+1, so subtract 1 hour to get UTC
+    const utcSearchStart = new Date(searchStart.getTime() - (1 * 60 * 60 * 1000));
+    const utcSearchEnd = new Date(searchEnd.getTime() - (1 * 60 * 60 * 1000));
     
     console.log(`🔍 Timezone conversion:`);
     console.log(`  Local start: ${searchStart.toLocaleString()}`);
