@@ -1,11 +1,12 @@
 import { getUsers } from '@/lib/auth/user-actions';
-import { createServer } from '@/lib/supabase/server';
+import { createServerComponentClient } from '@/lib/supabase/server';
 import UsersClient from './UsersClient';
+import { OwnerPageWrapper } from '@/components/layout/OwnerPageWrapper';
 import { Suspense } from 'react';
 
 export default async function UsersPage() {
   // Get current user from Supabase session
-  const supabase = await createServer();
+  const supabase = await createServerComponentClient();
   const { data } = await supabase.auth.getUser();
   let user = data?.user ? {
     id: data.user.id,
@@ -30,10 +31,13 @@ export default async function UsersPage() {
   }
 
   const users = await getUsers(user);
+  const displayName = user.email?.split('@')[0] || 'Owner';
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <UsersClient users={users} user={user} />
-    </Suspense>
+    <OwnerPageWrapper user={user} displayName={displayName}>
+      <Suspense fallback={<div>Loading...</div>}>
+        <UsersClient users={users} user={user} />
+      </Suspense>
+    </OwnerPageWrapper>
   );
 } 

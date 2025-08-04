@@ -1,8 +1,9 @@
-import { createServer } from '@/lib/supabase/server';
+import { createServerComponentClient } from '@/lib/supabase/server';
+import { OwnerPageWrapper } from '@/components/layout/OwnerPageWrapper';
 import InviteFormClient from './InviteFormClient';
 
 export default async function InvitePage() {
-  const supabase = await createServer();
+  const supabase = await createServerComponentClient();
   const { data } = await supabase.auth.getUser();
   let user = data?.user ? {
     id: data.user.id,
@@ -26,6 +27,12 @@ export default async function InvitePage() {
     return <div className="p-8 text-center text-destructive">Access denied. Only owners can access this page.</div>;
   }
 
+  const displayName = user.email?.split('@')[0] || 'Owner';
+
   // Render the client component for the form
-  return <InviteFormClient />;
+  return (
+    <OwnerPageWrapper user={user} displayName={displayName}>
+      <InviteFormClient />
+    </OwnerPageWrapper>
+  );
 }

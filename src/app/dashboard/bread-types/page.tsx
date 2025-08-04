@@ -1,11 +1,12 @@
 import { getBreadTypes } from '@/lib/bread-types/actions';
-import { createServer } from '@/lib/supabase/server';
+import { createServerComponentClient } from '@/lib/supabase/server';
+import { OwnerPageWrapper } from '@/components/layout/OwnerPageWrapper';
 import BreadTypesClient from './BreadTypesClient';
 import { Suspense } from 'react';
 
 export default async function BreadTypesPage() {
   // Get current user from Supabase session
-  const supabase = await createServer();
+  const supabase = await createServerComponentClient();
   const { data } = await supabase.auth.getUser();
   const initialUser = data?.user ? {
     id: data.user.id,
@@ -32,10 +33,13 @@ export default async function BreadTypesPage() {
   }
 
   const breadTypes = await getBreadTypes();
+  const displayName = user.email?.split('@')[0] || 'Owner';
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <BreadTypesClient breadTypes={breadTypes} user={user} />
-    </Suspense>
+    <OwnerPageWrapper user={user} displayName={displayName}>
+      <Suspense fallback={<div>Loading...</div>}>
+        <BreadTypesClient breadTypes={breadTypes} user={user} />
+      </Suspense>
+    </OwnerPageWrapper>
   );
 } 

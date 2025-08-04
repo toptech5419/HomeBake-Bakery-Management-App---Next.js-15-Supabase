@@ -58,7 +58,7 @@ export default async function DashboardPage() {
               }
             });
             
-            return redirect('/dashboard/owner');
+            return redirect('/owner-dashboard');
           } else {
             // User exists but has no profile - redirect to login with error
             return redirect('/login?error=no-profile');
@@ -88,7 +88,7 @@ export default async function DashboardPage() {
   // Role-based redirects to specialized dashboards
   switch (role) {
     case 'owner':
-      return redirect('/dashboard/owner');
+      return redirect('/owner-dashboard');
     case 'manager':
       return redirect('/dashboard/manager');
     case 'sales_rep':

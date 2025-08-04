@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
     const response = await updateSession(request)
 
     // Check if this is a protected dashboard route
-    if (request.nextUrl.pathname.startsWith('/dashboard')) {
+    if (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/owner-dashboard')) {
       // Create Supabase client for middleware
       const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,7 +40,8 @@ export async function middleware(request: NextRequest) {
 
       // Check role-based access for owner-only routes
       if (request.nextUrl.pathname.startsWith('/dashboard/users') || 
-          request.nextUrl.pathname.startsWith('/dashboard/owner')) {
+          request.nextUrl.pathname.startsWith('/dashboard/owner') ||
+          request.nextUrl.pathname.startsWith('/owner-dashboard')) {
         // Get user role from metadata or users table
         let userRole = user.user_metadata?.role;
         
@@ -101,7 +102,7 @@ export async function middleware(request: NextRequest) {
     return response
   } catch (error) {
     // If middleware completely fails, redirect to login for safety
-    if (request.nextUrl.pathname.startsWith('/dashboard')) {
+    if (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/owner-dashboard')) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
     

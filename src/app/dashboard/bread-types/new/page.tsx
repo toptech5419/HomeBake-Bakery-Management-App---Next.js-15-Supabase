@@ -1,5 +1,6 @@
-import { createServer } from '@/lib/supabase/server';
+import { createServerComponentClient } from '@/lib/supabase/server';
 import { getBreadTypes } from '@/lib/bread-types/actions';
+import { OwnerPageWrapper } from '@/components/layout/OwnerPageWrapper';
 import BreadTypeNewClient from './BreadTypeNewClient';
 
 import { Suspense } from 'react';
@@ -12,7 +13,7 @@ type PageProps = {
 };
 
 export default async function BreadTypeNewPage({ searchParams }: PageProps) {
-  const supabase = await createServer();
+  const supabase = await createServerComponentClient();
   const { data } = await supabase.auth.getUser();
   const userData = data?.user ? {
     id: data.user.id,
@@ -47,9 +48,13 @@ export default async function BreadTypeNewPage({ searchParams }: PageProps) {
     }
   }
 
+  const displayName = user.email?.split('@')[0] || 'Owner';
+
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <BreadTypeNewClient initialValues={initialValues} user={user} />
-    </Suspense>
+    <OwnerPageWrapper user={user} displayName={displayName}>
+      <Suspense fallback={<div>Loading...</div>}>
+        <BreadTypeNewClient initialValues={initialValues} user={user} />
+      </Suspense>
+    </OwnerPageWrapper>
   );
 } 

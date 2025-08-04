@@ -1,4 +1,4 @@
-import { createServer } from '@/lib/supabase/server';
+import { createServerComponentClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { UserRole } from '@/types';
 import { DashboardLayoutClient } from '@/components/layout/dashboard-layout-client';
@@ -15,7 +15,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createServer();
+  const supabase = await createServerComponentClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -44,6 +44,22 @@ export default async function DashboardLayout({
       role = role || 'sales_rep';
       displayName = displayName || user.email?.split('@')[0] || 'User';
     }
+  }
+
+  // If user is owner, return just the children without the dashboard layout
+  // Owner pages handle their own layout with OwnerPageWrapper
+  if (role === 'owner') {
+    return (
+      <DataProvider>
+        <ToastProvider>
+          <ShiftProvider>
+            {/* Offline Sync Indicator */}
+            <OfflineSyncIndicator />
+            {children}
+          </ShiftProvider>
+        </ToastProvider>
+      </DataProvider>
+    );
   }
 
   return (

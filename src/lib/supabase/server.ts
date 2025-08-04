@@ -2,6 +2,66 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/supabase'
 
+// Read-only server client for server components (cannot set cookies)
+export async function createServerComponentClient() {
+  // Ensure this function is only called on the server side
+  if (typeof window !== 'undefined') {
+    throw new Error('createServerComponentClient() can only be called on the server side')
+  }
+
+  // Check for required environment variables
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL environment variable is not set. Please check your .env.local file.')
+  }
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable is not set. Please check your .env.local file.')
+  }
+
+  try {
+    // Await cookies() with error handling
+    const cookieStore = await cookies();
+
+    return createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        auth: {
+          autoRefreshToken: false, // Don't auto-refresh in read-only mode
+          persistSession: false,   // Don't persist session changes
+          detectSessionInUrl: false, // Don't detect session in URL
+          flowType: 'pkce'
+        },
+        global: {
+          headers: {
+            'X-Client-Info': 'homebake-pwa@2.0.0',
+            'x-application-name': 'homebake'
+          }
+        },
+        cookies: {
+          get(key: string) {
+            try {
+              return cookieStore.get(key)?.value
+            } catch {
+              return undefined
+            }
+          },
+          set() {
+            // No-op for server components - cannot set cookies
+          },
+          remove() {
+            // No-op for server components - cannot remove cookies
+          }
+        }
+      }
+    )
+  } catch (error) {
+    console.error('Error creating server component client:', error)
+    throw new Error('Failed to initialize database connection')
+  }
+}
+
+// Full server client for server actions and route handlers (can set cookies)
 export async function createServer() {
   // Ensure this function is only called on the server side
   if (typeof window !== 'undefined') {
@@ -140,12 +200,18 @@ export async function createServer() {
             }
           },
           set(key: string, value: string, options: CookieOptions) {
+            // In Next.js 15, cookies can only be set in Server Actions or Route Handlers
+            // For server components, we'll just silently ignore cookie setting
             try {
+              // Only attempt to set cookies if we're in a server action context
+              // This will fail silently if called from a server component
               if (typeof window === 'undefined') {
+                // Check if we're in a server action context by attempting to set
                 cookieStore.set({ name: key, value, ...options })
               }
             } catch (error) {
-              console.warn('Cookie set failed:', error)
+              // Silently ignore cookie setting errors in server components
+              // This is expected behavior in Next.js 15
             }
           },
           remove(key: string, options: CookieOptions) {
@@ -154,7 +220,7 @@ export async function createServer() {
                 cookieStore.set({ name: key, value: '', ...options })
               }
             } catch (error) {
-              console.warn('Cookie remove failed:', error)
+              // Silently ignore cookie removal errors in server components
             }
           }
         }
@@ -165,3 +231,6 @@ export async function createServer() {
     throw new Error('Failed to initialize database connection')
   }
 }
+
+// Alias for backward compatibility - use createServerComponentClient for server components
+export { createServerComponentClient as createServerClient }

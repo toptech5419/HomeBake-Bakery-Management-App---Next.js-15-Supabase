@@ -120,7 +120,7 @@ export async function login(prevState: { error?: string }, formData: FormData) {
   // Role-based redirect
   switch (userRole) {
     case 'owner':
-      redirect('/dashboard/owner')
+      redirect('/owner-dashboard')
     case 'manager':
       redirect('/dashboard/manager')
     case 'sales_rep':
