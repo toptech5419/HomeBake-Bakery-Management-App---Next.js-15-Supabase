@@ -25,7 +25,10 @@
       "Bash(pgrep:*)",
       "Bash(npm install:*)",
       "Bash(tasklist:*)",
-      "Bash(cmd /c:*)"
+      "Bash(cmd /c:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }
