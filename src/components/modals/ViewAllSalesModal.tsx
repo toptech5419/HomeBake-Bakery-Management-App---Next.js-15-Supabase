@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { X, Search, TrendingUp, Calendar, ArrowLeft, DollarSign, Package } from 'lucide-react';
+import { X, Search, TrendingUp, Calendar, DollarSign, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { useRouter } from 'next/navigation';
 
 interface ViewAllSalesModalProps {
   isOpen: boolean;
@@ -44,7 +43,6 @@ export function ViewAllSalesModal({
   userId 
 }: ViewAllSalesModalProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const router = useRouter();
 
   // Fetch all sales for the current day and user
   const {
@@ -112,10 +110,6 @@ export function ViewAllSalesModal({
     onClose();
   };
 
-  // Handle cancel button
-  const handleCancel = () => {
-    router.push('/dashboard');
-  };
 
   // Get status color for returned items
   const getStatusColor = (returned: boolean) => {
@@ -132,8 +126,8 @@ export function ViewAllSalesModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50">
-      <div className="bg-white h-full w-full md:h-auto md:max-h-[95vh] md:w-full md:max-w-7xl md:rounded-2xl shadow-2xl flex flex-col">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white h-full w-full md:h-[90vh] md:max-h-[90vh] md:w-full md:max-w-4xl md:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         
         {/* Header */}
         <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-6 flex-shrink-0">
@@ -153,7 +147,7 @@ export function ViewAllSalesModal({
               variant="ghost"
               size="sm"
               onClick={handleClose}
-              className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl"
+              className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-full bg-white/10 backdrop-blur-sm shadow-lg hover:scale-105 transition-all duration-200"
             >
               <X className="h-5 w-5" />
             </Button>
@@ -161,41 +155,41 @@ export function ViewAllSalesModal({
         </div>
 
         {/* Search and Stats Bar */}
-        <div className="p-6 border-b border-gray-200 bg-gray-50">
-          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+        <div className="p-4 border-b border-gray-200 bg-orange-50">
+          <div className="flex flex-col gap-3">
             {/* Search */}
-            <div className="flex-1 min-w-0">
+            <div className="w-full">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Search by bread type, quantity, or seller..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 w-full md:max-w-sm"
                 />
               </div>
             </div>
 
             {/* Stats */}
-            <div className="flex gap-4 flex-shrink-0">
-              <div className="bg-green-50 rounded-lg px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-700">Revenue:</span>
+            <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+              <div className="bg-green-50 rounded-lg px-3 py-1.5 border border-green-200">
+                <div className="flex items-center gap-1.5">
+                  <DollarSign className="h-3 w-3 text-green-600" />
+                  <span className="font-medium text-green-700">Revenue:</span>
                   <span className="font-bold text-green-900">{formatCurrencyNGN(totalRevenue)}</span>
                 </div>
               </div>
-              <div className="bg-blue-50 rounded-lg px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-700">Items:</span>
+              <div className="bg-blue-50 rounded-lg px-3 py-1.5 border border-blue-200">
+                <div className="flex items-center gap-1.5">
+                  <Package className="h-3 w-3 text-blue-600" />
+                  <span className="font-medium text-blue-700">Items:</span>
                   <span className="font-bold text-blue-900">{totalItemsSold}</span>
                 </div>
               </div>
-              <div className="bg-purple-50 rounded-lg px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-medium text-purple-700">Sales:</span>
+              <div className="bg-purple-50 rounded-lg px-3 py-1.5 border border-purple-200">
+                <div className="flex items-center gap-1.5">
+                  <TrendingUp className="h-3 w-3 text-purple-600" />
+                  <span className="font-medium text-purple-700">Sales:</span>
                   <span className="font-bold text-purple-900">{filteredSales.length}</span>
                 </div>
               </div>
@@ -206,19 +200,20 @@ export function ViewAllSalesModal({
                 onClick={() => refetch()}
                 disabled={isLoading}
                 size="sm"
+                className="h-7 w-7 p-0"
               >
                 {isLoading ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-green-600" />
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-green-600" />
                 ) : (
-                  <TrendingUp className="h-4 w-4" />
+                  <TrendingUp className="h-3 w-3" />
                 )}
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Main Content Area - Much Larger and More Prominent */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Main Content Area - Optimized for Mobile Scrolling */}
+        <div className="flex-1 overflow-y-auto bg-gray-50">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="h-12 w-12 animate-spin rounded-full border-4 border-green-500 border-t-transparent"></div>
@@ -245,136 +240,80 @@ export function ViewAllSalesModal({
                 </p>
             </div>
           ) : (
-            <div className="p-6">
-              {/* Sales Table - Much Larger and More Prominent */}
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">Sales Records</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Showing {filteredSales.length} of {sales.length} sales
-                    {searchTerm && ` • Searching for "${searchTerm}"`}
-                  </p>
-                </div>
+            <div className="p-4">
+              {/* Results Header */}
+              <div className="mb-3">
+                <p className="text-sm text-gray-600">
+                  Showing {filteredSales.length} of {sales.length} sales
+                  {searchTerm && ` • Searching for "${searchTerm}"`}
+                </p>
+              </div>
                 
-                <div className="max-h-[60vh] overflow-y-auto">
-                  <div className="divide-y divide-gray-200">
-                    {filteredSales.map((sale: SalesLogWithDetails) => (
-                      <div key={sale.id} className="p-6 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start justify-between">
-                          {/* Left Side - Main Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="flex items-center gap-2">
-                                <TrendingUp className="h-5 w-5 text-green-500" />
-                                <h4 className="text-lg font-semibold text-gray-900">
-                                  {sale.bread_types.name}
-                                </h4>
-                              </div>
-                              <Badge className={getStatusColor(sale.returned)}>
-                                {getStatusDisplay(sale.returned)}
-                              </Badge>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                              <div>
-                                <p className="text-sm font-medium text-gray-600">Quantity</p>
-                                <p className="text-lg font-semibold text-gray-900">{sale.quantity} units</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-600">Unit Price</p>
-                                <p className="text-lg font-semibold text-gray-900">
-                                  {formatCurrencyNGN(sale.unit_price || 0)}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-600">Total Amount</p>
-                                <p className="text-lg font-semibold text-green-600">
-                                  {formatCurrencyNGN((sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0))}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-600">Seller</p>
-                                <p className="text-lg font-semibold text-gray-900">
-                                  {sale.recorded_by_user?.name || 'Unknown'}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Additional Details */}
-                            <div className="flex items-center gap-6 text-sm text-gray-500">
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4" />
-                                <span>
-                                  {new Date(sale.created_at).toLocaleDateString()} at{' '}
-                                  {new Date(sale.created_at).toLocaleTimeString([], { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
-                                  })}
-                                </span>
-                              </div>
-                              {sale.discount && sale.discount > 0 && (
-                                <div className="flex items-center gap-2 text-red-600">
-                                  <span>Discount: -{formatCurrencyNGN(sale.discount)}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Leftovers */}
-                            {sale.leftover && sale.leftover > 0 && (
-                              <div className="mt-3 bg-yellow-50 rounded-lg p-3">
-                                <div className="flex items-start gap-2">
-                                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
-                                  <div className="flex-1">
-                                    <p className="text-sm font-medium text-yellow-700 mb-1">Leftovers</p>
-                                    <p className="text-sm text-yellow-600">
-                                      {sale.leftover} units remaining
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+              {/* Sales List - Compact Mobile Cards */}
+              <div className="space-y-3">
+                {filteredSales.map((sale: SalesLogWithDetails) => (
+                  <div key={sale.id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all duration-200">
+                    {/* Header Row */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-green-500" />
+                        <h4 className="text-base font-semibold text-gray-900 truncate">
+                          {sale.bread_types.name}
+                        </h4>
                       </div>
-                    ))}
+                      <Badge className={getStatusColor(sale.returned)} variant="outline">
+                        {getStatusDisplay(sale.returned)}
+                      </Badge>
+                    </div>
+                    
+                    {/* Main Details Grid */}
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Quantity</p>
+                        <p className="text-sm font-semibold text-gray-900">{sale.quantity} units</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit Price</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatCurrencyNGN(sale.unit_price || 0)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total</p>
+                        <p className="text-sm font-semibold text-green-600">
+                          {formatCurrencyNGN((sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0))}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Seller</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {sale.recorded_by_user?.name || 'Unknown'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Footer Row - Time and Extras */}
+                    <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{new Date(sale.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {sale.discount && sale.discount > 0 && (
+                          <span className="text-red-600">-{formatCurrencyNGN(sale.discount)}</span>
+                        )}
+                        {sale.leftover && sale.leftover > 0 && (
+                          <span className="text-yellow-600">{sale.leftover} left</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              {filteredSales.length > 0 && (
-                <span>
-                  Total Revenue: <span className="font-semibold">{formatCurrencyNGN(totalRevenue)}</span>
-                  {' • '}
-                  Total Items: <span className="font-semibold">{totalItemsSold}</span>
-                </span>
-              )}
-            </div>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={handleCancel}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Cancel
-              </Button>
-              <Button
-                onClick={handleClose}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-              >
-                <TrendingUp className="h-4 w-4" />
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

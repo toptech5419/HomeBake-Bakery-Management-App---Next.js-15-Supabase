@@ -23,7 +23,9 @@
       "Bash(timeout 30 npm run dev)",
       "Bash(curl:*)",
       "Bash(pgrep:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(tasklist:*)",
+      "Bash(cmd /c:*)"
     ],
     "deny": []
   }
