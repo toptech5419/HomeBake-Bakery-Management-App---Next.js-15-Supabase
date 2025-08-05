@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, MessageSquare } from 'lucide-react';
+import { X, MessageSquare, Download, Share2, ChevronUp, ChevronDown } from 'lucide-react';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { useShift } from '@/contexts/ShiftContext';
 import { createShiftReport } from '@/lib/reports/actions';
@@ -57,9 +57,10 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
   const [isClosing, setIsClosing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
-  const [reportAction, setReportAction] = useState<'created' | 'updated' | null>(null);
+  const [, setReportAction] = useState<'created' | 'updated' | null>(null);
   const [shiftFeedback, setShiftFeedback] = useState<ShiftFeedback | null>(null);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   
   // Use refs to track state across re-renders without causing re-renders
   const hasSavedRef = useRef(false);
@@ -186,6 +187,7 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
   // Reset state when modal closes
   const handleClose = useCallback(() => {
     setIsClosing(true);
+    setShowShareMenu(false);
     setTimeout(() => {
       onClose();
       setIsClosing(false);
@@ -266,7 +268,7 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
   }, [reportData, currentShift]);
 
   const downloadPDF = useCallback(() => {
-    alert('PDF download feature coming soon!');
+    toast.info('PDF download feature coming soon!');
   }, []);
 
   const shareToSocial = useCallback((platform: string) => {
@@ -291,6 +293,7 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
         break;
     }
+    setShowShareMenu(false);
   }, [reportData, currentShift]);
 
   // Early return if modal is not open or no report data
@@ -298,7 +301,7 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
 
   return (
     <div 
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-lg transition-all duration-300 animate-modal-backdrop ${
+      className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-all duration-300 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}
       onClick={handleBackdropClick}
@@ -306,19 +309,18 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
       {/* Enhanced Loading Overlay */}
       {isSaving && (
         <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-20">
-          <div className="bg-card rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-6 border border-border/20 animate-modal-content">
+          <div className="bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-4 mx-4 max-w-xs w-full">
             <div className="relative">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/20 border-t-primary"></div>
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-primary/20 to-transparent animate-pulse"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-3 border-orange-200 border-t-orange-500"></div>
             </div>
             <div className="text-center">
-              <h3 className="text-xl font-display font-bold text-foreground mb-3">Saving Your Report</h3>
-              <p className="text-muted-foreground">Please wait while we securely save your shift report...</p>
-              <div className="mt-4 flex justify-center">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Saving Report</h3>
+              <p className="text-sm text-gray-600">Please wait...</p>
+              <div className="mt-3 flex justify-center">
                 <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                 </div>
               </div>
             </div>
@@ -326,277 +328,289 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
         </div>
       )}
       
-      <div 
-        className={`bg-white rounded-xl shadow-2xl w-[98%] max-w-sm max-h-[95vh] flex flex-col transition-all duration-300 border border-gray-200 ${
-          isClosing ? 'scale-95 opacity-0 translate-y-2' : 'scale-100 opacity-100 translate-y-0'
-        } ${isSaving ? 'pointer-events-none opacity-50' : ''}`}
-      >
-        {/* Compact Header */}
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-3 flex-shrink-0 rounded-t-xl">
-          <button
-            onClick={handleClose}
-            className="absolute top-2 right-2 bg-white/20 hover:bg-white/30 text-white w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110"
-            aria-label="Close report"
-            disabled={isSaving}
-          >
-            <X className="w-4 h-4" />
-          </button>
-          <div className="pr-8">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="p-1 bg-white/20 rounded-md">
-                <span className="text-sm">📊</span>
-              </div>
-              <h1 className="text-base font-bold">
-                {viewOnly ? 'Report' : 'Final Report'}
-              </h1>
-            </div>
-            <div className="text-xs text-white/90">
-              {reportData.shift || currentShift} • {new Date().toLocaleDateString()}
-            </div>
-          </div>
-          
-          {/* Compact Save Status */}
-          {!viewOnly && saveStatus !== 'idle' && (
-          <div className="mt-2">
-            {saveStatus === 'saving' && (
-              <div className="flex items-center gap-1 text-xs bg-white/20 rounded-md px-2 py-1">
-                <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span className="text-white/90">Saving...</span>
-              </div>
-            )}
-            {saveStatus === 'success' && (
-              <div className="flex items-center gap-1 text-xs bg-green-500/20 rounded-md px-2 py-1">
-                <span className="text-green-200">✓ Saved!</span>
-              </div>
-            )}
-            {saveStatus === 'error' && (
-              <div className="flex items-center gap-1 text-xs bg-red-500/20 rounded-md px-2 py-1">
-                <span className="text-red-200">✗ Failed</span>
-              </div>
-            )}
-          </div>
-          )}
-        </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
-          {/* Compact Summary Cards */}
-          <div className="space-y-2">
-            {/* Revenue Card */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-green-500 rounded-md flex items-center justify-center">
-                    <span className="text-white text-xs">💰</span>
-                  </div>
-                  <span className="text-xs font-semibold text-green-700">Total Revenue</span>
-                </div>
-                <div className="text-lg font-bold text-green-800">
-                  {formatCurrencyNGN(reportData.totalRevenue)}
-                </div>
-              </div>
-            </div>
+      {/* Mobile-First Modal Container */}
+      <div className="flex items-end justify-center min-h-screen p-2 sm:items-center">
+        <div 
+          className={`bg-white w-full max-w-md max-h-[95vh] flex flex-col transition-all duration-300 shadow-2xl ${
+            isClosing 
+              ? 'scale-95 opacity-0 translate-y-4 sm:translate-y-2' 
+              : 'scale-100 opacity-100 translate-y-0'
+          } ${isSaving ? 'pointer-events-none opacity-50' : ''} rounded-t-2xl sm:rounded-2xl`}
+        >
+          {/* Mobile-Optimized Header */}
+          <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 flex-shrink-0 rounded-t-2xl relative">
+            {/* Close Button - Always Visible */}
+            <button
+              onClick={handleClose}
+              className="absolute top-3 right-3 bg-white/20 hover:bg-white/30 text-white w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 z-10"
+              aria-label="Close report"
+              disabled={isSaving}
+            >
+              <X className="w-4 h-4" />
+            </button>
             
-            <div className="grid grid-cols-2 gap-2">
-              {/* Items Sold */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <span className="text-xs">📦</span>
-                    <span className="text-xs font-semibold text-blue-700">Sold</span>
+            <div className="pr-10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <span className="text-lg">📊</span>
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold leading-tight">
+                    {viewOnly ? 'Shift Report' : 'Final Report'}
+                  </h1>
+                  <div className="text-sm text-white/90 capitalize">
+                    {reportData.shift || currentShift} Shift • {new Date().toLocaleDateString()}
                   </div>
-                  <div className="text-lg font-bold text-blue-800">
+                </div>
+              </div>
+              
+              {/* Save Status - More Prominent */}
+              {!viewOnly && saveStatus !== 'idle' && (
+                <div className="mt-3">
+                  {saveStatus === 'saving' && (
+                    <div className="flex items-center gap-2 text-sm bg-white/20 rounded-lg px-3 py-2">
+                      <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></div>
+                      <span className="text-white font-medium">Saving report...</span>
+                    </div>
+                  )}
+                  {saveStatus === 'success' && (
+                    <div className="flex items-center gap-2 text-sm bg-green-500/30 rounded-lg px-3 py-2">
+                      <span className="text-green-100 font-medium">✓ Report saved successfully!</span>
+                    </div>
+                  )}
+                  {saveStatus === 'error' && (
+                    <div className="flex items-center gap-2 text-sm bg-red-500/30 rounded-lg px-3 py-2">
+                      <span className="text-red-100 font-medium">✗ Failed to save report</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Summary Cards - Mobile Optimized */}
+            <div className="space-y-3">
+              {/* Revenue Card - Hero Style */}
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-200 shadow-sm">
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm">💰</span>
+                    </div>
+                    <span className="text-sm font-bold text-green-700">Total Revenue</span>
+                  </div>
+                  <div className="text-2xl font-bold text-green-800">
+                    {formatCurrencyNGN(reportData.totalRevenue)}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Items Sold */}
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-2">
+                    <span className="text-base">📦</span>
+                  </div>
+                  <div className="text-xl font-bold text-blue-800 mb-1">
                     {reportData.totalItemsSold}
                   </div>
+                  <div className="text-xs font-semibold text-blue-600">Items Sold</div>
                 </div>
-              </div>
-              
-              {/* Remaining */}
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-3 border border-amber-200">
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <span className="text-xs">🍞</span>
-                    <span className="text-xs font-semibold text-amber-700">Left</span>
+                
+                {/* Remaining Value */}
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-2">
+                    <span className="text-base">🍞</span>
                   </div>
-                  <div className="text-lg font-bold text-amber-800">
+                  <div className="text-lg font-bold text-amber-800 mb-1">
                     {formatCurrencyNGN(reportData.totalRemaining)}
                   </div>
+                  <div className="text-xs font-semibold text-amber-600">Remaining</div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Sales Records */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-              </svg>
-              <h3 className="text-sm font-bold text-gray-900">Sales ({reportData.salesRecords.length})</h3>
-            </div>
-            
-            <div className="bg-white rounded-lg border border-gray-200">
-              {reportData.salesRecords.map((sale, index) => (
-                <div key={index} className="flex justify-between items-center p-2.5 border-b border-gray-100 last:border-b-0">
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">{sale.breadType}</div>
-                    <div className="text-xs text-gray-500">{sale.quantity} units • {new Date(sale.timestamp).toLocaleTimeString()}</div>
+            {/* Sales Records */}
+            {reportData.salesRecords.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-5 h-5 bg-gray-100 rounded flex items-center justify-center">
+                    <span className="text-xs">💳</span>
                   </div>
-                  <div className="text-sm font-bold text-green-600">{formatCurrencyNGN(sale.totalAmount)}</div>
+                  <h3 className="text-base font-bold text-gray-900">Sales ({reportData.salesRecords.length})</h3>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Remaining Inventory */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-              </svg>
-              <h3 className="text-sm font-bold text-gray-900">Remaining</h3>
-            </div>
-            
-            {(() => {
-              const filteredBreads = reportData.remainingBreads.filter(bread => bread.quantity > 0);
-              if (filteredBreads.length > 0) {
-                return (
-                  <div className="bg-amber-50 rounded-lg border border-amber-200">
-                    {filteredBreads.map((bread, index) => (
-                      <div key={index} className="flex justify-between items-center p-2.5 border-b border-amber-100 last:border-b-0">
-                        <div>
-                          <div className="text-sm font-semibold text-gray-900">{bread.breadType}</div>
-                          <div className="text-xs text-amber-600">{bread.quantity} left</div>
-                        </div>
-                        <div className="text-sm font-bold text-amber-700">
-                          {formatCurrencyNGN(bread.totalAmount)}
+                
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  {reportData.salesRecords.map((sale, index) => (
+                    <div key={index} className="flex justify-between items-center p-3 border-b border-gray-100 last:border-b-0">
+                      <div className="flex-1">
+                        <div className="text-sm font-bold text-gray-900">{sale.breadType}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {sale.quantity} units • {new Date(sale.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                );
-              } else {
-                return (
-                  <div className="bg-green-50 rounded-lg border border-green-200 p-3 text-center">
-                    <div className="text-green-600 text-sm font-medium">✅ All sold!</div>
-                  </div>
-                );
-              }
-            })()}
-          </div>
+                      <div className="text-sm font-bold text-green-600 ml-3">
+                        {formatCurrencyNGN(sale.totalAmount)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          {/* Shift Feedback */}
-          {(shiftFeedback || reportData.feedback) && (
+            {/* Remaining Inventory */}
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <MessageSquare className="w-4 h-4 text-gray-600" />
-                <h3 className="text-sm font-bold text-gray-900">Feedback</h3>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-5 h-5 bg-gray-100 rounded flex items-center justify-center">
+                  <span className="text-xs">📋</span>
+                </div>
+                <h3 className="text-base font-bold text-gray-900">Remaining Stock</h3>
               </div>
               
-              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                {loadingFeedback ? (
-                  <div className="flex items-center justify-center py-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
-                    <span className="ml-2 text-xs text-gray-600">Loading...</span>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-gray-700">
-                        {user?.name || user?.email || 'Sales Rep'}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {shiftFeedback?.created_at 
-                          ? new Date(shiftFeedback.created_at).toLocaleTimeString()
-                          : new Date().toLocaleTimeString()
-                        }
-                      </span>
+              {(() => {
+                const filteredBreads = reportData.remainingBreads.filter(bread => bread.quantity > 0);
+                if (filteredBreads.length > 0) {
+                  return (
+                    <div className="bg-amber-50 rounded-xl border border-amber-200 overflow-hidden">
+                      {filteredBreads.map((bread, index) => (
+                        <div key={index} className="flex justify-between items-center p-3 border-b border-amber-100 last:border-b-0">
+                          <div className="flex-1">
+                            <div className="text-sm font-bold text-gray-900">{bread.breadType}</div>
+                            <div className="text-xs text-amber-600 mt-1">{bread.quantity} left</div>
+                          </div>
+                          <div className="text-sm font-bold text-amber-700 ml-3">
+                            {formatCurrencyNGN(bread.totalAmount)}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="text-sm text-gray-800">
-                      {shiftFeedback?.note || reportData.feedback || 'No feedback provided'}
+                  );
+                } else {
+                  return (
+                    <div className="bg-green-50 rounded-xl border border-green-200 p-4 text-center">
+                      <div className="text-green-600 text-sm font-medium">✅ All items sold out!</div>
                     </div>
-                  </div>
-                )}
+                  );
+                }
+              })()}
+            </div>
+
+            {/* Shift Feedback */}
+            {(shiftFeedback || reportData.feedback) && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <MessageSquare className="w-5 h-5 text-gray-600" />
+                  <h3 className="text-base font-bold text-gray-900">Feedback</h3>
+                </div>
+                
+                <div className="bg-blue-50 rounded-xl p-3 border border-blue-200">
+                  {loadingFeedback ? (
+                    <div className="flex items-center justify-center py-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                      <span className="ml-2 text-xs text-gray-600">Loading...</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-gray-700">
+                          {user?.name || user?.email || 'Sales Rep'}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {shiftFeedback?.created_at 
+                            ? new Date(shiftFeedback.created_at).toLocaleTimeString()
+                            : new Date().toLocaleTimeString()
+                          }
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-800">
+                        {shiftFeedback?.note || reportData.feedback || 'No feedback provided'}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
+            )}
+          </div>
+          
+          {/* Bottom Actions - Mobile Optimized */}
+          <div className="flex-shrink-0 p-4 border-t border-gray-200 space-y-3">
+            {/* Share & Download Button with Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowShareMenu(!showShareMenu)}
+                disabled={isSaving}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium text-sm transition-all duration-200 disabled:opacity-50"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Share & Export</span>
+                {showShareMenu ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+
+              {/* Dropdown Menu */}
+              {showShareMenu && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-xl border border-gray-200 shadow-xl overflow-hidden z-10">
+                  <div className="p-2">
+                    {/* Download Options */}
+                    <div className="space-y-1">
+                      <button
+                        onClick={downloadCSV}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                      >
+                        <Download className="w-4 h-4 text-green-600" />
+                        <span>Download CSV</span>
+                      </button>
+                      <button
+                        onClick={downloadPDF}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                      >
+                        <Download className="w-4 h-4 text-red-600" />
+                        <span>Download PDF</span>
+                      </button>
+                      <hr className="my-1" />
+                      <button
+                        onClick={() => shareToSocial('whatsapp')}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                      >
+                        <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">W</span>
+                        </div>
+                        <span>Share to WhatsApp</span>
+                      </button>
+                      <button
+                        onClick={() => shareToSocial('email')}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                      >
+                        <div className="w-4 h-4 bg-gray-600 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">@</span>
+                        </div>
+                        <span>Share via Email</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={handleClose}
+              disabled={isSaving}
+              className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all duration-200 disabled:opacity-50"
+            >
+              Close Report
+            </button>
+          </div>
+
+          {/* Alert Badge - Only show if there are high remaining amounts */}
+          {reportData.totalRemaining > 1000 && (
+            <div className="absolute top-16 left-4 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold shadow-lg">
+              ⚠️ {reportData.totalRemaining > 2000 ? 'High Stock' : 'Stock Alert'}
             </div>
           )}
-
         </div>
-        
-        {/* Bottom Actions */}
-        <div className="flex-shrink-0 p-3 border-t border-gray-200 space-y-3">
-          {/* Download Buttons */}
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={downloadCSV}
-              disabled={isSaving}
-              className="flex items-center justify-center gap-2 py-2 px-3 border border-gray-300 bg-white rounded-lg text-gray-700 font-medium text-sm hover:border-green-500 hover:text-green-600 transition-all duration-200 disabled:opacity-50"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd"/>
-              </svg>
-              CSV
-            </button>
-            <button
-              onClick={downloadPDF}
-              disabled={isSaving}
-              className="flex items-center justify-center gap-2 py-2 px-3 border border-gray-300 bg-white rounded-lg text-gray-700 font-medium text-sm hover:border-green-500 hover:text-green-600 transition-all duration-200 disabled:opacity-50"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd"/>
-              </svg>
-              PDF
-            </button>
-          </div>
-
-          {/* Share Buttons */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-gray-900">Share Report</span>
-              <div className="h-px bg-gray-200 flex-1 ml-3"></div>
-            </div>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => shareToSocial('whatsapp')}
-                disabled={isSaving}
-                className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 disabled:opacity-50"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
-                </svg>
-                <span className="text-sm font-medium">WhatsApp</span>
-              </button>
-              <button
-                onClick={() => shareToSocial('email')}
-                disabled={isSaving}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
-                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
-                </svg>
-                <span className="text-sm font-medium">Email</span>
-              </button>
-            </div>
-
-          
-          {/* Close Button */}
-          <button
-            onClick={handleClose}
-            disabled={isSaving}
-            className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-bold text-sm hover:shadow-lg transition-all duration-200 disabled:opacity-50"
-          >
-            Close Report
-          </button>
-          </div>
-        </div>
-
-        {/* Issues Badge - Only show if there are issues */}
-        {reportData.totalRemaining > 1000 && (
-          <div className="absolute bottom-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold shadow-lg">
-            ⚠️ {reportData.totalRemaining > 2000 ? 'High' : 'Alert'}
-          </div>
-        )}
       </div>
     </div>
   );
