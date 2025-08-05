@@ -39,7 +39,7 @@ interface FormData {
 }
 
 export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift }: CreateBatchModalProps) {
-  const { createBatch, isCreatingBatch } = useBatchMutations();
+  const { createBatch } = useBatchMutations();
   const { user } = useAuth();
   const { currentShift: contextShift } = useShift();
   const toast = useToast();
@@ -215,23 +215,25 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
 
   return (
     <AnimatePresence>
+      {/* Modal backdrop with click to close */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         onClick={onClose}
       >
+        {/* Proper modal container */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden shadow-2xl border-0"
+          className="bg-white w-full max-w-md max-h-[90vh] rounded-2xl shadow-2xl border-0 flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="relative bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
+          {/* Fixed Header */}
+          <div className="relative bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white flex-shrink-0 rounded-t-2xl">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
             
@@ -247,146 +249,154 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors"
+                className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center hover:bg-white/30 transition-colors touch-manipulation"
+                aria-label="Close modal"
               >
                 <X size={20} />
               </button>
             </div>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            {/* Shift Display */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card className="border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                      <Clock className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-blue-900">
-                        {shift === 'morning' ? '🌅 Morning' : '🌙 Night'} Shift
-                      </p>
-                      <p className="text-xs text-blue-700">Creating batch for current shift</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Bread Type Selection */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="space-y-3"
-            >
-              <label className="block text-sm font-semibold text-gray-700">
-                Bread Type <span className="text-red-500">*</span>
-              </label>
-              <Select
-                value={formData.breadTypeId}
-                onValueChange={handleBreadTypeChange}
-                disabled={loading}
-              >
-                <SelectTrigger className="w-full h-12 px-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:opacity-50 disabled:cursor-not-allowed bg-white hover:border-gray-300 transition-colors">
-                  <SelectValue placeholder={loading ? "Loading bread types..." : "Select bread type..."} />
-                </SelectTrigger>
-                <SelectContent 
-                  position="popper" 
-                  side="bottom" 
-                  sideOffset={4}
-                  className="z-[200] w-[var(--radix-select-trigger-width)] max-h-[40vh] overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl"
-                  align="start"
+          {/* Scrollable Form Content */}
+          <div className="flex-1 overflow-y-auto overscroll-contain">
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                {/* Shift Display */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
                 >
-                  {breadTypes.map(type => (
-                    <SelectItem 
-                      key={type.id} 
-                      value={type.id}
-                      className="px-4 py-3 text-sm cursor-pointer hover:bg-orange-50 focus:bg-orange-50 focus:text-orange-900 data-[highlighted]:bg-orange-50 data-[highlighted]:text-orange-900 rounded-lg mx-2 my-1"
-                    >
-                      <div className="flex flex-col space-y-1">
-                        <span className="font-medium text-gray-900">{type.name}</span>
-                        {type.size && (
-                          <span className="text-xs text-gray-500">Size: {type.size}</span>
-                        )}
+                  <Card className="border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                          <Clock className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-blue-900">
+                            {shift === 'morning' ? '🌅 Morning' : '🌙 Night'} Shift
+                          </p>
+                          <p className="text-xs text-blue-700">Creating batch for current shift</p>
+                        </div>
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {loading && (
-                <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading bread types...
-                </div>
-              )}
-            </motion.div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            {/* Quantity Input */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="space-y-3"
-            >
-              <label className="block text-sm font-semibold text-gray-700">
-                Actual Quantity <span className="text-red-500">*</span>
-              </label>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleQuantityChange(parseInt(formData.quantity) - 1)}
-                  disabled={!formData.quantity || parseInt(formData.quantity) <= 1}
-                  className="w-12 h-12 rounded-xl border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                {/* Bread Type Selection */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="space-y-3"
                 >
-                  <Minus size={18} />
-                </button>
-                <input
-                  type="number"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
-                  min="1"
-                  max="1000"
-                  className="flex-1 h-12 px-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-center text-lg font-semibold transition-colors"
-                  placeholder="0"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleQuantityChange(parseInt(formData.quantity) + 1)}
-                  disabled={!formData.quantity || parseInt(formData.quantity) >= 1000}
-                  className="w-12 h-12 rounded-xl border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Bread Type <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    value={formData.breadTypeId}
+                    onValueChange={handleBreadTypeChange}
+                    disabled={loading}
+                  >
+                    <SelectTrigger className="w-full h-12 px-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:opacity-50 disabled:cursor-not-allowed bg-white hover:border-gray-300 transition-colors">
+                      <SelectValue placeholder={loading ? "Loading bread types..." : "Select bread type..."} />
+                    </SelectTrigger>
+                    <SelectContent 
+                      position="popper" 
+                      side="bottom" 
+                      sideOffset={4}
+                      className="z-[200] w-[var(--radix-select-trigger-width)] max-h-[50vh] overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl"
+                      align="start"
+                    >
+                      {breadTypes.map(type => (
+                        <SelectItem 
+                          key={type.id} 
+                          value={type.id}
+                          className="px-4 py-3 text-sm cursor-pointer hover:bg-orange-50 focus:bg-orange-50 focus:text-orange-900 data-[highlighted]:bg-orange-50 data-[highlighted]:text-orange-900 rounded-lg mx-2 my-1"
+                        >
+                          <div className="flex flex-col space-y-1">
+                            <span className="font-medium text-gray-900">{type.name}</span>
+                            {type.size && (
+                              <span className="text-xs text-gray-500">Size: {type.size}</span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {loading && (
+                    <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading bread types...
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* Quantity Input */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="space-y-3"
                 >
-                  <Plus size={18} />
-                </button>
-              </div>
-            </motion.div>
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Actual Quantity <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleQuantityChange(parseInt(formData.quantity) - 1)}
+                      disabled={!formData.quantity || parseInt(formData.quantity) <= 1}
+                      className="w-12 h-12 rounded-xl border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus size={18} />
+                    </button>
+                    <input
+                      type="number"
+                      value={formData.quantity}
+                      onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
+                      min="1"
+                      max="1000"
+                      className="flex-1 h-12 px-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-center text-lg font-semibold transition-colors"
+                      placeholder="0"
+                      inputMode="numeric"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleQuantityChange(parseInt(formData.quantity) + 1)}
+                      disabled={!formData.quantity || parseInt(formData.quantity) >= 1000}
+                      className="w-12 h-12 rounded-xl border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                      aria-label="Increase quantity"
+                    >
+                      <Plus size={18} />
+                    </button>
+                  </div>
+                </motion.div>
 
-            {/* Notes */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="space-y-3"
-            >
-              <label className="block text-sm font-semibold text-gray-700">
-                Notes <span className="text-gray-400">(Optional)</span>
-              </label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => handleNotesChange(e.target.value)}
-                rows={3}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none transition-colors"
-                placeholder="Add any notes about this batch..."
-              />
-            </motion.div>
+                {/* Notes */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="space-y-3"
+                >
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Notes <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => handleNotesChange(e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none transition-colors"
+                    placeholder="Add any notes about this batch..."
+                  />
+                </motion.div>
+              </form>
+            </div>
 
-            {/* Submit Button */}
+          {/* Fixed Bottom Button */}
+          <div className="flex-shrink-0 p-6 border-t border-gray-100">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -394,6 +404,7 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
             >
               <LoadingButton
                 type="submit"
+                onClick={handleSubmit}
                 isLoading={isSubmitting}
                 loadingText="Creating Batch..."
                 icon={Sparkles}
@@ -404,7 +415,7 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
                 Create Batch
               </LoadingButton>
             </motion.div>
-          </form>
+          </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
