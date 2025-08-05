@@ -3,15 +3,18 @@
 import React, { useState } from 'react';
 import { OwnerHeader } from '@/components/layout/owner-header';
 import { OwnerSidebar } from '@/components/layout/owner-sidebar';
+import { useNavigationTracking } from '@/hooks/use-navigation-tracking';
 
 interface OwnerPageWrapperProps {
-  user: { id: string; email?: string };
   displayName: string;
   children: React.ReactNode;
 }
 
-export function OwnerPageWrapper({ user, displayName, children }: OwnerPageWrapperProps) {
+export function OwnerPageWrapper({ displayName, children }: OwnerPageWrapperProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Track navigation history for back button functionality
+  useNavigationTracking({ userRole: 'owner' });
 
   return (
     <div className="min-h-screen bg-gray-50">

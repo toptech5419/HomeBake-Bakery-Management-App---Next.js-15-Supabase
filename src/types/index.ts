@@ -48,7 +48,7 @@ export interface Session {
 export interface BreadType {
   id: string;
   name: string;
-  size: string | null; // e.g., "400g", "Large", "Small"
+  size?: string; // e.g., "400g", "Large", "Small" - made optional to match database
   unit_price: number;
   created_by: string; // FK to users.id (owner)
   created_at: string;
@@ -74,10 +74,11 @@ export interface SalesLog {
   unit_price: number | null; // Actual price sold at
   discount: number | null;
   returned: boolean;
-  leftover: number | null; // Bread left unsold
+  leftovers: number; // Bread left unsold (changed from leftover to leftovers to match database)
   shift: ShiftType;
   recorded_by: string; // FK to users.id (sales_rep)
   created_at: string;
+  updated_at: string;
 }
 
 // Shift Management
@@ -260,16 +261,14 @@ export interface ProductionEntry {
 
 // Sales Form Data
 export interface SalesFormData {
-  entries: Array<{
-    bread_type_id: string;
-    quantity: number;
-    unit_price?: number;
-    discount?: number;
-    returned?: boolean;
-    leftover?: number;
-    shift: 'morning' | 'night';
-    recorded_by: string;
-  }>;
+  bread_type_id: string;
+  quantity: number;
+  unit_price?: number;
+  discount?: number;
+  returned?: boolean;
+  leftover?: number;
+  shift: 'morning' | 'night';
+  recorded_by: string;
 }
 
 // Batch Management

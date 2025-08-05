@@ -1,213 +1,124 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Package, 
-  TrendingUp, 
-  Users, 
-  Clock,
-  Star
-} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ChefHat, Users, BarChart3, LogIn } from 'lucide-react';
 
 export default function HomePage() {
-  const features = [
-    {
-      icon: Package,
-      title: 'Batch Management',
-      description: 'Track production batches from start to finish with real-time updates'
-    },
-    {
-      icon: TrendingUp,
-      title: 'Sales Analytics',
-      description: 'Get detailed insights into your bakery performance and trends'
-    },
-    {
-      icon: Users,
-      title: 'User Management',
-      description: 'Manage staff roles and permissions with role-based access control'
-    },
-    {
-      icon: Clock,
-      title: 'Shift Management',
-      description: 'Organize and track shifts with automated reporting'
-    }
-  ];
-
-  const testimonials = [
-    {
-      name: 'Sarah Johnson',
-      role: 'Bakery Owner',
-      content: 'HomeBake has transformed how we manage our bakery. The real-time tracking and analytics have helped us increase efficiency by 40%.',
-      rating: 5
-    },
-    {
-      name: 'Michael Chen',
-      role: 'Production Manager',
-      content: 'The batch management system is incredible. We can now track every loaf from oven to sale with complete transparency.',
-      rating: 5
-    }
-  ];
-
   return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
+    <main className="min-h-screen bg-gradient-to-br from-orange-100 via-amber-50 to-pink-50">
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20">
+      <div className="container mx-auto px-4 py-8 md:py-16">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-            Manage Your Bakery Like Never Before
-          </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            Streamline production, track sales, and grow your bakery business with HomeBake comprehensive management platform
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-orange-600 hover:bg-orange-700">
-              <Link href="/signup">Get Started Free</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/login">Sign In</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Everything You Need to Run Your Bakery
-            </h2>
-            <p className="text-xl text-gray-600">
-              From production to sales, manage every aspect of your bakery in one place
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                    <feature.icon className="w-6 h-6 text-orange-600" />
-                  </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>{feature.description}</CardDescription>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-20 bg-orange-50">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold text-orange-600 mb-2">500+</div>
-              <div className="text-gray-600">Bakeries Using HomeBake</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-orange-600 mb-2">50K+</div>
-              <div className="text-gray-600">Batches Tracked</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-orange-600 mb-2">99.9%</div>
-              <div className="text-gray-600">Uptime Guaranteed</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Loved by Bakery Owners
-            </h2>
-            <p className="text-xl text-gray-600">
-              See what our users are saying about HomeBake
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {testimonials.map((testimonial, index) => (
-              <Card key={index} className="border-0 shadow-lg">
-                <CardContent className="pt-6">
-                  <div className="flex mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                  <p className="text-gray-700 mb-4 italic">&quot;{testimonial.content}&quot;</p>
-                  <div>
-                    <div className="font-semibold">{testimonial.name}</div>
-                    <div className="text-sm text-gray-600">{testimonial.role}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-orange-600">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Ready to Transform Your Bakery?
-          </h2>
-          <p className="text-xl text-orange-100 mb-8">
-            Join hundreds of bakeries already using HomeBake to streamline their operations
-          </p>
-          <Button asChild size="lg" variant="secondary" className="bg-white text-orange-600 hover:bg-orange-50">
-            <Link href="/signup">Start Your Free Trial</Link>
-          </Button>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-xl font-bold mb-4">HomeBake</h3>
-              <p className="text-gray-400">
-                The complete bakery management solution for modern bakeries
+          {/* Brand Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-8 md:mb-12"
+          >
+            {/* Logo & Brand */}
+            <div className="mb-6 md:mb-8">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="text-6xl md:text-8xl mb-4"
+              >
+                🍞
+              </motion.div>
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 bg-gradient-to-r from-orange-600 via-amber-600 to-orange-700 bg-clip-text text-transparent">
+                HomeBake
+              </h1>
+              <p className="text-lg md:text-xl text-gray-600 font-medium">
+                Smart Bakery Monitoring App
               </p>
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/features" className="hover:text-white">Features</Link></li>
-                <li><Link href="/pricing" className="hover:text-white">Pricing</Link></li>
-                <li><Link href="/integrations" className="hover:text-white">Integrations</Link></li>
-              </ul>
+
+            {/* App Description */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="mb-8 md:mb-12"
+            >
+              <p className="text-base md:text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
+                Streamline your bakery operations with real-time batch tracking, inventory management, 
+                and shift-based monitoring. Built for bakery teams to manage sales, production, and analytics seamlessly.
+              </p>
+            </motion.div>
+
+            {/* Login CTA */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="mb-6 md:mb-8"
+            >
+              <Button 
+                asChild 
+                size="lg" 
+                className="h-12 md:h-14 px-8 md:px-12 text-base md:text-lg font-semibold bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                leftIcon={<LogIn className="w-5 h-5" />}
+              >
+                <Link href="/login">Login to Your Account</Link>
+              </Button>
+            </motion.div>
+
+            {/* Invite Info */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+              className="text-sm md:text-base text-gray-600 bg-white/60 backdrop-blur-sm rounded-lg p-4 md:p-6 border border-orange-200"
+            >
+              <p className="flex items-center justify-center gap-2">
+                <Users className="w-4 h-4 text-orange-500" />
+                <span>New here? Ask your bakery owner for an invite link to join.</span>
+              </p>
+            </motion.div>
+          </motion.div>
+
+          {/* Feature Highlights */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 1.0 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12"
+          >
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-orange-200 hover:border-orange-300 transition-colors">
+              <ChefHat className="w-8 h-8 md:w-10 md:h-10 text-orange-500 mx-auto mb-3" />
+              <h3 className="font-semibold text-gray-900 mb-2">Production Tracking</h3>
+              <p className="text-sm text-gray-600">Real-time batch monitoring and shift management</p>
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/help" className="hover:text-white">Help Center</Link></li>
-                <li><Link href="/contact" className="hover:text-white">Contact</Link></li>
-                <li><Link href="/docs" className="hover:text-white">Documentation</Link></li>
-              </ul>
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-orange-200 hover:border-orange-300 transition-colors">
+              <BarChart3 className="w-8 h-8 md:w-10 md:h-10 text-orange-500 mx-auto mb-3" />
+              <h3 className="font-semibold text-gray-900 mb-2">Sales Analytics</h3>
+              <p className="text-sm text-gray-600">Comprehensive reporting and insights</p>
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/about" className="hover:text-white">About</Link></li>
-                <li><Link href="/blog" className="hover:text-white">Blog</Link></li>
-                <li><Link href="/careers" className="hover:text-white">Careers</Link></li>
-              </ul>
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-orange-200 hover:border-orange-300 transition-colors">
+              <Users className="w-8 h-8 md:w-10 md:h-10 text-orange-500 mx-auto mb-3" />
+              <h3 className="font-semibold text-gray-900 mb-2">Team Management</h3>
+              <p className="text-sm text-gray-600">Role-based access and user permissions</p>
             </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 HomeBake. All rights reserved.</p>
-          </div>
+          </motion.div>
         </div>
-      </footer>
+      </div>
+
+      {/* Footer */}
+      <motion.footer
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 1.2 }}
+        className="py-6 md:py-8 bg-white/60 backdrop-blur-sm border-t border-orange-200"
+      >
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-sm md:text-base text-gray-600">
+            Made with ❤️ by HomeBake Team
+          </p>
+        </div>
+      </motion.footer>
     </main>
   );
 }

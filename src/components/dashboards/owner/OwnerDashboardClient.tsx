@@ -25,7 +25,7 @@ interface OwnerNotification {
   metadata?: { bread_type?: string; quantity?: number };
 }
 
-export default function OwnerDashboardClient({ user, displayName }: OwnerDashboardClientProps) {
+export default function OwnerDashboardClient({ displayName }: OwnerDashboardClientProps) {
   const router = useRouter();
   const { stats, isLoading, error, refetch } = useOwnerDashboard();
   
@@ -221,7 +221,7 @@ export default function OwnerDashboardClient({ user, displayName }: OwnerDashboa
               {/* Welcome Section */}
               <div className="text-center py-4">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back! 👋</h2>
-                <p className="text-gray-600">Here's your bakery overview</p>
+                <p className="text-gray-600">Here&apos;s your bakery overview</p>
                 {error && (
                   <div className="mt-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
                     {error}
@@ -235,7 +235,7 @@ export default function OwnerDashboardClient({ user, displayName }: OwnerDashboa
                   <div className="text-lg font-bold text-green-600">
                     {formatCurrencyNGN(stats.todayRevenue)}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">Today's Revenue</div>
+                  <div className="text-xs text-gray-500 mt-1">Today&apos;s Revenue</div>
                 </div>
                 <div className="bg-white rounded-xl p-4 text-center border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                   <div className="text-lg font-bold text-blue-600">{stats.todayBatches}</div>

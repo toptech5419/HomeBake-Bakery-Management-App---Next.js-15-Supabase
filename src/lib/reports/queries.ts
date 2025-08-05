@@ -1,7 +1,7 @@
 'use server';
 
 import { createServer } from '@/lib/supabase/server';
-import { BreadType, ProductionLog, SalesLog, ShiftType } from '@/types';
+import { BreadType, ShiftType } from '@/types';
 
 export interface ReportFilters {
   startDate?: string;

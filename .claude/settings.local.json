@@ -22,7 +22,8 @@
       "Bash(mkdir:*)",
       "Bash(timeout 30 npm run dev)",
       "Bash(curl:*)",
-      "Bash(pgrep:*)"
+      "Bash(pgrep:*)",
+      "Bash(npm install:*)"
     ],
     "deny": []
   }

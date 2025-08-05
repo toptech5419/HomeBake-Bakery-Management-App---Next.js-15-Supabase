@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { BackButton } from '@/components/ui/back-button';
 import { Package, TrendingUp, Clock, RefreshCw, Archive, AlertTriangle } from 'lucide-react';
 import { useInventoryData } from '@/hooks/use-inventory-data';
 import { useAuth } from '@/hooks/use-auth';
@@ -88,9 +89,18 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
 
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm px-4 py-4 border-b border-orange-100">
-        <h1 className="text-xl md:text-2xl font-bold text-center bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
-          Inventory
-        </h1>
+        <div className="flex items-center justify-between">
+          <BackButton 
+            userRole={(user as Record<string, unknown>)?.user_metadata?.role as string || (user as Record<string, unknown>)?.role as string}
+            size="md"
+            showText={false}
+            className="flex-shrink-0"
+          />
+          <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+            Inventory
+          </h1>
+          <div className="w-10"></div> {/* Spacer for centering */}
+        </div>
       </div>
 
       <div className="p-4 space-y-4 md:space-y-6">

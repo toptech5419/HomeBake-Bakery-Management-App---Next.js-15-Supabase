@@ -34,10 +34,8 @@ export async function getBreadTypes(): Promise<BreadType[]> {
       name: item.name,
       size: item.size || undefined,
       unit_price: item.unit_price,
-      createdBy: item.created_by,
-      createdAt: new Date(item.created_at),
-      updatedAt: undefined,
-      isActive: true,
+      created_by: item.created_by,
+      created_at: item.created_at,
     }));
   } catch (error) {
     console.error('Error in getBreadTypes:', error);

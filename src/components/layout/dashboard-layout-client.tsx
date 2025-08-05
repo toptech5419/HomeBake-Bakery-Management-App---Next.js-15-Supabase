@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { UserRole } from '@/types';
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
+import { useNavigationTracking } from '@/hooks/use-navigation-tracking';
 
 interface DashboardLayoutClientProps {
   user: any;
@@ -19,6 +20,9 @@ export function DashboardLayoutClient({
   children 
 }: DashboardLayoutClientProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Track navigation history for back button functionality
+  useNavigationTracking({ userRole: role });
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
