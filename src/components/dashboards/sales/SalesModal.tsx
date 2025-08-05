@@ -451,10 +451,10 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
                 variant="outline"
                 onClick={onClose}
                 disabled={submitting}
-                className="flex-1 py-4 rounded-2xl border-2 hover:border-orange-400 transition-all duration-200 text-lg font-medium"
+                className="flex-1 py-4 rounded-2xl border-2 hover:border-orange-400 transition-all duration-200 text-sm md:text-base font-semibold"
                 size="lg"
               >
-                Cancel
+                <span className="text-sm md:text-base font-semibold">Cancel</span>
               </LoadingButton>
               <LoadingButton
                 onClick={handleSubmit}
@@ -462,10 +462,10 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
                 loadingText="Recording Sale..."
                 icon={ShoppingCart}
                 disabled={!formData.breadTypeId || formData.quantity <= 0}
-                className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-lg font-medium"
+                className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-sm md:text-base font-semibold"
                 size="lg"
               >
-                Record Sale
+                <span className="text-sm md:text-base font-semibold">Record Sale</span>
               </LoadingButton>
             </div>
           </div>

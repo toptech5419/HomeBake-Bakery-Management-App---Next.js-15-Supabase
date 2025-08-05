@@ -201,9 +201,9 @@ export function SalesQuickActions({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="text-sm md:text-base font-semibold">
             <RefreshCw className="w-4 h-4 mr-2" />
-            Sync
+            <span className="text-sm md:text-base font-semibold">Sync</span>
           </Button>
         </div>
       </div>

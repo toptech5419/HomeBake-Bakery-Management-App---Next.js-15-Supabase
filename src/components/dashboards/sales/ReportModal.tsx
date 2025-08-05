@@ -73,7 +73,11 @@ export function ReportModal({ isOpen, onClose, reportData, onExport, onShare }: 
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl"
+                className="h-12 w-12 p-0 text-white hover:bg-white/20 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border border-white/20 backdrop-blur-sm"
+                style={{
+                  background: 'linear-gradient(145deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 8px rgba(0,0,0,0.1)'
+                }}
               >
                 <X className="h-5 w-5" />
               </Button>
@@ -206,9 +210,9 @@ export function ReportModal({ isOpen, onClose, reportData, onExport, onShare }: 
           <div className="p-6 bg-gray-50 border-t flex-shrink-0">
             <Button
               onClick={onClose}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 py-3 md:py-4"
             >
-              Close Report
+              <span className="text-sm md:text-base font-semibold">Close Report</span>
             </Button>
           </div>
         </div>
