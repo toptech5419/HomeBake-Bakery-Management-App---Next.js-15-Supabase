@@ -717,7 +717,7 @@ export function QuickRecordAllModal({
                       </motion.div>
                       <span className="text-sm md:text-xl">Record Additional Sales</span>
                     </h3>
-                    <div className="space-y-3 md:space-y-4 max-h-64 overflow-y-auto">
+                    <div className="space-y-3 md:space-y-4">
                       {quickRecordItems.map((item, index) => (
                         <motion.div 
                           key={item.breadType.id} 
@@ -782,7 +782,7 @@ export function QuickRecordAllModal({
                       </motion.div>
                       <span className="text-sm md:text-xl">Record Remaining Breads</span>
                     </h3>
-                    <div className="space-y-3 md:space-y-4 max-h-64 overflow-y-auto">
+                    <div className="space-y-3 md:space-y-4">
                       {quickRemainingItems.map((item, index) => (
                         <motion.div 
                           key={item.breadType.id} 

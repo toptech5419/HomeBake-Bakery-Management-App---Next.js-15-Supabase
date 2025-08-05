@@ -327,154 +327,148 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
       )}
       
       <div 
-        className={`bg-card rounded-2xl shadow-2xl w-[95%] max-w-lg max-h-[90vh] overflow-y-auto transition-all duration-300 border border-border/20 animate-modal-content ${
-          isClosing ? 'scale-95 opacity-0' : 'scale-100 opacity-100'
+        className={`bg-white rounded-xl shadow-2xl w-[98%] max-w-sm max-h-[95vh] flex flex-col transition-all duration-300 border border-gray-200 ${
+          isClosing ? 'scale-95 opacity-0 translate-y-2' : 'scale-100 opacity-100 translate-y-0'
         } ${isSaving ? 'pointer-events-none opacity-50' : ''}`}
       >
-        {/* Enhanced Header */}
-        <div className="gradient-primary text-white p-6 sticky top-0 z-10 rounded-t-2xl">
+        {/* Compact Header */}
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-3 flex-shrink-0 rounded-t-xl">
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover-scale backdrop-blur-sm border border-white/20"
+            className="absolute top-2 right-2 bg-white/20 hover:bg-white/30 text-white w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 hover:scale-110"
             aria-label="Close report"
             disabled={isSaving}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
-          <div className="pr-12">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm border border-white/30">
-                <span className="text-xl">📊</span>
+          <div className="pr-8">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="p-1 bg-white/20 rounded-md">
+                <span className="text-sm">📊</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-display font-bold text-shadow">
-                {viewOnly ? 'Shift Report' : 'Final Shift Report'}
+              <h1 className="text-base font-bold">
+                {viewOnly ? 'Report' : 'Final Report'}
               </h1>
             </div>
-            <div className="text-sm md:text-base text-white/90 font-medium">
-              {reportData.shift || currentShift} Shift - {viewOnly ? 'Viewing' : 'Successfully Completed'}
-            </div>
-            <div className="text-xs text-white/80 mt-1">
-              {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
+            <div className="text-xs text-white/90">
+              {reportData.shift || currentShift} • {new Date().toLocaleDateString()}
             </div>
           </div>
           
-          {/* Enhanced Save Status Indicator */}
-          {!viewOnly && (
-          <div className="mt-4 flex items-center gap-2">
+          {/* Compact Save Status */}
+          {!viewOnly && saveStatus !== 'idle' && (
+          <div className="mt-2">
             {saveStatus === 'saving' && (
-              <div className="flex items-center gap-2 text-sm bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span className="text-white/90 font-medium">Saving report...</span>
+              <div className="flex items-center gap-1 text-xs bg-white/20 rounded-md px-2 py-1">
+                <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span className="text-white/90">Saving...</span>
               </div>
             )}
             {saveStatus === 'success' && (
-              <div className="flex items-center gap-2 text-sm bg-green-500/20 backdrop-blur-sm rounded-lg px-3 py-2 border border-green-400/30">
-                <svg className="w-4 h-4 text-green-200" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                </svg>
-                <span className="text-green-200 font-medium">
-                  {reportAction === 'updated' ? 'Report updated successfully!' : 'Report created successfully!'}
-                </span>
+              <div className="flex items-center gap-1 text-xs bg-green-500/20 rounded-md px-2 py-1">
+                <span className="text-green-200">✓ Saved!</span>
               </div>
             )}
             {saveStatus === 'error' && (
-              <div className="flex items-center gap-2 text-sm bg-red-500/20 backdrop-blur-sm rounded-lg px-3 py-2 border border-red-400/30">
-                <svg className="w-4 h-4 text-red-200" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
-                </svg>
-                <span className="text-red-200 font-medium">Failed to save report</span>
+              <div className="flex items-center gap-1 text-xs bg-red-500/20 rounded-md px-2 py-1">
+                <span className="text-red-200">✗ Failed</span>
               </div>
             )}
           </div>
           )}
         </div>
 
-        {/* Enhanced Content */}
-        <div className="p-6">
-          {/* Enhanced Summary Cards with 3D effect */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="col-span-2 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl p-6 text-center border border-green-200/50 shadow-lg hover-lift-subtle">
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-green-500 rounded-xl flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">💰</span>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          {/* Compact Summary Cards */}
+          <div className="space-y-2">
+            {/* Revenue Card */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-green-500 rounded-md flex items-center justify-center">
+                    <span className="text-white text-xs">💰</span>
+                  </div>
+                  <span className="text-xs font-semibold text-green-700">Total Revenue</span>
                 </div>
-                <h3 className="text-sm font-bold text-green-700 uppercase tracking-wide">Total Revenue</h3>
-              </div>
-              <div className="text-3xl md:text-4xl font-display font-extrabold text-green-800 animate-count-in">
-                {formatCurrencyNGN(reportData.totalRevenue)}
+                <div className="text-lg font-bold text-green-800">
+                  {formatCurrencyNGN(reportData.totalRevenue)}
+                </div>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl p-5 text-center border border-blue-200/50 shadow-lg hover-lift-subtle">
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold">📦</span>
+            
+            <div className="grid grid-cols-2 gap-2">
+              {/* Items Sold */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <span className="text-xs">📦</span>
+                    <span className="text-xs font-semibold text-blue-700">Sold</span>
+                  </div>
+                  <div className="text-lg font-bold text-blue-800">
+                    {reportData.totalItemsSold}
+                  </div>
                 </div>
-                <h3 className="text-xs font-bold text-blue-700 uppercase tracking-wide">Items Sold</h3>
               </div>
-              <div className="text-2xl md:text-3xl font-display font-extrabold text-blue-800 animate-count-in">
-                {reportData.totalItemsSold}
-              </div>
-            </div>
-            <div className="bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl p-5 text-center border border-amber-200/50 shadow-lg hover-lift-subtle">
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <div className="w-6 h-6 bg-amber-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold">🍞</span>
+              
+              {/* Remaining */}
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-3 border border-amber-200">
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <span className="text-xs">🍞</span>
+                    <span className="text-xs font-semibold text-amber-700">Left</span>
+                  </div>
+                  <div className="text-lg font-bold text-amber-800">
+                    {formatCurrencyNGN(reportData.totalRemaining)}
+                  </div>
                 </div>
-                <h3 className="text-xs font-bold text-amber-700 uppercase tracking-wide">Remaining</h3>
-              </div>
-              <div className="text-2xl md:text-3xl font-display font-extrabold text-amber-800 animate-count-in">
-                {formatCurrencyNGN(reportData.totalRemaining)}
               </div>
             </div>
           </div>
 
           {/* Sales Records */}
-          <div className="mb-4 md:mb-6">
-            <div className="flex items-center gap-2 mb-3 md:mb-4">
-              <svg className="w-4 h-4 md:w-5 md:h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
               </svg>
-              <h3 className="text-base md:text-lg font-bold text-gray-900">Sales Records ({reportData.salesRecords.length})</h3>
+              <h3 className="text-sm font-bold text-gray-900">Sales ({reportData.salesRecords.length})</h3>
             </div>
             
-            <div className="space-y-2 md:space-y-3">
+            <div className="bg-white rounded-lg border border-gray-200">
               {reportData.salesRecords.map((sale, index) => (
-                <div key={index} className="flex justify-between items-center py-2 md:py-3 border-b border-gray-100 last:border-b-0">
-                  <div className="flex flex-col">
-                    <div className="text-sm md:text-base font-semibold text-gray-900">{sale.breadType}</div>
-                    <div className="text-xs text-gray-500">{new Date(sale.timestamp).toLocaleTimeString()}</div>
+                <div key={index} className="flex justify-between items-center p-2.5 border-b border-gray-100 last:border-b-0">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">{sale.breadType}</div>
+                    <div className="text-xs text-gray-500">{sale.quantity} units • {new Date(sale.timestamp).toLocaleTimeString()}</div>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <div className="text-xs md:text-sm text-gray-600">{sale.quantity} units</div>
-                    <div className="text-sm md:text-base font-bold text-green-600">{formatCurrencyNGN(sale.totalAmount)}</div>
-                  </div>
+                  <div className="text-sm font-bold text-green-600">{formatCurrencyNGN(sale.totalAmount)}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Remaining Breads */}
-          <div className="mb-4 md:mb-6">
-            <div className="flex items-center gap-2 mb-3 md:mb-4">
-              <svg className="w-4 h-4 md:w-5 md:h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+          {/* Remaining Inventory */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
               </svg>
-              <h3 className="text-base md:text-lg font-bold text-gray-900">Remaining Breads</h3>
+              <h3 className="text-sm font-bold text-gray-900">Remaining</h3>
             </div>
             
-            {/* Filter remaining breads with quantity > 0 */}
             {(() => {
               const filteredBreads = reportData.remainingBreads.filter(bread => bread.quantity > 0);
               if (filteredBreads.length > 0) {
                 return (
-                  <div className="space-y-2 md:space-y-3">
+                  <div className="bg-amber-50 rounded-lg border border-amber-200">
                     {filteredBreads.map((bread, index) => (
-                      <div key={index} className="flex justify-between items-center py-2 md:py-3 border-b border-gray-100 last:border-b-0">
-                        <div className="flex flex-col">
-                          <div className="text-sm md:text-base font-semibold text-gray-900">{bread.breadType}</div>
-                          <div className="text-xs text-gray-500">{bread.quantity} units remaining</div>
+                      <div key={index} className="flex justify-between items-center p-2.5 border-b border-amber-100 last:border-b-0">
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">{bread.breadType}</div>
+                          <div className="text-xs text-amber-600">{bread.quantity} left</div>
                         </div>
-                        <div className="text-sm md:text-base font-bold text-amber-600">
+                        <div className="text-sm font-bold text-amber-700">
                           {formatCurrencyNGN(bread.totalAmount)}
                         </div>
                       </div>
@@ -483,8 +477,8 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
                 );
               } else {
                 return (
-                  <div className="flex flex-col items-center justify-center py-6 text-center text-gray-500 text-sm md:text-base">
-                    <span className="mb-2">No remaining breads recorded for this shift.</span>
+                  <div className="bg-green-50 rounded-lg border border-green-200 p-3 text-center">
+                    <div className="text-green-600 text-sm font-medium">✅ All sold!</div>
                   </div>
                 );
               }
@@ -493,27 +487,24 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
 
           {/* Shift Feedback */}
           {(shiftFeedback || reportData.feedback) && (
-            <div className="mb-4 md:mb-6">
-              <div className="flex items-center gap-2 mb-3 md:mb-4">
-                <MessageSquare className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
-                <h3 className="text-base md:text-lg font-bold text-gray-900">Shift Feedback</h3>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <MessageSquare className="w-4 h-4 text-gray-600" />
+                <h3 className="text-sm font-bold text-gray-900">Feedback</h3>
               </div>
               
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 md:p-5 border border-blue-100">
+              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
                 {loadingFeedback ? (
-                  <div className="flex items-center justify-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
-                    <span className="ml-2 text-sm text-gray-600">Loading feedback...</span>
+                  <div className="flex items-center justify-center py-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                    <span className="ml-2 text-xs text-gray-600">Loading...</span>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span className="text-sm font-medium text-gray-700">
-                          {user?.email || 'Sales Representative'}
-                        </span>
-                      </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-gray-700">
+                        {user?.name || user?.email || 'Sales Rep'}
+                      </span>
                       <span className="text-xs text-gray-500">
                         {shiftFeedback?.created_at 
                           ? new Date(shiftFeedback.created_at).toLocaleTimeString()
@@ -521,7 +512,7 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
                         }
                       </span>
                     </div>
-                    <div className="text-sm md:text-base text-gray-800 leading-relaxed">
+                    <div className="text-sm text-gray-800">
                       {shiftFeedback?.note || reportData.feedback || 'No feedback provided'}
                     </div>
                   </div>
@@ -530,90 +521,80 @@ export function FinalReportModal({ isOpen, onClose, reportData, viewOnly = false
             </div>
           )}
 
-          {/* Actions */}
-          <div>
-            <div className="grid grid-cols-2 gap-2 md:gap-3 mb-4 md:mb-5">
-              <button
-                onClick={downloadCSV}
-                disabled={isSaving}
-                className="flex items-center justify-center gap-1 md:gap-2 py-2 md:py-3 px-2 md:px-4 border-2 border-gray-200 bg-white rounded-lg md:rounded-xl text-gray-700 font-semibold text-xs md:text-sm hover:border-green-500 hover:text-green-500 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg width="14" height="14" className="w-3 h-3 md:w-4 md:h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd"/>
-                </svg>
-                <span className="hidden sm:inline">CSV</span>
-              </button>
-              <button
-                onClick={downloadPDF}
-                disabled={isSaving}
-                className="flex items-center justify-center gap-1 md:gap-2 py-2 md:py-3 px-2 md:px-4 border-2 border-gray-200 bg-white rounded-lg md:rounded-xl text-gray-700 font-semibold text-xs md:text-sm hover:border-green-500 hover:text-green-500 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg width="14" height="14" className="w-3 h-3 md:w-4 md:h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd"/>
-                </svg>
-                <span className="hidden sm:inline">PDF</span>
-              </button>
-            </div>
+        </div>
+        
+        {/* Bottom Actions */}
+        <div className="flex-shrink-0 p-3 border-t border-gray-200 space-y-3">
+          {/* Download Buttons */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={downloadCSV}
+              disabled={isSaving}
+              className="flex items-center justify-center gap-2 py-2 px-3 border border-gray-300 bg-white rounded-lg text-gray-700 font-medium text-sm hover:border-green-500 hover:text-green-600 transition-all duration-200 disabled:opacity-50"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd"/>
+              </svg>
+              CSV
+            </button>
+            <button
+              onClick={downloadPDF}
+              disabled={isSaving}
+              className="flex items-center justify-center gap-2 py-2 px-3 border border-gray-300 bg-white rounded-lg text-gray-700 font-medium text-sm hover:border-green-500 hover:text-green-600 transition-all duration-200 disabled:opacity-50"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd"/>
+              </svg>
+              PDF
+            </button>
+          </div>
 
-            <h3 className="text-sm md:text-base font-bold text-gray-900 mb-3 md:mb-4">Share to Social Media</h3>
-            <div className="grid grid-cols-4 gap-2 md:gap-3 mb-4 md:mb-5">
+          {/* Share Buttons */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-gray-900">Share Report</span>
+              <div className="h-px bg-gray-200 flex-1 ml-3"></div>
+            </div>
+            <div className="flex gap-3 justify-center">
               <button
-                onClick={() => shareToSocial('twitter')}
+                onClick={() => shareToSocial('whatsapp')}
                 disabled={isSaving}
-                className="flex flex-col items-center gap-1 md:gap-2 py-2 md:py-3 px-1 md:px-2 bg-gray-50 rounded-lg md:rounded-xl hover:bg-blue-50 hover:text-blue-500 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 disabled:opacity-50"
               >
-                <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
                 </svg>
-                <span className="text-[10px] md:text-xs font-semibold">Twitter</span>
-              </button>
-              <button
-                onClick={() => shareToSocial('facebook')}
-                disabled={isSaving}
-                className="flex flex-col items-center gap-1 md:gap-2 py-2 md:py-3 px-1 md:px-2 bg-gray-50 rounded-lg md:rounded-xl hover:bg-blue-50 hover:text-blue-600 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                <span className="text-[10px] md:text-xs font-semibold">Facebook</span>
+                <span className="text-sm font-medium">WhatsApp</span>
               </button>
               <button
                 onClick={() => shareToSocial('email')}
                 disabled={isSaving}
-                className="flex flex-col items-center gap-1 md:gap-2 py-2 md:py-3 px-1 md:px-2 bg-gray-50 rounded-lg md:rounded-xl hover:bg-orange-50 hover:text-orange-500 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50"
               >
-                <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
                   <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
                 </svg>
-                <span className="text-[10px] md:text-xs font-semibold">Email</span>
-              </button>
-              <button
-                onClick={() => shareToSocial('whatsapp')}
-                disabled={isSaving}
-                className="flex flex-col items-center gap-1 md:gap-2 py-2 md:py-3 px-1 md:px-2 bg-gray-50 rounded-lg md:rounded-xl hover:bg-green-50 hover:text-green-500 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.520-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
-                </svg>
-                <span className="text-[10px] md:text-xs font-semibold">WhatsApp</span>
+                <span className="text-sm font-medium">Email</span>
               </button>
             </div>
 
-            <button
-              onClick={handleClose}
-              disabled={isSaving}
-              className="w-full py-3 md:py-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg md:rounded-xl font-bold text-sm md:text-base hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Close Report
-            </button>
+          
+          {/* Close Button */}
+          <button
+            onClick={handleClose}
+            disabled={isSaving}
+            className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-bold text-sm hover:shadow-lg transition-all duration-200 disabled:opacity-50"
+          >
+            Close Report
+          </button>
           </div>
         </div>
 
         {/* Issues Badge - Only show if there are issues */}
         {reportData.totalRemaining > 1000 && (
-          <div className="absolute bottom-3 left-3 md:bottom-4 md:left-4 bg-red-500 text-white px-2 py-1 md:px-3 md:py-1 rounded-full text-[10px] md:text-xs font-semibold">
-            {reportData.totalRemaining > 2000 ? '3 Issues' : '2 Issues'}
+          <div className="absolute bottom-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold shadow-lg">
+            ⚠️ {reportData.totalRemaining > 2000 ? 'High' : 'Alert'}
           </div>
         )}
       </div>
