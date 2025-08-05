@@ -114,6 +114,35 @@ export default function ReportsPage() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareReport, setShareReport] = useState<GroupedReport | null>(null);
 
+  // Handle back navigation with cookies
+  const handleBackNavigation = () => {
+    // Get the last visited page from cookies
+    const getFromCookies = (name: string) => {
+      if (typeof document !== 'undefined') {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop()?.split(';').shift();
+      }
+      return null;
+    };
+
+    const lastPage = getFromCookies('lastDashboardPage');
+    
+    // If we have a last page in cookies, navigate there, otherwise default to manager dashboard
+    if (lastPage && lastPage !== '/dashboard/reports') {
+      window.location.href = lastPage;
+    } else {
+      window.location.href = '/dashboard/manager';
+    }
+  };
+
+  // Set current page in cookies for navigation tracking  
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.cookie = `lastDashboardPage=/dashboard/reports; path=/; max-age=86400`; // 24 hours
+    }
+  }, []);
+
   useEffect(() => {
     const fetchReports = async () => {
       setLoading(true);
@@ -303,13 +332,16 @@ export default function ReportsPage() {
       {/* Back Button */}
       <div className="p-4">
         <Button
-          variant="outline"
-          size="sm"
-          onClick={() => window.location.href = '/dashboard/manager'}
-          className="flex items-center gap-2"
+          variant="ghost"
+          size="icon"
+          onClick={handleBackNavigation}
+          className="w-12 h-12 rounded-full bg-white/80 backdrop-blur-sm shadow-lg hover:bg-white hover:shadow-xl transition-all duration-200 flex items-center justify-center group border border-gray-200/50"
+          aria-label="Go back to previous page"
         >
-          <ChevronDown style={{ transform: 'rotate(90deg)' }} className="w-4 h-4" />
-          Back to Manager Dashboard
+          <ChevronDown 
+            style={{ transform: 'rotate(90deg)' }} 
+            className="w-5 h-5 text-gray-700 group-hover:text-blue-600 transition-colors duration-200" 
+          />
         </Button>
       </div>
       {/* Header */}
