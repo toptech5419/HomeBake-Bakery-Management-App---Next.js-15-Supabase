@@ -377,229 +377,249 @@ Generated from HomeBake Bakery Management System`;
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50">
-      <div className="bg-white h-full w-full md:h-auto md:max-h-[90vh] md:w-full md:max-w-4xl md:rounded-2xl shadow-2xl flex flex-col">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-4xl max-h-[95vh] rounded-2xl shadow-2xl flex flex-col">
         
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-6 flex-shrink-0">
+        {/* Compact Header with Quick Actions */}
+        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 flex-shrink-0 rounded-t-2xl">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="bg-white/20 p-3 rounded-xl">
-                <Download className="h-6 w-6" />
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-2 rounded-lg">
+                <Download className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">Export All Batches</h2>
-                <p className="text-blue-100 text-sm">
-                  Select and export production batches
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
-                    {currentShift === 'morning' ? '🌅 Morning' : '🌙 Night'} Shift
-                  </span>
+                <h2 className="text-lg font-bold">Export Batches</h2>
+                <div className="flex items-center gap-2 text-sm text-blue-100">
+                  <span>{currentShift === 'morning' ? '🌅 Morning' : '🌙 Night'} Shift</span>
+                  <span>•</span>
+                  <span>{selectedBatches.length > 0 ? `${selectedBatches.length} selected` : `${filteredBatches.length} total`}</span>
                 </div>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            
+            {/* Quick Export Actions */}
+            <div className="flex items-center gap-2">
+              {selectedBatches.length > 0 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={handleExportToCSV}
+                    className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
+                    title="Quick CSV Export"
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={handleShareToWhatsApp}
+                    className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
+                    title="Share to WhatsApp"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+              <button
+                onClick={handleClose}
+                className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Search and Summary */}
-        <div className="p-6 bg-gray-50 border-b">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search by batch ID, bread type, or manager..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        {/* Compact Search and Controls */}
+        <div className="p-4 bg-gray-50 border-b flex-shrink-0">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search batches..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-10"
+              />
             </div>
-
-            {/* Summary */}
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2 text-gray-600">
-                <Calendar className="w-4 h-4" />
-                <span className="font-medium">{new Date().toLocaleDateString()}</span>
-              </div>
-              <div className="text-gray-500">
-                {selectedBatches.length > 0 ? `${selectedBatches.length} selected` : `${filteredBatches.length} total batches`}
-              </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSelectAll}
+                className="text-blue-500 text-sm font-medium hover:text-blue-600 whitespace-nowrap"
+              >
+                {selectedBatches.length === filteredBatches.length ? 'Deselect All' : 'Select All'}
+              </button>
+              {selectedBatches.length > 0 && (
+                <div className="text-sm text-gray-600 bg-white px-2 py-1 rounded border">
+                  {totalQuantity} units selected
+                </div>
+              )}
             </div>
-          </div>
-          
-          <div className="flex justify-between text-sm mt-3">
-            <span className="text-gray-600">Total Production:</span>
-            <span className="font-semibold">{totalQuantity} units</span>
           </div>
         </div>
 
-        {/* Batch Selection */}
-        <div className="p-6 border-b flex-1 overflow-y-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-gray-800">Select Batches</h3>
-            <button
-              onClick={handleSelectAll}
-              className="text-blue-500 text-sm font-medium hover:text-blue-600"
-            >
-              {selectedBatches.length === filteredBatches.length ? 'Deselect All' : 'Select All'}
-            </button>
-          </div>
-
+        {/* Primary Batch Selection Area - Maximum Space */}
+        <div className="flex-1 overflow-hidden flex flex-col">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20">
+            <div className="flex-1 flex flex-col items-center justify-center">
               <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
-              <p className="mt-6 text-gray-600 text-lg">Loading batches...</p>
+              <p className="mt-4 text-gray-600">Loading batches...</p>
             </div>
           ) : error ? (
-            <div className="flex flex-col items-center justify-center py-20">
+            <div className="flex-1 flex flex-col items-center justify-center">
               <div className="h-12 w-12 text-red-500 mb-4">⚠️</div>
-              <p className="text-red-600 text-lg mb-2">Error loading batches</p>
-              <p className="text-gray-500 text-sm">Please try again</p>
-              <Button onClick={() => refetch()} className="mt-4">
-                Retry
-              </Button>
+              <p className="text-red-600 mb-2">Error loading batches</p>
+              <Button onClick={() => refetch()} size="sm">Retry</Button>
             </div>
           ) : filteredBatches.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20">
+            <div className="flex-1 flex flex-col items-center justify-center">
               <Package className="h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-gray-600 text-lg mb-2">No batches found</p>
+              <p className="text-gray-600 mb-2">No batches found</p>
               <p className="text-gray-500 text-sm">
-                {searchTerm 
-                  ? 'Try adjusting your search terms'
-                  : 'Create your first batch to get started'
-                }
+                {searchTerm ? 'Try adjusting your search' : 'Create batches to export'}
               </p>
             </div>
           ) : (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {filteredBatches.map((batch: BatchWithDetails) => (
-                <div
-                  key={batch.id}
-                  className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                    selectedBatches.includes(batch.id)
-                      ? 'border-blue-300 bg-blue-50'
-                      : 'border-gray-200 hover:bg-gray-50'
-                  }`}
-                  onClick={() => handleSelectBatch(batch.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-medium text-gray-800">
-                          {batch.bread_type?.name || 'Unknown Bread'}
-                        </span>
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full">
-                          #{batch.batch_number}
-                        </span>
-                        <Badge className={getStatusColor(batch.status)}>
-                          {getStatusDisplay(batch.status)}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span>📦 {batch.actual_quantity || 0} units</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {new Date(batch.created_at).toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          {batch.created_by_user?.name || 'Unknown'}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          {currentShift === 'morning' ? '🌅' : '🌙'}
-                          {currentShift}
-                        </span>
-                      </div>
-                      {batch.notes && (
-                        <div className="mt-2 text-xs text-gray-600">
-                          📝 {batch.notes}
-                        </div>
-                      )}
-                    </div>
-                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-2">
+                {filteredBatches.map((batch: BatchWithDetails) => (
+                  <div
+                    key={batch.id}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all hover:shadow-sm ${
                       selectedBatches.includes(batch.id)
-                        ? 'border-blue-500 bg-blue-500'
-                        : 'border-gray-300'
-                    }`}>
-                      {selectedBatches.includes(batch.id) && (
-                        <Check className="w-3 h-3 text-white" />
-                      )}
+                        ? 'border-blue-300 bg-blue-50 shadow-sm'
+                        : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                    onClick={() => handleSelectBatch(batch.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-gray-900 truncate">
+                            {batch.bread_type?.name || 'Unknown Bread'}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                            #{batch.batch_number}
+                          </span>
+                          <Badge className={`text-xs px-2 py-0.5 ${getStatusColor(batch.status)}`}>
+                            {getStatusDisplay(batch.status)}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Package className="w-3 h-3" />
+                            {batch.actual_quantity || 0} units
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(batch.created_at).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            {batch.created_by_user?.name || 'Unknown'}
+                          </span>
+                        </div>
+                        {batch.notes && (
+                          <div className="mt-1 text-xs text-gray-600 truncate">
+                            📝 {batch.notes}
+                          </div>
+                        )}
+                      </div>
+                      <div className={`ml-3 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                        selectedBatches.includes(batch.id)
+                          ? 'border-blue-500 bg-blue-500'
+                          : 'border-gray-300'
+                      }`}>
+                        {selectedBatches.includes(batch.id) && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Export Options */}
-        <div className="p-6 border-b">
-          <h3 className="font-medium text-gray-800 mb-4 flex items-center gap-2">
-            <Share2 className="w-4 h-4" />
-            Export & Share Options
-          </h3>
-          
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-            {exportOptions.map((option, index) => (
-              <button
-                key={index}
-                onClick={option.action}
-                disabled={selectedBatches.length === 0 || exporting}
-                className={`flex flex-col items-center gap-2 p-3 rounded-lg border transition-all hover:shadow-md ${
-                  selectedBatches.length === 0 || exporting
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:scale-105'
-                }`}
+        {/* Compact Footer with Export Options */}
+        <div className="flex-shrink-0 p-4 bg-gray-50 border-t rounded-b-2xl">
+          {selectedBatches.length > 0 ? (
+            <div className="space-y-3">
+              {/* Export Format Selection */}
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <button
+                  onClick={handleExportToCSV}
+                  className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  CSV
+                </button>
+                <button
+                  onClick={handleExportToPDF}
+                  className="flex items-center gap-2 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                >
+                  <FileText className="w-4 h-4" />
+                  PDF
+                </button>
+                <button
+                  onClick={handleShareToWhatsApp}
+                  className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  WhatsApp
+                </button>
+                <button
+                  onClick={handleShareViaEmail}
+                  className="flex items-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                >
+                  <Mail className="w-4 h-4" />
+                  Email
+                </button>
+              </div>
+              
+              {/* Action buttons */}
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={handleClose}
+                  className="flex-1"
+                  size="sm"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleExportSelected}
+                  disabled={exporting}
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-400 text-white hover:shadow-lg"
+                  size="sm"
+                >
+                  {exporting ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2"></div>
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export {selectedBatches.length} Batches
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="text-gray-500 text-sm mb-3">Select batches to enable export options</p>
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                size="sm"
               >
-                <div className={`w-10 h-10 ${option.color} rounded-lg flex items-center justify-center`}>
-                  <option.icon className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xs font-medium text-gray-700">{option.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-6 bg-gray-50 flex gap-3">
-          <Button
-            variant="outline"
-            onClick={handleClose}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleExportSelected}
-            disabled={selectedBatches.length === 0 || exporting}
-            className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-400 text-white hover:shadow-lg"
-          >
-            {exporting ? (
-              <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2"></div>
-                Exporting...
-              </>
-            ) : (
-              <>
-                <Download className="h-4 w-4 mr-2" />
-                Export Selected ({selectedBatches.length})
-              </>
-            )}
-          </Button>
+                Close
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
