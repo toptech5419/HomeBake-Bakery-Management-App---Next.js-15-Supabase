@@ -374,17 +374,35 @@ export default function ReportsPage() {
         </div>
       </div>
       {/* More Filters Modal */}
-      <Modal isOpen={moreFiltersOpen} onClose={() => setMoreFiltersOpen(false)} title="More Filters">
+      <Modal 
+        isOpen={moreFiltersOpen} 
+        onClose={() => setMoreFiltersOpen(false)} 
+        title="More Filters"
+        footer={
+          <div className="flex flex-col sm:flex-row justify-end gap-3 w-full">
+            <Button 
+              variant="outline" 
+              onClick={() => setMoreFiltersOpen(false)}
+              className="w-full sm:w-auto px-6 py-2.5 min-h-[44px] touch-manipulation"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="primary" 
+              onClick={() => setMoreFiltersOpen(false)}
+              className="w-full sm:w-auto px-6 py-2.5 min-h-[44px] touch-manipulation"
+            >
+              Apply Filters
+            </Button>
+          </div>
+        }
+      >
         <ReportFiltersComponent
           breadTypes={breadTypes}
           filters={reportFilters}
           onFiltersChange={setReportFilters}
           loading={loading}
         />
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => setMoreFiltersOpen(false)}>Close</Button>
-          <Button variant="primary" onClick={() => setMoreFiltersOpen(false)}>Apply Filters</Button>
-        </div>
       </Modal>
       {/* Reports List */}
       <main className="flex-1 p-2 sm:p-4">
