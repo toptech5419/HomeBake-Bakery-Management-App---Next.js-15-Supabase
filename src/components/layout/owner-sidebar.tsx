@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, Package, FileText, X, LogOut } from 'lucide-react';
+import { Home, Users, Package, FileText, LogOut } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { OwnerReportsModal } from '@/components/modals/OwnerReportsModal';
 
@@ -89,22 +89,14 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
         `}
       >
         <div className="p-4 border-b">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">🍞</span>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">HomeBake</h2>
-                <span className="text-xs text-orange-600">Navigation</span>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
+              <span className="text-white font-bold text-lg">🍞</span>
             </div>
-            <button 
-              onClick={onMobileClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <X size={20} className="text-gray-600" />
-            </button>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">HomeBake</h2>
+              <span className="text-xs text-orange-600">Navigation</span>
+            </div>
           </div>
         </div>
 

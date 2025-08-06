@@ -31,9 +31,13 @@ export function Modal({ isOpen, onClose, children, title, className, footer }: M
             {title && <h2 className="text-lg font-semibold text-gray-900 pr-8">{title}</h2>}
             <button
               onClick={onClose}
-              className="absolute right-3 top-3 sm:right-4 sm:top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-10 p-1"
+              className="absolute right-3 top-3 sm:right-4 sm:top-4 rounded-full transition-all duration-300 ease-out transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl bg-white border border-gray-200 hover:border-gray-300 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-10 p-2"
+              style={{
+                background: 'linear-gradient(145deg, #ffffff, #f1f5f9)',
+                boxShadow: '8px 8px 16px #d1d5db, -8px -8px 16px #ffffff'
+              }}
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 text-gray-600 hover:text-gray-800 transition-colors duration-200" />
               <span className="sr-only">Close</span>
             </button>
           </div>

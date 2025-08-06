@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { QrModal } from '@/components/qr-modal';
+import { BackButton } from '@/components/ui/back-button';
 import { UserRole } from '@/types';
 
 interface InviteState {
@@ -54,7 +55,18 @@ export default function InviteFormClient() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
+      {/* Back Button */}
+      <div className="mb-6">
+        <BackButton 
+          userRole="owner" 
+          fallbackPath="/dashboard/owner"
+          showText={true}
+          size="md"
+          className="mb-4"
+        />
+      </div>
+
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Invite New Staff</h1>
         <p className="text-muted-foreground mt-2">

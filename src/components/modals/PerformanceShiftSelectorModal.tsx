@@ -53,10 +53,14 @@ export function PerformanceShiftSelectorModal({ isOpen, onClose }: PerformanceSh
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
+              className="p-2 hover:bg-gray-100 rounded-full transition-all duration-300 ease-out transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl bg-white border border-gray-200 hover:border-gray-300 backdrop-blur-sm"
+              style={{
+                background: 'linear-gradient(145deg, #ffffff, #f1f5f9)',
+                boxShadow: '8px 8px 16px #d1d5db, -8px -8px 16px #ffffff'
+              }}
               aria-label="Close modal"
             >
-              <X size={20} className="text-gray-600" />
+              <X size={20} className="text-gray-600 hover:text-gray-800 transition-colors duration-200" />
             </button>
           </div>
 

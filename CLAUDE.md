@@ -114,8 +114,7 @@ Design and implement code that is:
 - Handle **shift transitions** (10AM/10PM) automatically with proper data migration
 - Prioritize **modals and interactive forms** for user actions
 - Filter all data by `shift` and `created_at` based on current shift logic
-- Run **type-check** and **lint** before any commits
-- if you open a port for testing, kill it after finishing the tasks 
+- Run **type-check** and **lint** before any commit
 
 ### ❌ NEVER DO
 - Don't use plain CSS or unstyled components
