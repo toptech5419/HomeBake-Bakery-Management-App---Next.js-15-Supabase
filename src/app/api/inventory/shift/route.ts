@@ -59,32 +59,21 @@ export async function GET(request: NextRequest) {
       // Get current time in Nigeria timezone
       const now = new Date();
       const nigeriaTime = new Date(now.toLocaleString("en-US", {timeZone: SHIFT_CONSTANTS.NIGERIA_TIMEZONE}));
-      const currentHour = nigeriaTime.getHours();
       
       if (shift === 'morning') {
-        // Morning shift: 10:00 AM to 10:00 PM current day
-        const searchStart = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), SHIFT_CONSTANTS.MORNING_START_HOUR, 0, 0);
-        const searchEnd = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), SHIFT_CONSTANTS.MORNING_END_HOUR, 0, 0);
+        // Morning shift: Show ALL morning batches from 00:00 AM (midnight) to 11:59 PM current date
+        const searchStart = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), 0, 0, 0);
+        const searchEnd = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), 23, 59, 59);
         
-        console.log(`☀️ Morning shift: Searching from ${searchStart.toLocaleDateString()} ${SHIFT_CONSTANTS.MORNING_START_HOUR}:00 to ${searchEnd.toLocaleDateString()} ${SHIFT_CONSTANTS.MORNING_END_HOUR}:00`);
+        console.log(`☀️ Morning shift: Searching from ${searchStart.toLocaleDateString()} 00:00 to ${searchEnd.toLocaleDateString()} 23:59`);
         return { searchStart, searchEnd };
       } else {
-        // Night shift: 10:00 PM to 10:00 AM (spans two days)
-        if (currentHour >= SHIFT_CONSTANTS.NIGHT_START_HOUR) {
-          // After 10 PM today - current night shift just started
-          const searchStart = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), SHIFT_CONSTANTS.NIGHT_START_HOUR, 0, 0);
-          const searchEnd = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate() + 1, SHIFT_CONSTANTS.NIGHT_END_HOUR, 0, 0);
-          
-          console.log(`🌙 Night shift (after 10 PM): Searching from ${searchStart.toLocaleDateString()} ${SHIFT_CONSTANTS.NIGHT_START_HOUR}:00 to ${searchEnd.toLocaleDateString()} ${SHIFT_CONSTANTS.NIGHT_END_HOUR}:00`);
-          return { searchStart, searchEnd };
-        } else {
-          // Before 10 AM today - current night shift ending
-          const searchStart = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate() - 1, SHIFT_CONSTANTS.NIGHT_START_HOUR, 0, 0);
-          const searchEnd = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), SHIFT_CONSTANTS.NIGHT_END_HOUR, 0, 0);
-          
-          console.log(`🌙 Night shift (before 10 AM): Searching from ${searchStart.toLocaleDateString()} ${SHIFT_CONSTANTS.NIGHT_START_HOUR}:00 to ${searchEnd.toLocaleDateString()} ${SHIFT_CONSTANTS.NIGHT_END_HOUR}:00`);
-          return { searchStart, searchEnd };
-        }
+        // Night shift: Show ALL night batches from 3:00 PM (15:00) previous day to 2:59 PM (14:59) current day
+        const searchStart = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate() - 1, 15, 0, 0);
+        const searchEnd = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), 14, 59, 59);
+        
+        console.log(`🌙 Night shift: Searching from ${searchStart.toLocaleDateString()} 15:00 to ${searchEnd.toLocaleDateString()} 14:59`);
+        return { searchStart, searchEnd };
       }
     }
 
