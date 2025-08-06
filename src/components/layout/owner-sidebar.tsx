@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Users, Package, FileText, X, LogOut } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { OwnerReportsModal } from '@/components/modals/OwnerReportsModal';
 
 interface OwnerSidebarProps {
   isMobileOpen?: boolean;
@@ -14,13 +15,15 @@ interface OwnerSidebarProps {
 
 interface NavigationItem {
   name: string;
-  href: string;
+  href?: string;
   icon: React.ElementType;
   active?: boolean;
+  onClick?: () => void;
 }
 
 export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName }: OwnerSidebarProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [reportsModalOpen, setReportsModalOpen] = useState(false);
   const pathname = usePathname();
 
   const navigationItems: NavigationItem[] = [
@@ -50,9 +53,9 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
     },
     {
       name: 'Reports',
-      href: '/dashboard/reports',
       icon: FileText,
-      active: pathname.startsWith('/dashboard/reports')
+      active: false, // Never active since it's a modal trigger
+      onClick: () => setReportsModalOpen(true)
     }
   ];
 
@@ -111,21 +114,41 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
           <div className="flex-1 p-4 overflow-y-auto">
             <nav className="space-y-2">
               {navigationItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onMobileClose}
-                  className={`
-                    w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
-                    ${item.active 
-                      ? 'bg-orange-50 text-orange-600 border border-orange-200' 
-                      : 'hover:bg-gray-50 text-gray-700'
-                    }
-                  `}
-                >
-                  <item.icon size={20} />
-                  <span className="font-medium">{item.name}</span>
-                </Link>
+                item.href ? (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onMobileClose}
+                    className={`
+                      w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
+                      ${item.active 
+                        ? 'bg-orange-50 text-orange-600 border border-orange-200' 
+                        : 'hover:bg-gray-50 text-gray-700'
+                      }
+                    `}
+                  >
+                    <item.icon size={20} />
+                    <span className="font-medium">{item.name}</span>
+                  </Link>
+                ) : (
+                  <button
+                    key={item.name}
+                    onClick={() => {
+                      item.onClick?.();
+                      onMobileClose?.();
+                    }}
+                    className={`
+                      w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
+                      ${item.active 
+                        ? 'bg-orange-50 text-orange-600 border border-orange-200' 
+                        : 'hover:bg-gray-50 text-gray-700'
+                      }
+                    `}
+                  >
+                    <item.icon size={20} />
+                    <span className="font-medium">{item.name}</span>
+                  </button>
+                )
               ))}
             </nav>
           </div>
@@ -170,6 +193,12 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
           </div>
         </div>
       </div>
+      
+      {/* Reports Modal */}
+      <OwnerReportsModal 
+        isOpen={reportsModalOpen} 
+        onClose={() => setReportsModalOpen(false)} 
+      />
     </>
   );
 }

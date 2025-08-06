@@ -115,6 +115,7 @@ Design and implement code that is:
 - Prioritize **modals and interactive forms** for user actions
 - Filter all data by `shift` and `created_at` based on current shift logic
 - Run **type-check** and **lint** before any commits
+- if you open a port for testing, kill it after finishing the tasks 
 
 ### ❌ NEVER DO
 - Don't use plain CSS or unstyled components

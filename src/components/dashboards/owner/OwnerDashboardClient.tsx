@@ -8,6 +8,7 @@ import { OwnerSidebar } from '@/components/layout/owner-sidebar';
 import { useOwnerDashboard } from '@/hooks/use-owner-dashboard';
 import { pushNotifications } from '@/lib/push-notifications';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
+import { OwnerReportsModal } from '@/components/modals/OwnerReportsModal';
 
 interface OwnerDashboardClientProps {
   user: { id: string; email?: string };
@@ -34,6 +35,7 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pendingReports] = useState(3); // Placeholder for future implementation
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true);
+  const [reportsModalOpen, setReportsModalOpen] = useState(false);
 
   // Initialize push notifications
   useEffect(() => {
@@ -75,7 +77,7 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
   };
 
   const handleCheckReports = () => {
-    router.push('/dashboard/reports');
+    setReportsModalOpen(true);
   };
 
   const handlePerformanceCheck = () => {
@@ -387,6 +389,12 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
 
       {/* All Notifications Modal */}
       {showAllNotifications && <AllNotificationsModal />}
+      
+      {/* Reports Modal */}
+      <OwnerReportsModal 
+        isOpen={reportsModalOpen} 
+        onClose={() => setReportsModalOpen(false)} 
+      />
     </div>
   );
 }

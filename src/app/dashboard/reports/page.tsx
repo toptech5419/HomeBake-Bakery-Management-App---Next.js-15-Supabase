@@ -7,6 +7,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import ReportFiltersComponent from '@/components/reports/report-filters';
 import { getBreadTypesClient } from '@/lib/bread-types/client-actions';
@@ -101,6 +102,7 @@ function getName(val: unknown): string {
 }
 
 export default function ReportsPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [groupedReports, setGroupedReports] = useState<GroupedReport[]>([]);
   const [search, setSearch] = useState("");
@@ -130,9 +132,9 @@ export default function ReportsPage() {
     
     // If we have a last page in cookies, navigate there, otherwise default to manager dashboard
     if (lastPage && lastPage !== '/dashboard/reports') {
-      window.location.href = lastPage;
+      router.push(lastPage);
     } else {
-      window.location.href = '/dashboard/manager';
+      router.push('/dashboard/manager');
     }
   };
 
