@@ -10,6 +10,7 @@ import { useReportCounters } from '@/hooks/use-report-counters';
 import { pushNotifications } from '@/lib/push-notifications';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { OwnerReportsModal } from '@/components/modals/OwnerReportsModal';
+import { PerformanceShiftSelectorModal } from '@/components/modals/PerformanceShiftSelectorModal';
 
 interface OwnerDashboardClientProps {
   user: { id: string; email?: string };
@@ -37,6 +38,7 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true);
   const [reportsModalOpen, setReportsModalOpen] = useState(false);
+  const [performanceModalOpen, setPerformanceModalOpen] = useState(false);
 
   // Initialize push notifications
   useEffect(() => {
@@ -82,8 +84,7 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
   };
 
   const handlePerformanceCheck = () => {
-    // TODO: Open performance modal
-    console.log('Performance check clicked');
+    setPerformanceModalOpen(true);
   };
 
   const NotificationCard = ({ notification, isPreview = false }: { notification: OwnerNotification; isPreview?: boolean }) => {
@@ -395,6 +396,12 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
       <OwnerReportsModal 
         isOpen={reportsModalOpen} 
         onClose={() => setReportsModalOpen(false)} 
+      />
+      
+      {/* Performance Modal */}
+      <PerformanceShiftSelectorModal 
+        isOpen={performanceModalOpen} 
+        onClose={() => setPerformanceModalOpen(false)} 
       />
     </div>
   );
