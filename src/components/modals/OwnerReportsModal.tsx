@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X, FileText, UserCheck } from 'lucide-react';
 import { OwnerManagerReportsModal } from './OwnerManagerReportsModal';
 import { OwnerSalesReportsModal } from './OwnerSalesReportsModal';
+import { useReportCounters } from '@/hooks/use-report-counters';
 
 interface OwnerReportsModalProps {
   isOpen: boolean;
@@ -13,14 +14,21 @@ interface OwnerReportsModalProps {
 export function OwnerReportsModal({ isOpen, onClose }: OwnerReportsModalProps) {
   const [showManagerReports, setShowManagerReports] = useState(false);
   const [showSalesReports, setShowSalesReports] = useState(false);
+  
+  // Get counter data and functions
+  const { managerCount, salesCount, markAsViewed } = useReportCounters();
 
   if (!isOpen) return null;
 
   const handleOpenManagerReports = () => {
+    // Mark manager reports as viewed when clicked
+    markAsViewed('manager');
     setShowManagerReports(true);
   };
 
   const handleOpenSalesReports = () => {
+    // Mark sales reports as viewed when clicked
+    markAsViewed('sales');
     setShowSalesReports(true);
   };
 
@@ -71,23 +79,37 @@ export function OwnerReportsModal({ isOpen, onClose }: OwnerReportsModalProps) {
               {/* Manager Reports Button */}
               <button
                 onClick={handleOpenManagerReports}
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl p-4 flex items-center justify-center gap-3 transition-all duration-300 ease-in-out transform hover:scale-[1.02] shadow-lg hover:shadow-xl min-h-[44px] touch-manipulation"
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl p-4 flex items-center justify-between transition-all duration-300 ease-in-out transform hover:scale-[1.02] shadow-lg hover:shadow-xl min-h-[44px] touch-manipulation"
               >
-                <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                  <FileText size={18} />
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                    <FileText size={18} />
+                  </div>
+                  <span className="font-medium text-base">Manager</span>
                 </div>
-                <span className="font-medium text-base">Manager</span>
+                {managerCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold animate-pulse shadow-lg">
+                    {managerCount}
+                  </span>
+                )}
               </button>
 
               {/* Sales Rep Reports Button */}
               <button
                 onClick={handleOpenSalesReports}
-                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl p-4 flex items-center justify-center gap-3 transition-all duration-300 ease-in-out transform hover:scale-[1.02] shadow-lg hover:shadow-xl min-h-[44px] touch-manipulation"
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl p-4 flex items-center justify-between transition-all duration-300 ease-in-out transform hover:scale-[1.02] shadow-lg hover:shadow-xl min-h-[44px] touch-manipulation"
               >
-                <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                  <UserCheck size={18} />
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                    <UserCheck size={18} />
+                  </div>
+                  <span className="font-medium text-base">Sales Rep</span>
                 </div>
-                <span className="font-medium text-base">Sales Rep</span>
+                {salesCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold animate-pulse shadow-lg">
+                    {salesCount}
+                  </span>
+                )}
               </button>
 
               {/* Cancel Button */}

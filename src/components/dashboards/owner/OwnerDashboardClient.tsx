@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { OwnerHeader } from '@/components/layout/owner-header';
 import { OwnerSidebar } from '@/components/layout/owner-sidebar';
 import { useOwnerDashboard } from '@/hooks/use-owner-dashboard';
+import { useReportCounters } from '@/hooks/use-report-counters';
 import { pushNotifications } from '@/lib/push-notifications';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { OwnerReportsModal } from '@/components/modals/OwnerReportsModal';
@@ -29,11 +30,11 @@ interface OwnerNotification {
 export default function OwnerDashboardClient({ displayName }: OwnerDashboardClientProps) {
   const router = useRouter();
   const { stats, isLoading, error, refetch } = useOwnerDashboard();
+  const { totalCount, isLoading: countersLoading, error: countersError } = useReportCounters();
   
   const [notifications, setNotifications] = useState<OwnerNotification[]>([]);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [pendingReports] = useState(3); // Placeholder for future implementation
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true);
   const [reportsModalOpen, setReportsModalOpen] = useState(false);
 
@@ -290,9 +291,9 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {pendingReports > 0 && (
+                    {totalCount > 0 && (
                       <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium animate-pulse">
-                        {pendingReports}
+                        {totalCount}
                       </span>
                     )}
                     <ChevronRight size={20} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
