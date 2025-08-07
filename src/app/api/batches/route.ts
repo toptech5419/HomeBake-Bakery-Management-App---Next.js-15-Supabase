@@ -1,5 +1,6 @@
 import { createServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { logBatchActivity } from '@/lib/activities/server-activity-service';
 
 // Force dynamic rendering for API routes that require authentication
 export const dynamic = 'force-dynamic';
@@ -53,6 +54,46 @@ export async function POST(request: NextRequest) {
           { error: 'Failed to create batch', details: error?.message },
           { status: 500 }
         );
+      }
+
+      // Log activity for batch creation (after successful RPC call)
+      try {
+        console.log('🎯 Starting activity logging for batch creation via API...');
+        console.log('   User ID:', user.id);
+        console.log('   Bread Type ID:', bread_type_id);
+        console.log('   Batch created:', data[0]);
+        
+        const [userResult, breadTypeResult] = await Promise.all([
+          supabase.from('users').select('name, role').eq('id', user.id).single(),
+          supabase.from('bread_types').select('name').eq('id', bread_type_id).single()
+        ]);
+
+        console.log('   User Result:', userResult);
+        console.log('   BreadType Result:', breadTypeResult);
+
+        if (userResult.data && breadTypeResult.data && userResult.data.role !== 'owner') {
+          console.log('✅ Conditions met, calling logBatchActivity...');
+          
+          await logBatchActivity({
+            user_id: user.id,
+            user_name: userResult.data.name,
+            shift: shift as 'morning' | 'night',
+            bread_type: breadTypeResult.data.name,
+            quantity: actual_quantity,
+            batch_number: data[0].batch_number || `BATCH-${Date.now()}`
+          });
+          
+          console.log('✅ Activity logging completed successfully');
+        } else {
+          console.log('⚠️ Activity logging skipped - conditions not met:');
+          console.log('   User data exists:', !!userResult.data);
+          console.log('   BreadType data exists:', !!breadTypeResult.data);
+          console.log('   User role:', userResult.data?.role);
+          console.log('   Is not owner:', userResult.data?.role !== 'owner');
+        }
+      } catch (activityError) {
+        // Don't fail the batch creation if activity logging fails
+        console.error('💥 Failed to log batch activity:', activityError);
       }
 
     return NextResponse.json({ data: data[0] });

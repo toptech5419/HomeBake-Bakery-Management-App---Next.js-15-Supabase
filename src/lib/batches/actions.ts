@@ -2,6 +2,7 @@
 
 import { createServer } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { logBatchActivity, logReportActivity } from '@/lib/activities/server-activity-service';
 
 export interface Batch {
   id: string;
@@ -52,6 +53,8 @@ export async function createBatch(data: Omit<CreateBatchData, 'batch_number'>) {
     throw new Error('Authentication required');
   }
 
+  const batchNumber = `BATCH-${Date.now()}`;
+
   const { data: batch, error } = await supabase
     .from('batches')
     .insert({
@@ -60,7 +63,7 @@ export async function createBatch(data: Omit<CreateBatchData, 'batch_number'>) {
       notes: data.notes,
       shift: data.shift,
       created_by: user.id,
-      batch_number: `BATCH-${Date.now()}`
+      batch_number: batchNumber
     })
     .select()
     .single();
@@ -68,6 +71,45 @@ export async function createBatch(data: Omit<CreateBatchData, 'batch_number'>) {
   if (error) {
     console.error('Error creating batch:', error);
     throw new Error('Failed to create batch');
+  }
+
+  // Log activity for batch creation
+  try {
+    console.log('🎯 Starting activity logging for batch creation...');
+    console.log('   User ID:', user.id);
+    console.log('   Bread Type ID:', data.bread_type_id);
+    
+    const [userResult, breadTypeResult] = await Promise.all([
+      supabase.from('users').select('name, role').eq('id', user.id).single(),
+      supabase.from('bread_types').select('name').eq('id', data.bread_type_id).single()
+    ]);
+
+    console.log('   User Result:', userResult);
+    console.log('   BreadType Result:', breadTypeResult);
+
+    if (userResult.data && breadTypeResult.data && userResult.data.role !== 'owner') {
+      console.log('✅ Conditions met, calling logBatchActivity...');
+      
+      await logBatchActivity({
+        user_id: user.id,
+        user_name: userResult.data.name,
+        shift: data.shift,
+        bread_type: breadTypeResult.data.name,
+        quantity: data.actual_quantity,
+        batch_number: batchNumber
+      });
+      
+      console.log('✅ Activity logging completed successfully');
+    } else {
+      console.log('⚠️ Activity logging skipped - conditions not met:');
+      console.log('   User data exists:', !!userResult.data);
+      console.log('   BreadType data exists:', !!breadTypeResult.data);
+      console.log('   User role:', userResult.data?.role);
+      console.log('   Is not owner:', userResult.data?.role !== 'owner');
+    }
+  } catch (activityError) {
+    // Don't fail the batch creation if activity logging fails
+    console.error('💥 Failed to log batch activity:', activityError);
   }
 
   revalidatePath('/dashboard');
@@ -347,6 +389,28 @@ export async function checkAndSaveBatchesToAllBatches(shift?: 'morning' | 'night
     }
 
     console.log(`✅ Successfully saved ${validBatchesToInsert.length} batches to all_batches table for current user - ${shift || 'all shifts'} TODAY`);
+    
+    // Log activity for saving batches to all_batches
+    try {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('name, role')
+        .eq('id', user.id)
+        .single();
+
+      if (userData && userData.role !== 'owner') {
+        await logReportActivity({
+          user_id: user.id,
+          user_name: userData.name,
+          user_role: userData.role as 'manager' | 'sales_rep',
+          shift: shift as 'morning' | 'night',
+          report_type: `${validBatchesToInsert.length} batch${validBatchesToInsert.length !== 1 ? 'es' : ''} saved to reports`
+        });
+      }
+    } catch (activityError) {
+      console.error('Failed to log batch save activity:', activityError);
+    }
+    
     return { needsSaving: true, savedCount: validBatchesToInsert.length };
 
   } catch (error) {

@@ -10,6 +10,7 @@ import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { supabase } from '@/lib/supabase/client';
 import { useShift } from '@/contexts/ShiftContext';
 import { toast } from 'sonner';
+import { createSalesLog } from '@/lib/sales/actions';
 
 interface BreadType {
   id: string;
@@ -324,25 +325,34 @@ export function QuickRecordAllModal({
         
         toast.success(`Updated ${breadType.name} sales: ${existingRecord.quantity} + ${quantity} = ${existingRecord.quantity + quantity} units`);
       } else {
-        // Create new record only if none exists
-        const { data: salesData, error } = await supabase
+        // Create new record only if none exists using server action
+        await createSalesLog({
+          bread_type_id: breadType.id,
+          quantity: quantity,
+          unit_price: breadType.unit_price,
+          shift: currentShift,
+          recorded_by: userId
+        });
+
+        // Fetch updated sales logs after creation
+        const { data: updatedSales } = await supabase
           .from('sales_logs')
-          .insert({
-            bread_type_id: breadType.id,
-            quantity: quantity,
-            unit_price: breadType.unit_price,
-            shift: currentShift,
-            recorded_by: userId
-          })
-          .select('*');
+          .select(`
+            *,
+            bread_types (
+              id,
+              name,
+              unit_price
+            )
+          `)
+          .eq('bread_type_id', breadType.id)
+          .eq('shift', currentShift)
+          .eq('recorded_by', userId)
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-        if (error) {
-          console.error('Error recording sale:', error);
-          throw error;
-        }
-
-        if (salesData) {
-          setSalesLogs(prev => [...salesData, ...prev]);
+        if (updatedSales) {
+          setSalesLogs(prev => [...updatedSales, ...prev.filter(log => log.bread_type_id !== breadType.id || log.created_at !== updatedSales[0].created_at)]);
         }
         
         toast.success(`Recorded ${quantity} units of ${breadType.name}`);
@@ -445,8 +455,14 @@ export function QuickRecordAllModal({
           
           toast.success(`Updated ${item.breadType.name} sales to ${item.quantity} units`);
         } else {
-          // Create new record if none exists
-          await handleAddNewSale(item.breadType, item.quantity);
+          // Create new record if none exists using server action
+          await createSalesLog({
+            bread_type_id: item.breadType.id,
+            quantity: item.quantity,
+            unit_price: item.breadType.unit_price,
+            shift: currentShift,
+            recorded_by: userId
+          });
         }
       }
 

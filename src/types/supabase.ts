@@ -9,6 +9,50 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      activities: {
+        Row: {
+          id: string
+          user_id: string
+          user_name: string
+          user_role: 'manager' | 'sales_rep'
+          activity_type: 'sale' | 'batch' | 'report' | 'login' | 'end_shift' | 'created'
+          shift: 'morning' | 'night' | null
+          message: string
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          user_name: string
+          user_role: 'manager' | 'sales_rep'
+          activity_type: 'sale' | 'batch' | 'report' | 'login' | 'end_shift' | 'created'
+          shift?: 'morning' | 'night' | null
+          message: string
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          user_name?: string
+          user_role?: 'manager' | 'sales_rep'
+          activity_type?: 'sale' | 'batch' | 'report' | 'login' | 'end_shift' | 'created'
+          shift?: 'morning' | 'night' | null
+          message?: string
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       users: {
         Row: {
           id: string

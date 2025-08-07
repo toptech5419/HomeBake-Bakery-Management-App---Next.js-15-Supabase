@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { useToast } from '@/hooks/use-toast';
+import { createSalesLog } from '@/lib/sales/actions';
 
 interface SalesModalProps {
   isOpen: boolean;
@@ -191,8 +192,8 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
     try {
       setSubmitting(true);
 
-      // Debug the insert attempt
-      console.log('Attempting to insert sales record:', {
+      // Use server action for sales recording with activity logging
+      console.log('Recording sale using server action:', {
         bread_type_id: formData.breadTypeId,
         quantity: formData.quantity,
         unit_price: formData.unitPrice,
@@ -201,29 +202,14 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
         recorded_by: userId
       });
 
-      const { error } = await supabase
-        .from('sales_logs')
-        .insert({
-          bread_type_id: formData.breadTypeId,
-          quantity: formData.quantity,
-          unit_price: formData.unitPrice,
-          discount: formData.discount,
-          shift: currentShift,
-          recorded_by: userId
-        });
-
-      if (error) {
-        console.error('Sales insert error:', error);
-        
-        // Handle RLS errors specifically
-        if (error.code === '42501') {
-          toast.error('Permission Denied', 'Please check database policies for sales_logs table.');
-          console.error('RLS Policy Error - Run the fix-sales-rls-policies.sql script');
-        } else {
-          toast.error('Failed to Record Sale', error.message);
-        }
-        throw error;
-      }
+      await createSalesLog({
+        bread_type_id: formData.breadTypeId,
+        quantity: formData.quantity,
+        unit_price: formData.unitPrice,
+        discount: formData.discount,
+        shift: currentShift,
+        recorded_by: userId
+      });
 
       toast.saleRecorded(formData.breadTypeName, formData.quantity);
       

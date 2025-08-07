@@ -3,6 +3,7 @@
 import { getReportData, getShiftDetails, getBreadTypes, ReportFilters } from './queries';
 import { revalidatePath } from 'next/cache';
 import { createServer } from '@/lib/supabase/server';
+import { logReportActivity } from '@/lib/activities/server-activity-service';
 
 export async function fetchReportData(filters: ReportFilters) {
   try {
@@ -127,6 +128,9 @@ export async function createShiftReport(reportData: any) {
         return { success: false, error: updateError.message };
       }
 
+      // Log activity for report update
+      await logReportActivityHelper(supabase, payload.user_id, payload.shift as 'morning' | 'night', 'update');
+
       return { 
         success: true, 
         data,
@@ -156,6 +160,9 @@ export async function createShiftReport(reportData: any) {
       
       return { success: false, error: error.message };
     }
+
+    // Log activity for new report
+    await logReportActivityHelper(supabase, payload.user_id, payload.shift as 'morning' | 'night', 'create');
 
     return { 
       success: true, 
@@ -189,5 +196,28 @@ export async function createShiftReport(reportData: any) {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create shift report',
     };
+  }
+}
+
+// Helper function to log report activity
+async function logReportActivityHelper(supabase: Awaited<ReturnType<typeof createServer>>, userId: string, shift: 'morning' | 'night', action: 'create' | 'update') {
+  try {
+    const { data: userData } = await supabase
+      .from('users')
+      .select('name, role')
+      .eq('id', userId)
+      .single();
+
+    if (userData && userData.role !== 'owner') {
+      await logReportActivity({
+        user_id: userId,
+        user_name: userData.name,
+        user_role: userData.role as 'manager' | 'sales_rep',
+        shift: shift,
+        report_type: `shift_report_${action}`
+      });
+    }
+  } catch (activityError) {
+    console.error('Failed to log report activity:', activityError);
   }
 }

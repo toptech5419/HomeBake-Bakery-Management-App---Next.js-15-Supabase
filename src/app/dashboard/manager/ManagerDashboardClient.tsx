@@ -10,6 +10,7 @@ import { useManagerDashboard } from '@/hooks/use-manager-dashboard';
 import { useShift } from '@/contexts/ShiftContext';
 import { useData } from '@/contexts/DataContext';
 import { deleteAllBatches, checkAndSaveBatchesToAllBatches } from '@/lib/batches/actions';
+import { logEndShiftActivity } from '@/lib/activities/server-activity-service';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { useOptimizedToast } from '@/components/ui/toast-optimized';
@@ -26,6 +27,7 @@ interface RecentBatch {
 
 interface ManagerDashboardClientProps {
   userName: string;
+  userId: string;
   currentShift: 'morning' | 'night';
   shiftStartTime: string | null;
   activeBatchesCount: number;
@@ -35,6 +37,8 @@ interface ManagerDashboardClientProps {
 }
 
 export default function ManagerDashboardClient({
+  userName,
+  userId,
   shiftStartTime,
   activeBatchesCount: initialActiveBatchesCount,
   recentBatches: initialRecentBatches,
@@ -143,6 +147,18 @@ export default function ManagerDashboardClient({
     try {
       // Use the server action to delete batches for current shift only
       await deleteAllBatches(currentShift);
+      
+      // Log end shift activity
+      try {
+        await logEndShiftActivity({
+          user_id: userId,
+          user_name: userName,
+          user_role: 'manager',
+          shift: currentShift as 'morning' | 'night'
+        });
+      } catch (activityError) {
+        console.error('Failed to log end shift activity:', activityError);
+      }
       
       console.log(`End shift confirmed for ${currentShift} shift`);
       console.log(`${currentShift} shift batches deleted`);

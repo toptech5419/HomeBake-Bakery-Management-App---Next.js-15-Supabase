@@ -86,6 +86,7 @@ export default async function ManagerDashboardPage() {
     return (
       <ManagerDashboardClient
         userName={profile.name}
+        userId={profile.id}
         currentShift={currentShift}
         shiftStartTime={shiftStartTime}
         activeBatchesCount={activeBatchesCount}
@@ -101,6 +102,7 @@ export default async function ManagerDashboardPage() {
     return (
       <ManagerDashboardClient
         userName={profile.name}
+        userId={profile.id}
         currentShift={currentShift}
         shiftStartTime={shiftStartTime}
         activeBatchesCount={0}

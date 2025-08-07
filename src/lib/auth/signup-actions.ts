@@ -3,6 +3,7 @@
 import { createServer } from '@/lib/supabase/server';
 import { validateQRInvite, markQRInviteAsUsed } from './qr';
 import { z } from 'zod';
+import { logAccountCreatedActivity } from '@/lib/activities/server-activity-service';
 
 const signupSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters long.'),
@@ -78,6 +79,17 @@ export async function signup(prevState: { error?: { _form?: string } }, formData
 
     console.log('User profile created successfully');
     
+    // Log account creation activity
+    try {
+      await logAccountCreatedActivity({
+        user_id: user.id,
+        user_name: name,
+        user_role: role
+      });
+    } catch (activityError) {
+      console.error('Failed to log account creation activity:', activityError);
+    }
+    
     // Return success state instead of redirecting
     return { success: true, message: 'Account created successfully!' };
   } catch (error) {
@@ -151,6 +163,17 @@ export async function signupWithToken(token: string, formData: FormData) {
 
     if (userInsertError) {
       console.warn('User table insert failed, but auth account was created');
+    }
+
+    // Log account creation activity
+    try {
+      await logAccountCreatedActivity({
+        user_id: user.id,
+        user_name: name,
+        user_role: invite.role as 'manager' | 'sales_rep'
+      });
+    } catch (activityError) {
+      console.error('Failed to log account creation activity:', activityError);
     }
 
     return { success: true, user };

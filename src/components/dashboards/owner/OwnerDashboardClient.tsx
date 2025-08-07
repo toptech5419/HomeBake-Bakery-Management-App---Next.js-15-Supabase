@@ -1,39 +1,35 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, TrendingUp, Users, Settings, X, ChevronRight, UserPlus } from 'lucide-react';
+import { TrendingUp, Users, Settings, ChevronRight, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { OwnerHeader } from '@/components/layout/owner-header';
 import { OwnerSidebar } from '@/components/layout/owner-sidebar';
 import { useOwnerDashboard } from '@/hooks/use-owner-dashboard';
 import { useReportCounters } from '@/hooks/use-report-counters';
+import { useActivities } from '@/hooks/use-live-activities';
 import { pushNotifications } from '@/lib/push-notifications';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { OwnerReportsModal } from '@/components/modals/OwnerReportsModal';
 import { PerformanceShiftSelectorModal } from '@/components/modals/PerformanceShiftSelectorModal';
+import ActivityNotifications from '@/components/notifications/ActivityNotifications';
+import AllNotificationsModal from '@/components/notifications/AllNotificationsModal';
 
 interface OwnerDashboardClientProps {
   user: { id: string; email?: string };
   displayName: string;
 }
 
-interface OwnerNotification {
-  id: string;
-  type: 'sales_rep' | 'manager';
-  action: 'sale' | 'batch' | 'report' | 'login' | 'end_shift' | 'created';
-  shift: 'morning' | 'night';
-  message: string;
-  user: string;
-  timestamp: string;
-  metadata?: { bread_type?: string; quantity?: number };
-}
 
 export default function OwnerDashboardClient({ displayName }: OwnerDashboardClientProps) {
   const router = useRouter();
   const { stats, isLoading, error, refetch } = useOwnerDashboard();
-  const { totalCount, isLoading: countersLoading, error: countersError } = useReportCounters();
+  const { totalCount } = useReportCounters();
+  const { activities, isLoading: activitiesLoading, refetch: refetchActivities } = useActivities({
+    pollingInterval: 30000, // Poll every 30 seconds
+    enablePolling: true
+  });
   
-  const [notifications, setNotifications] = useState<OwnerNotification[]>([]);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true);
@@ -46,29 +42,6 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
     setPushNotificationsEnabled(pushNotifications.isEnabled());
   }, []);
 
-  // Load notifications from localStorage
-  useEffect(() => {
-    const loadNotifications = () => {
-      try {
-        const stored = localStorage.getItem('owner_notifications');
-        if (stored) {
-          const parsedNotifications = JSON.parse(stored);
-          const threeDaysAgo = new Date();
-          threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-          
-          const validNotifications = parsedNotifications.filter((notif: OwnerNotification) => 
-            new Date(notif.timestamp) > threeDaysAgo
-          );
-          
-          setNotifications(validNotifications);
-        }
-      } catch (error) {
-        console.error('Error loading notifications:', error);
-      }
-    };
-
-    loadNotifications();
-  }, []);
 
   const handlePushNotificationToggle = () => {
     const newState = pushNotifications.toggleNotifications();
@@ -87,115 +60,6 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
     setPerformanceModalOpen(true);
   };
 
-  const NotificationCard = ({ notification, isPreview = false }: { notification: OwnerNotification; isPreview?: boolean }) => {
-    const getGradientClass = () => {
-      switch (notification.action) {
-        case 'sale':
-          return 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200';
-        case 'batch':
-          return 'bg-gradient-to-r from-blue-50 to-blue-50 border-blue-200';
-        case 'report':
-          return 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200';
-        case 'login':
-          return 'bg-gradient-to-r from-purple-50 to-purple-50 border-purple-200';
-        case 'end_shift':
-          return 'bg-gradient-to-r from-red-50 to-red-50 border-red-200';
-        case 'created':
-          return 'bg-gradient-to-r from-indigo-50 to-indigo-50 border-indigo-200';
-        default:
-          return 'bg-gradient-to-r from-gray-50 to-gray-50 border-gray-200';
-      }
-    };
-
-    const getBadgeClass = () => {
-      switch (notification.action) {
-        case 'sale':
-          return 'bg-green-100 text-green-700';
-        case 'batch':
-          return 'bg-blue-100 text-blue-700';
-        case 'report':
-          return 'bg-yellow-100 text-yellow-700';
-        case 'login':
-          return 'bg-purple-100 text-purple-700';
-        case 'end_shift':
-          return 'bg-red-100 text-red-700';
-        case 'created':
-          return 'bg-indigo-100 text-indigo-700';
-        default:
-          return 'bg-gray-100 text-gray-700';
-      }
-    };
-
-    const getActionLabel = () => {
-      switch (notification.action) {
-        case 'sale':
-          return 'Sale';
-        case 'batch':
-          return 'Batch';
-        case 'report':
-          return 'Report';
-        case 'login':
-          return 'Login';
-        case 'end_shift':
-          return 'End Shift';
-        case 'created':
-          return 'Created';
-        default:
-          return 'Activity';
-      }
-    };
-
-    const shiftBadgeClass = notification.shift === 'morning'
-      ? 'bg-blue-100 text-blue-700'
-      : 'bg-purple-100 text-purple-700';
-
-    return (
-      <div className={`${getGradientClass()} border rounded-xl p-3 ${isPreview ? 'mb-2' : 'mb-3'} transition-all duration-300 hover:shadow-md`}>
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex gap-2">
-            <span className={`${getBadgeClass()} px-2 py-1 rounded-full text-xs font-medium`}>
-              {getActionLabel()}
-            </span>
-            <span className={`${shiftBadgeClass} px-2 py-1 rounded-full text-xs font-medium`}>
-              {notification.shift}
-            </span>
-          </div>
-          <span className="text-xs text-gray-500">
-            {new Date(notification.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        </div>
-        <p className="text-sm text-gray-700 font-medium mb-1">{notification.message}</p>
-        <p className="text-xs text-gray-500">by {notification.user}</p>
-      </div>
-    );
-  };
-
-  const AllNotificationsModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">All Notifications</h2>
-          <button 
-            onClick={() => setShowAllNotifications(false)}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div className="p-4 overflow-y-auto max-h-96">
-          {notifications.map(notification => (
-            <NotificationCard key={notification.id} notification={notification} />
-          ))}
-          {notifications.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <Bell size={48} className="mx-auto mb-4 text-gray-300" />
-              <p>No notifications yet</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   if (isLoading) {
     return (
@@ -318,34 +182,30 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
                 </button>
               </div>
 
-              {/* Live Notifications */}
+              {/* Live Activity Notifications */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     Live Activity
+                    {activitiesLoading && (
+                      <div className="w-4 h-4 border border-orange-300 border-t-orange-600 rounded-full animate-spin"></div>
+                    )}
                   </h3>
                 </div>
                 
                 <div className="space-y-2">
-                  {notifications.slice(0, 3).map(notification => (
-                    <NotificationCard key={notification.id} notification={notification} isPreview={true} />
-                  ))}
+                  <ActivityNotifications 
+                    activities={activities.slice(0, 3)} 
+                    isPreview={true}
+                  />
                   
-                  {notifications.length === 0 && (
-                    <div className="bg-white rounded-xl p-6 text-center text-gray-500 border border-gray-200">
-                      <Bell size={48} className="mx-auto mb-4 text-gray-300" />
-                      <p className="font-medium">No recent activity</p>
-                      <p className="text-sm mt-1">Activity will appear here as staff work</p>
-                    </div>
-                  )}
-                  
-                  {notifications.length > 3 && (
+                  {activities.length > 3 && (
                     <button 
                       onClick={() => setShowAllNotifications(true)}
                       className="w-full text-center py-3 text-orange-600 font-medium hover:bg-orange-50 rounded-xl transition-colors border border-orange-200 shadow-sm hover:shadow-md"
                     >
-                      View All Notifications ({notifications.length})
+                      View All Notifications ({activities.length})
                     </button>
                   )}
                 </div>
@@ -390,7 +250,13 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
             </div>
 
       {/* All Notifications Modal */}
-      {showAllNotifications && <AllNotificationsModal />}
+      <AllNotificationsModal
+        isOpen={showAllNotifications}
+        onClose={() => setShowAllNotifications(false)}
+        activities={activities}
+        onRefresh={refetchActivities}
+        isRefreshing={activitiesLoading}
+      />
       
       {/* Reports Modal */}
       <OwnerReportsModal 

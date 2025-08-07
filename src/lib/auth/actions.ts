@@ -3,6 +3,7 @@
 import { createServer } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { UserRole } from '@/types'
+import { logLoginActivity } from '@/lib/activities/server-activity-service'
 
 export async function login(prevState: { error?: string }, formData: FormData) {
   const supabase = await createServer()
@@ -115,6 +116,20 @@ export async function login(prevState: { error?: string }, formData: FormData) {
   } catch (error: unknown) {
     console.error('Setup error:', error);
     return { error: 'Failed to set up user account. Please contact support.' }
+  }
+
+  // Log login activity for non-owners
+  try {
+    if (userRole !== 'owner') {
+      await logLoginActivity({
+        user_id: authData.user.id,
+        user_name: displayName,
+        user_role: userRole as 'manager' | 'sales_rep'
+      });
+    }
+  } catch (activityError) {
+    // Don't fail login if activity logging fails
+    console.error('Failed to log login activity:', activityError);
   }
 
   // Role-based redirect

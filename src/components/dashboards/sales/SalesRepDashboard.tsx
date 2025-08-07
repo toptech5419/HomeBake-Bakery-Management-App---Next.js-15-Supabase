@@ -22,6 +22,7 @@ import { useShift } from '@/contexts/ShiftContext';
 import { useEndShiftContext } from '@/contexts/EndShiftContext';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
+import { logEndShiftActivity } from '@/lib/activities/server-activity-service';
 import { SalesModal } from '@/components/dashboards/sales/SalesModal';
 import { QuickRecordAllModal } from '@/components/dashboards/sales/QuickRecordAllModal';
 import { FinalReportModal } from '@/components/dashboards/sales/FinalReportModal';
@@ -340,6 +341,18 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
       }
 
       console.log('✅ Successfully cleared all sales data for current user and shift');
+
+      // Log end shift activity
+      try {
+        await logEndShiftActivity({
+          user_id: userId,
+          user_name: userName,
+          user_role: 'sales_rep',
+          shift: currentShift as 'morning' | 'night'
+        });
+      } catch (activityError) {
+        console.error('Failed to log end shift activity:', activityError);
+      }
 
       // Reset only sales-related metrics, preserve production and target data
       setMetrics(prev => ({

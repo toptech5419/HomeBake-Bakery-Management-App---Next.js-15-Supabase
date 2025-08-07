@@ -20,6 +20,18 @@ export interface BreadType {
   created_at: string
 }
 
+export interface Activity {
+  id: string
+  user_id: string
+  user_name: string
+  user_role: 'manager' | 'sales_rep'
+  activity_type: 'sale' | 'batch' | 'report' | 'login' | 'end_shift' | 'created'
+  shift?: 'morning' | 'night'
+  message: string
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
 // Alternative BreadType for database operations
 export interface BreadTypeDB {
   id: string
