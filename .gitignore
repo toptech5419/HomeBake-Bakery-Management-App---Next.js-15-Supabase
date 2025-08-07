@@ -71,3 +71,4 @@ pids
 .tmp/
 .temp/
 .CLAUDE.md
+.VERCEL_DEPLOYMENT.md

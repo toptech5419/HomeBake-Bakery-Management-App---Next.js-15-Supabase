@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (allBatchesData && allBatchesData.length > 0) {
-        batchesData = allBatchesData || [];
+        batchesData = [...(allBatchesData || [])];
         dataSource = 'all_batches';
         console.log(`✅ Found ${allBatchesData.length} archived batches`);
       } else {

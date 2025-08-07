@@ -5,7 +5,7 @@ import { getCookie, setCookie } from 'cookies-next';
 
 const NAVIGATION_HISTORY_KEY = 'homebake_nav_history';
 const DEFAULT_FALLBACK_ROUTES = {
-  owner: '/dashboard/owner',
+  owner: '/owner-dashboard',
   manager: '/dashboard/manager', 
   sales_rep: '/dashboard/sales'
 } as const;
@@ -57,18 +57,24 @@ export function setNavigationHistory(
  * @returns The path to navigate back to
  */
 export function getNavigationHistory(userRole?: string): string {
+  console.log('getNavigationHistory: userRole =', userRole);
+  
   try {
     const historyData = getCookie(NAVIGATION_HISTORY_KEY);
+    console.log('getNavigationHistory: historyData =', historyData);
     
     if (historyData && typeof historyData === 'string') {
       const entry: NavigationEntry = JSON.parse(historyData);
+      console.log('getNavigationHistory: parsed entry =', entry);
       
       // Check if the entry is not too old (24 hours)
       const isRecent = Date.now() - entry.timestamp < 24 * 60 * 60 * 1000;
+      console.log('getNavigationHistory: isRecent =', isRecent);
       
       if (isRecent && entry.path) {
         // Validate that the path is a dashboard path
         if (entry.path.startsWith('/dashboard/') && !entry.path.includes('/inventory')) {
+          console.log('getNavigationHistory: returning history path =', entry.path);
           return entry.path;
         }
       }
@@ -79,10 +85,13 @@ export function getNavigationHistory(userRole?: string): string {
 
   // Fallback to role-specific dashboard
   if (userRole && userRole in DEFAULT_FALLBACK_ROUTES) {
-    return DEFAULT_FALLBACK_ROUTES[userRole as keyof typeof DEFAULT_FALLBACK_ROUTES];
+    const fallbackPath = DEFAULT_FALLBACK_ROUTES[userRole as keyof typeof DEFAULT_FALLBACK_ROUTES];
+    console.log('getNavigationHistory: returning role fallback =', fallbackPath);
+    return fallbackPath;
   }
 
   // Ultimate fallback
+  console.log('getNavigationHistory: returning ultimate fallback = /dashboard');
   return '/dashboard';
 }
 

@@ -489,7 +489,7 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
         {/* Reports List */}
         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
           {filteredReports.map((report, index) => (
-            <div key={report.id} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-orange-100 overflow-hidden hover:shadow-md hover:border-orange-200 transition-all duration-200 group report-card hover-lift" style={{ animationDelay: `${index * 0.05}s` }}>
+            <div key={report.id} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-orange-100 overflow-hidden hover:shadow-md hover:border-orange-200 transition-all duration-200 group report-card hover-lift animate-fade-in-up" data-animation-delay={index}>
               <div className="p-3 sm:p-4">
                 <div className="flex flex-col gap-3">
                   {/* Report Header */}
@@ -558,6 +558,8 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
                     <button
                       onClick={() => handleDownloadReport(report)}
                       className="flex items-center justify-center gap-1.5 px-3 py-2 border border-orange-200 text-gray-700 rounded-lg hover:bg-orange-50 hover:border-orange-300 transition-all duration-200 text-xs font-medium"
+                      title="Download Report"
+                      aria-label="Download Report"
                     >
                       <Download size={14} />
                     </button>
@@ -565,6 +567,8 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
                     <button
                       onClick={() => handleShareReport(report.id)}
                       className="flex items-center justify-center gap-1.5 px-3 py-2 border border-orange-200 text-gray-700 rounded-lg hover:bg-orange-50 hover:border-orange-300 transition-all duration-200 text-xs font-medium"
+                      title="Share Report"
+                      aria-label="Share Report"
                     >
                       <Share2 size={14} />
                     </button>

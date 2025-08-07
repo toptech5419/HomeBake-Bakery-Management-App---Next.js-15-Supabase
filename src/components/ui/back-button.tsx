@@ -23,7 +23,18 @@ export function BackButton({
   const router = useRouter();
 
   const handleBack = () => {
+    // For debugging - let's hardcode owner dashboard navigation
+    if (userRole === 'owner') {
+      console.log('BackButton: Owner detected, navigating to /owner-dashboard');
+      router.push('/owner-dashboard');
+      return;
+    }
+    
     const backPath = getNavigationHistory(userRole) || fallbackPath || '/dashboard';
+    console.log('BackButton: userRole =', userRole);
+    console.log('BackButton: fallbackPath =', fallbackPath);
+    console.log('BackButton: backPath =', backPath);
+    console.log('BackButton: navigating to =', backPath);
     router.push(backPath);
   };
 

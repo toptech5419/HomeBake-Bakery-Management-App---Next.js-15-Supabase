@@ -60,7 +60,7 @@ export default function InviteFormClient() {
       <div className="mb-6">
         <BackButton 
           userRole="owner" 
-          fallbackPath="/dashboard/owner"
+          fallbackPath="/owner-dashboard"
           showText={true}
           size="md"
           className="mb-4"
