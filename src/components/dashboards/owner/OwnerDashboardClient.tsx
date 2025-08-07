@@ -14,6 +14,7 @@ import { OwnerReportsModal } from '@/components/modals/OwnerReportsModal';
 import { PerformanceShiftSelectorModal } from '@/components/modals/PerformanceShiftSelectorModal';
 import ActivityNotifications from '@/components/notifications/ActivityNotifications';
 import AllNotificationsModal from '@/components/notifications/AllNotificationsModal';
+import { useOptimizedToast, createToastHelpers } from '@/components/ui/toast-optimized';
 
 interface OwnerDashboardClientProps {
   user: { id: string; email?: string };
@@ -23,6 +24,8 @@ interface OwnerDashboardClientProps {
 
 export default function OwnerDashboardClient({ displayName }: OwnerDashboardClientProps) {
   const router = useRouter();
+  const { toast } = useOptimizedToast();
+  const toastHelpers = createToastHelpers(toast);
   const { stats, isLoading, error, refetch } = useOwnerDashboard();
   const { totalCount } = useReportCounters();
   const { activities, isLoading: activitiesLoading, refetch: refetchActivities } = useActivities({
@@ -38,14 +41,118 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
 
   // Initialize push notifications
   useEffect(() => {
-    pushNotifications.initialize();
-    setPushNotificationsEnabled(pushNotifications.isEnabled());
+    try {
+      console.log('Push notifications object:', pushNotifications);
+      console.log('Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(pushNotifications)));
+      
+      pushNotifications.initialize();
+      
+      // Check if methods exist before calling
+      if (typeof pushNotifications.isEnabled === 'function') {
+        setPushNotificationsEnabled(pushNotifications.isEnabled());
+      } else if (typeof pushNotifications.getEnabledStatus === 'function') {
+        setPushNotificationsEnabled(pushNotifications.getEnabledStatus());
+      } else {
+        console.warn('Push notification status methods not available');
+        setPushNotificationsEnabled(false);
+      }
+    } catch (error) {
+      console.error('Push notifications initialization error:', error);
+      setPushNotificationsEnabled(false);
+    }
   }, []);
 
 
-  const handlePushNotificationToggle = () => {
-    const newState = pushNotifications.toggleNotifications();
-    setPushNotificationsEnabled(newState);
+  const handlePushNotificationToggle = async () => {
+    try {
+      const newState = await pushNotifications.toggleNotifications();
+      setPushNotificationsEnabled(newState);
+      
+      if (newState) {
+        toast({
+          title: '🔔 Notifications Enabled',
+          description: 'You\'ll receive real-time alerts when staff perform activities.',
+          type: 'success',
+          duration: 6000
+        });
+        
+        // Send a test notification after a short delay
+        setTimeout(async () => {
+          try {
+            await pushNotifications.sendTestNotification();
+            toast({
+              title: '✨ Test Sent',
+              description: 'Check if you received the test notification!',
+              type: 'info',
+              duration: 3000
+            });
+          } catch (error) {
+            console.log('Test notification failed (this is normal on some browsers)');
+          }
+        }, 1000);
+      } else {
+        toast({
+          title: '🔕 Notifications Disabled',
+          description: 'You won\'t receive alerts for bakery activities.',
+          type: 'info',
+          duration: 4000
+        });
+      }
+    } catch (error) {
+      console.error('Push notification toggle error:', error);
+      
+      // Determine specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('permission denied') || error.message.includes('Notification permission denied')) {
+          toast({
+            title: '❌ Permission Denied',
+            description: 'Browser notification permission was denied. Please enable notifications in your browser settings and try again.',
+            type: 'error',
+            duration: 8000
+          });
+        } else if (error.message.includes('not supported')) {
+          toast({
+            title: '⚠️ Not Supported',
+            description: 'Push notifications are not supported in this browser. Try using Chrome, Firefox, or Safari.',
+            type: 'warning',
+            duration: 6000
+          });
+        } else if (error.message.includes('VAPID key')) {
+          toast({
+            title: '🔧 Configuration Error',
+            description: 'Push notifications are not properly configured. Please contact support.',
+            type: 'error',
+            duration: 6000
+          });
+        } else {
+          toast({
+            title: '❌ Toggle Failed',
+            description: 'Failed to toggle push notifications. Please try again or refresh the page.',
+            type: 'error',
+            duration: 5000
+          });
+        }
+      } else {
+        toast({
+          title: '❌ Unknown Error',
+          description: 'Something went wrong with push notifications. Please try again.',
+          type: 'error',
+          duration: 4000
+        });
+      }
+      
+      // Revert state on error
+      try {
+        if (typeof pushNotifications.isEnabled === 'function') {
+          setPushNotificationsEnabled(pushNotifications.isEnabled());
+        } else {
+          setPushNotificationsEnabled(false);
+        }
+      } catch (revertError) {
+        console.error('Error reverting push notification state:', revertError);
+        setPushNotificationsEnabled(false);
+      }
+    }
   };
 
   const handleAddStaffMember = () => {

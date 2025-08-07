@@ -731,6 +731,50 @@ export interface Database {
           }
         ]
       }
+      push_notification_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          enabled: boolean
+          endpoint: string | null
+          p256dh_key: string | null
+          auth_key: string | null
+          user_agent: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          enabled?: boolean
+          endpoint?: string | null
+          p256dh_key?: string | null
+          auth_key?: string | null
+          user_agent?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          enabled?: boolean
+          endpoint?: string | null
+          p256dh_key?: string | null
+          auth_key?: string | null
+          user_agent?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -45,9 +45,39 @@ class ActivityService {
         console.error('Error logging activity:', error);
         throw error;
       }
+
+      // Send push notification to owners
+      await this.sendPushNotification(data);
     } catch (error) {
       console.error('Failed to log activity:', error);
       // Don't throw error to prevent breaking main operations
+    }
+  }
+
+  /**
+   * Send push notification for activity to owners
+   */
+  private async sendPushNotification(data: ActivityData): Promise<void> {
+    try {
+      const response = await fetch('/api/notifications/push', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          activity_type: data.activity_type,
+          user_name: data.user_name,
+          message: data.message,
+          metadata: data.metadata
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Push notification API failed:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Failed to send push notification:', error);
+      // Fail silently - don't break the main operation
     }
   }
 

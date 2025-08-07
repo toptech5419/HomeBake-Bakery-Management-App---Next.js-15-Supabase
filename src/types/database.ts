@@ -201,6 +201,19 @@ export interface UserWithProfile {
   }
 }
 
+// Push notification preferences
+export interface PushNotificationPreferences {
+  id: string
+  user_id: string
+  enabled: boolean
+  endpoint?: string | null
+  p256dh_key?: string | null
+  auth_key?: string | null
+  user_agent?: string | null
+  created_at: string
+  updated_at: string
+}
+
 // Timezone handling for Nigeria (GMT+1)
 export interface TimestampHelper {
   toNigeriaTime: (utcTimestamp: string) => string
