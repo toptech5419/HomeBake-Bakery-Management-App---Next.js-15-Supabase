@@ -1,0 +1,300 @@
+
+> homebake@2.0.0 type-check
+> tsc --noEmit
+
+src/app/api/inventory/shift/route.ts(154,9): error TS2588: Cannot assign to 'batchesData' because it is a constant.
+src/app/dashboard/bread-types/new/page.tsx(54,23): error TS2322: Type '{ children: Element; user: { id: string; email: string | undefined; role: any; }; displayName: string; }' is not assignable to type 'IntrinsicAttributes & OwnerPageWrapperProps'.
+  Property 'user' does not exist on type 'IntrinsicAttributes & OwnerPageWrapperProps'.
+src/app/dashboard/bread-types/page.tsx(39,23): error TS2322: Type '{ children: Element; user: { id: string; email: string | undefined; role: any; }; displayName: string; }' is not assignable to type 'IntrinsicAttributes & OwnerPageWrapperProps'.
+  Property 'user' does not exist on type 'IntrinsicAttributes & OwnerPageWrapperProps'.
+src/app/dashboard/inventory/InventoryClient.tsx(94,73): error TS2339: Property 'role' does not exist on type '{}'.
+src/app/dashboard/inventory/logs/page.tsx(19,50): error TS2345: Argument of type '{ profile: { id: string; name: string; role: "owner" | "manager" | "sales_rep"; created_by: string | null; is_active: boolean; created_at: string; email: string | null; }; id: string; ... 23 more ...; deleted_at?: string; }' is not assignable to parameter of type 'string'.
+src/app/dashboard/inventory/logs/page.tsx(31,25): error TS2352: Conversion of type '{ id: string; bread_type_id: string; quantity: number; shift: "morning" | "night"; recorded_by: string; created_at: string; bread_types: { id: string; name: string; unit_price: number; }; users: { ...; }; }[]' to type 'ProductionLogWithBreadType[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ id: string; bread_type_id: string; quantity: number; shift: "morning" | "night"; recorded_by: string; created_at: string; bread_types: { id: string; name: string; unit_price: number; }; users: { ...; }; }' is not comparable to type 'ProductionLogWithBreadType'.
+    Types of property 'bread_types' are incompatible.
+      Property 'created_at' is missing in type '{ id: string; name: string; unit_price: number; }' but required in type 'BreadType'.
+src/app/dashboard/manager/reports/page.tsx(71,35): error TS2339: Property 'name' does not exist on type '{ name: any; }[]'.
+src/app/dashboard/manager/reports/page.tsx(78,9): error TS2571: Object is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(79,59): error TS2339: Property 'name' does not exist on type '{ name: any; }[]'.
+src/app/dashboard/manager/reports/page.tsx(79,78): error TS2571: Object is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(79,123): error TS2339: Property 'name' does not exist on type '{ name: any; }[]'.
+src/app/dashboard/manager/reports/page.tsx(80,29): error TS2571: Object is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(81,9): error TS2571: Object is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(82,9): error TS2571: Object is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(86,30): error TS18046: 'g' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(88,11): error TS2698: Spread types may only be created from object types.
+src/app/dashboard/manager/reports/page.tsx(89,25): error TS18046: 'g' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(90,23): error TS18046: 'g' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(92,26): error TS18046: 'g' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(92,50): error TS18046: 'g' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(93,34): error TS18046: 'g' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(104,51): error TS18046: 'r' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(106,7): error TS18046: 'r' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(107,7): error TS18046: 'r' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(108,7): error TS18046: 'r' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(114,49): error TS18046: 'r' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(115,61): error TS18046: 'r' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(148,50): error TS18046: 'totalProduction' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(200,22): error TS18046: 'report' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(207,95): error TS18046: 'report' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(208,20): error TS18046: 'report' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(209,90): error TS18046: 'report' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(209,108): error TS18046: 'report' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(211,68): error TS18046: 'report' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(211,107): error TS18046: 'report' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(217,35): error TS18046: 'report' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(219,35): error TS18046: 'report' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(223,24): error TS18046: 'report' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(227,54): error TS18046: 'report' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(229,54): error TS18046: 'report' is of type 'unknown'.
+src/app/dashboard/manager/reports/page.tsx(232,24): error TS18046: 'report' is of type 'unknown'.
+src/app/dashboard/production/ProductionClient.tsx(139,17): error TS18046: 'batch' is of type 'unknown'.
+src/app/dashboard/production/ProductionClient.tsx(144,65): error TS18046: 'batch' is of type 'unknown'.
+src/app/dashboard/production/ProductionClient.tsx(150,22): error TS18046: 'batch' is of type 'unknown'.
+src/app/dashboard/production/ProductionClient.tsx(159,46): error TS18046: 'batch' is of type 'unknown'.
+src/app/dashboard/reports/page.tsx(100,45): error TS2339: Property 'name' does not exist on type 'object'.
+src/app/dashboard/reports/page.tsx(100,75): error TS2339: Property 'name' does not exist on type 'object'.
+src/app/dashboard/reports/page.tsx(219,21): error TS2345: Argument of type '{ id: string; name: string; size: string | null; unit_price: number; created_by: string | null; created_at: string; }[]' is not assignable to parameter of type 'SetStateAction<BreadType[]>'.
+  Type '{ id: string; name: string; size: string | null; unit_price: number; created_by: string | null; created_at: string; }[]' is not assignable to type 'BreadType[]'.
+    Type '{ id: string; name: string; size: string | null; unit_price: number; created_by: string | null; created_at: string; }' is not assignable to type 'BreadType'.
+      Types of property 'size' are incompatible.
+        Type 'string | null' is not assignable to type 'string | undefined'.
+          Type 'null' is not assignable to type 'string | undefined'.
+src/app/dashboard/reports/page.tsx(237,82): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/dashboard/reports/page.tsx(570,85): error TS2774: This condition will always return true since this function is always defined. Did you mean to call it instead?
+src/app/dashboard/sales-management/SalesManagementClient.tsx(693,9): error TS2322: Type 'unknown' is not assignable to type 'ReportData | null'.
+src/app/dashboard/sales/end/page.tsx(20,20): error TS2345: Argument of type '{ profile: { id: string; name: string; role: "owner" | "manager" | "sales_rep"; created_by: string | null; is_active: boolean; created_at: string; email: string | null; }; id: string; ... 23 more ...; deleted_at?: string; }' is not assignable to parameter of type 'ShiftType | undefined'.
+src/app/dashboard/sales/end/page.tsx(21,19): error TS2554: Expected 0 arguments, but got 1.
+src/app/dashboard/sales/end/page.tsx(34,9): error TS2322: Type 'SalesLogWithBreadType[]' is not assignable to type '(SalesLog & { bread_types: BreadType; })[]'.
+  Type 'SalesLogWithBreadType' is not assignable to type 'SalesLog & { bread_types: BreadType; }'.
+    Type 'SalesLogWithBreadType' is not assignable to type 'SalesLog'.
+      Types of property 'bread_type' are incompatible.
+        Type 'import("C:/Users/TOPTECH/Desktop/my info/HomeBake-Bakery-Management-App---Next.js-15-Supabase/src/types/database").BreadType | undefined' is not assignable to type 'import("C:/Users/TOPTECH/Desktop/my info/HomeBake-Bakery-Management-App---Next.js-15-Supabase/src/types/index").BreadType | undefined'.
+          Type 'import("C:/Users/TOPTECH/Desktop/my info/HomeBake-Bakery-Management-App---Next.js-15-Supabase/src/types/database").BreadType' is not assignable to type 'import("C:/Users/TOPTECH/Desktop/my info/HomeBake-Bakery-Management-App---Next.js-15-Supabase/src/types/index").BreadType'.
+            Types of property 'size' are incompatible.
+              Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+                Type 'null' is not assignable to type 'string | undefined'.
+src/app/dashboard/sales/end/page.tsx(34,22): error TS2352: Conversion of type '{ id: string; bread_type_id: string; quantity: number; unit_price: number | null; discount: number | null; returned: boolean; leftovers: number; shift: "morning" | "night"; recorded_by: string; created_at: string; updated_at: string; bread_types: { ...; }; users: { ...; }; }[]' to type 'SalesLogWithBreadType[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ id: string; bread_type_id: string; quantity: number; unit_price: number | null; discount: number | null; returned: boolean; leftovers: number; shift: "morning" | "night"; recorded_by: string; created_at: string; updated_at: string; bread_types: { ...; }; users: { ...; }; }' is not comparable to type 'SalesLogWithBreadType'.
+    Types of property 'bread_types' are incompatible.
+      Property 'created_at' is missing in type '{ id: string; name: string; unit_price: number; }' but required in type 'BreadType'.
+src/app/dashboard/sales/end/page.tsx(35,9): error TS2322: Type 'BreadTypeDB[]' is not assignable to type 'BreadType[]'.
+  Type 'BreadTypeDB' is not assignable to type 'BreadType'.
+    Types of property 'size' are incompatible.
+      Type 'string | null' is not assignable to type 'string | undefined'.
+        Type 'null' is not assignable to type 'string | undefined'.
+src/app/dashboard/sales/end/ShiftEndClient.tsx(40,36): error TS2551: Property 'unitPrice' does not exist on type 'SalesLog & { bread_types: BreadType; }'. Did you mean 'unit_price'?
+src/app/dashboard/sales/end/ShiftEndClient.tsx(178,69): error TS2551: Property 'breadTypeId' does not exist on type 'SalesLog & { bread_types: BreadType; }'. Did you mean 'bread_type_id'?
+src/app/dashboard/sales/end/ShiftEndClient.tsx(181,48): error TS2551: Property 'unitPrice' does not exist on type 'SalesLog & { bread_types: BreadType; }'. Did you mean 'unit_price'?
+src/app/dashboard/sales/metrics/page.tsx(87,25): error TS2322: Type '{ todaySales: { id: string; breadType: string; quantity: number; unitPrice: number; discount: number; timestamp: string; customerType: "individual"; }[]; salesTarget: { dailyTarget: number; currentSales: number; completion: number; timeRemaining: number; }; ... 6 more ...; lastUpdate: string; }' is not assignable to type '{ todaySales: SalesRecord[]; salesTarget: SalesTarget; averageOrderValue: number; customerCount: number; topSellingBread: string; currentShift: "morning" | "night"; previousDaySales: number; weeklyAverage: number; lastUpdate: string; }'.
+  Types of property 'currentShift' are incompatible.
+    Type 'string' is not assignable to type '"morning" | "night"'.
+src/app/dashboard/sales/shift/page.tsx(50,11): error TS2322: Type '{ id: string; bread_type_id: string; quantity: number; unit_price: number | null; discount: number | null; returned: boolean; leftovers: number; shift: "morning" | "night"; recorded_by: string; created_at: string; updated_at: string; bread_types: { ...; }; }[]' is not assignable to type '(SalesLog & { bread_types: BreadType; })[]'.
+  Type '{ id: string; bread_type_id: string; quantity: number; unit_price: number | null; discount: number | null; returned: boolean; leftovers: number; shift: "morning" | "night"; recorded_by: string; created_at: string; updated_at: string; bread_types: { ...; }; }' is not assignable to type 'SalesLog & { bread_types: BreadType; }'.
+    Type '{ id: string; bread_type_id: string; quantity: number; unit_price: number | null; discount: number | null; returned: boolean; leftovers: number; shift: "morning" | "night"; recorded_by: string; created_at: string; updated_at: string; bread_types: { ...; }; }' is not assignable to type '{ bread_types: BreadType; }'.
+      Types of property 'bread_types' are incompatible.
+        Type '{ id: string; name: string; unit_price: number; }' is missing the following properties from type 'BreadType': created_by, created_at
+src/app/dashboard/sales/shift/ShiftManagementClient.tsx(33,38): error TS2551: Property 'unitPrice' does not exist on type 'SalesLog & { bread_types: BreadType; }'. Did you mean 'unit_price'?
+src/app/dashboard/sales/shift/ShiftManagementClient.tsx(195,38): error TS2551: Property 'createdAt' does not exist on type 'SalesLog & { bread_types: BreadType; }'. Did you mean 'created_at'?
+src/app/dashboard/sales/shift/ShiftManagementClient.tsx(200,64): error TS2551: Property 'unitPrice' does not exist on type 'SalesLog & { bread_types: BreadType; }'. Did you mean 'unit_price'?
+src/app/dashboard/sales/shift/ShiftManagementClient.tsx(236,40): error TS2551: Property 'createdAt' does not exist on type 'ShiftFeedback'. Did you mean 'created_at'?
+src/app/dashboard/users/invite/InviteFormClient.tsx(48,47): error TS2322: Type 'string' is not assignable to type 'UserRole | undefined'.
+src/app/dashboard/users/invite/page.tsx(34,23): error TS2322: Type '{ children: Element; user: { id: string; email: string | undefined; role: any; }; displayName: string; }' is not assignable to type 'IntrinsicAttributes & OwnerPageWrapperProps'.
+  Property 'user' does not exist on type 'IntrinsicAttributes & OwnerPageWrapperProps'.
+src/app/dashboard/users/page.tsx(37,23): error TS2322: Type '{ children: Element; user: { id: string; email: string | undefined; role: any; }; displayName: string; }' is not assignable to type 'IntrinsicAttributes & OwnerPageWrapperProps'.
+  Property 'user' does not exist on type 'IntrinsicAttributes & OwnerPageWrapperProps'.
+src/app/dashboard/users/page.tsx(39,22): error TS2322: Type '{ id: string; name: string; role: "manager" | "sales_rep" | "owner"; is_active: boolean; created_at: string; email: string | null; }[]' is not assignable to type 'User[]'.
+  Type '{ id: string; name: string; role: "manager" | "sales_rep" | "owner"; is_active: boolean; created_at: string; email: string | null; }' is not assignable to type 'User'.
+    Types of property 'email' are incompatible.
+      Type 'string | null' is not assignable to type 'string | undefined'.
+        Type 'null' is not assignable to type 'string | undefined'.
+src/app/dashboard/users/UsersClient.tsx(30,47): error TS2345: Argument of type 'User' is not assignable to parameter of type 'import("C:/Users/TOPTECH/Desktop/my info/HomeBake-Bakery-Management-App---Next.js-15-Supabase/src/types/index").User'.
+  Type 'User' is missing the following properties from type 'User': created_by, created_at
+src/app/dashboard/users/UsersClient.tsx(58,49): error TS2345: Argument of type 'User' is not assignable to parameter of type 'import("C:/Users/TOPTECH/Desktop/my info/HomeBake-Bakery-Management-App---Next.js-15-Supabase/src/types/index").User'.
+  Type 'User' is missing the following properties from type 'User': created_by, created_at
+src/app/dashboard/users/UsersClient.tsx(77,49): error TS2345: Argument of type 'User' is not assignable to parameter of type 'import("C:/Users/TOPTECH/Desktop/my info/HomeBake-Bakery-Management-App---Next.js-15-Supabase/src/types/index").User'.
+  Type 'User' is missing the following properties from type 'User': created_by, created_at
+src/app/dashboard/users/UsersClient.tsx(96,49): error TS2345: Argument of type 'User' is not assignable to parameter of type 'import("C:/Users/TOPTECH/Desktop/my info/HomeBake-Bakery-Management-App---Next.js-15-Supabase/src/types/index").User'.
+  Type 'User' is missing the following properties from type 'User': created_by, created_at
+src/app/dashboard/users/UsersClient.tsx(116,45): error TS2345: Argument of type 'User' is not assignable to parameter of type 'import("C:/Users/TOPTECH/Desktop/my info/HomeBake-Bakery-Management-App---Next.js-15-Supabase/src/types/index").User'.
+  Type 'User' is missing the following properties from type 'User': created_by, created_at
+src/app/dashboard/users/UsersClient.tsx(178,9): error TS2353: Object literal may only specify known properties, and 'variant' does not exist in type '{ label: string; icon: Element; onClick: () => void; disabled: boolean; }'.
+src/app/dashboard/users/UsersClient.tsx(189,9): error TS2353: Object literal may only specify known properties, and 'variant' does not exist in type '{ label: string; icon: Element; onClick: () => void; disabled: boolean; }'.
+src/app/dashboard/users/UsersClient.tsx(201,7): error TS2353: Object literal may only specify known properties, and 'variant' does not exist in type '{ label: string; icon: Element; onClick: () => void; disabled: boolean; }'.
+src/app/dashboard/users/UsersClient.tsx(281,32): error TS2339: Property 'variant' does not exist on type '{ label: string; icon: Element; onClick: () => void; disabled: boolean; }'.
+src/app/dashboard/users/UsersClient.tsx(283,34): error TS2339: Property 'variant' does not exist on type '{ label: string; icon: Element; onClick: () => void; disabled: boolean; }'.
+src/app/dashboard/users/UsersClient.tsx(285,36): error TS2339: Property 'variant' does not exist on type '{ label: string; icon: Element; onClick: () => void; disabled: boolean; }'.
+src/app/signup/signup-form.tsx(25,48): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(action: (state: { error: { name?: string[] | undefined; email?: string[] | undefined; token?: string[] | undefined; password?: string[] | undefined; }; success?: undefined; message?: undefined; } | { error: { ...; }; success?: undefined; message?: undefined; } | { ...; }) => { ...; } | ... 2 more ... | Promise<...>, initialState: { ...; } | ... 1 more ... | { ...; }, permalink?: string | undefined): [state: ...]', gave the following error.
+    Argument of type '(prevState: SignupState, formData: FormData) => Promise<{ error: { name?: string[] | undefined; email?: string[] | undefined; token?: string[] | undefined; password?: string[] | undefined; }; success?: undefined; message?: undefined; } | { ...; } | { ...; }>' is not assignable to parameter of type '(state: { error: { name?: string[] | undefined; email?: string[] | undefined; token?: string[] | undefined; password?: string[] | undefined; }; success?: undefined; message?: undefined; } | { error: { _form: string; }; success?: undefined; message?: undefined; } | { ...; }) => { ...; } | ... 2 more ... | Promise<...>'.
+      Target signature provides too few arguments. Expected 2 or more, but got 1.
+  Overload 2 of 2, '(action: (state: { error: { name?: string[] | undefined; email?: string[] | undefined; token?: string[] | undefined; password?: string[] | undefined; }; success?: undefined; message?: undefined; } | { error: { ...; }; success?: undefined; message?: undefined; } | { ...; }, payload: FormData) => { ...; } | ... 2 more ... | Promise<...>, initialState: { ...; } | ... 1 more ... | { ...; }, permalink?: string | undefined): [state: ...]', gave the following error.
+    Argument of type 'SignupState' is not assignable to parameter of type '{ error: { name?: string[] | undefined; email?: string[] | undefined; token?: string[] | undefined; password?: string[] | undefined; }; success?: undefined; message?: undefined; } | { error: { _form: string; }; success?: undefined; message?: undefined; } | { ...; }'.
+      Type 'SignupState' is not assignable to type '{ error: { name?: string[] | undefined; email?: string[] | undefined; token?: string[] | undefined; password?: string[] | undefined; }; success?: undefined; message?: undefined; } | { success: boolean; message: string; error?: undefined; }'.
+        Type 'SignupState' is not assignable to type '{ success: boolean; message: string; error?: undefined; }'.
+          Types of property 'success' are incompatible.
+            Type 'boolean | undefined' is not assignable to type 'boolean'.
+              Type 'undefined' is not assignable to type 'boolean'.
+src/components/dashboards/manager/manager-batch-system.tsx(47,5): error TS2339: Property 'generateBatchNumber' does not exist on type '{ batches: any; activeBatches: unknown; batchStats: unknown; isLoadingBatches: false; isLoadingActiveBatches: false; isLoadingStats: false; isCreatingBatch: boolean; isUpdatingBatch: boolean; isCompletingBatch: boolean; ... 17 more ...; refetchStats: (options?: RefetchOptions | undefined) => Promise<...>; }'.
+src/components/dashboards/manager/manager-batch-system.tsx(82,15): error TS7006: Parameter 'batchNumber' implicitly has an 'any' type.
+src/components/dashboards/manager/manager-batch-system.tsx(85,16): error TS7006: Parameter 'error' implicitly has an 'any' type.
+src/components/dashboards/manager/manager-batch-system.tsx(112,9): error TS2353: Object literal may only specify known properties, and 'batch_number' does not exist in type 'Omit<CreateBatchData, "batch_number">'.
+src/components/dashboards/manager/manager-batch-system.tsx(232,44): error TS7006: Parameter 'batch' implicitly has an 'any' type.
+src/components/dashboards/manager/manager-batch-system.tsx(233,42): error TS7006: Parameter 'batch' implicitly has an 'any' type.
+src/components/dashboards/manager/manager-batch-system.tsx(234,43): error TS7006: Parameter 'batch' implicitly has an 'any' type.
+src/components/dashboards/manager/manager-batch-system.tsx(302,41): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+src/components/dashboards/manager/manager-batch-system.tsx(302,46): error TS7006: Parameter 'batch' implicitly has an 'any' type.
+src/components/dashboards/manager/manager-batch-system.tsx(320,56): error TS2339: Property 'email' does not exist on type '{ name?: string | undefined; }'.
+src/components/dashboards/manager/manager-batch-system.tsx(407,34): error TS7006: Parameter 'batch' implicitly has an 'any' type.
+src/components/dashboards/manager/manager-dashboard-client.tsx(145,42): error TS2740: Type '{ activeBatches: { id: string; batch_number: string; status: string; }[]; }' is missing the following properties from type '{ activeBatches: ProductionBatch[]; completedToday: number; todayTarget: number; averageProductionTime: number; qualityScore: number; staffUtilization: number; currentShift: "morning" | "night"; targets: ProductionTarget[]; lastUpdate: string; }': completedToday, todayTarget, averageProductionTime, qualityScore, and 4 more.
+src/components/dashboards/manager/manager-dashboard-client.tsx(153,17): error TS2739: Type '{ id: string; message: string; type: string; }[]' is missing the following properties from type '{ activeBatches: number; overdeuBatches: number; staffIssues: number; inventoryAlerts: number; }': activeBatches, overdeuBatches, staffIssues, inventoryAlerts
+src/components/dashboards/manager/manager-production-overview.tsx(200,13): error TS2322: Type '"pulse"' is not assignable to type '"none" | "lift" | "glow" | "scale" | null | undefined'.
+src/components/dashboards/manager/manager-shift-control.tsx(95,67): error TS2554: Expected 1 arguments, but got 2.
+src/components/dashboards/manager/manager-shift-control.tsx(190,77): error TS2554: Expected 1 arguments, but got 2.
+src/components/dashboards/manager/manager-shift-control.tsx(244,32): error TS2339: Property 'getCurrentShift' does not exist on type '() => Date'.
+src/components/dashboards/manager/manager-shift-control.tsx(247,32): error TS2339: Property 'getCurrentShift' does not exist on type '() => Date'.
+src/components/dashboards/manager/manager-shift-control.tsx(264,62): error TS2554: Expected 1 arguments, but got 2.
+src/components/dashboards/manager/manager-shift-control.tsx(336,112): error TS2554: Expected 1 arguments, but got 2.
+src/components/dashboards/owner/OwnerDashboard.tsx(23,10): error TS2305: Module '"@/lib/utils"' has no exported member 'formatCurrency'.
+src/components/dashboards/owner/OwnerDashboardClient.tsx(53,43): error TS2339: Property 'getEnabledStatus' does not exist on type 'PushNotificationManager'.
+src/components/dashboards/owner/OwnerDashboardClient.tsx(54,55): error TS2339: Property 'getEnabledStatus' does not exist on type 'PushNotificationManager'.
+src/components/dashboards/owner/OwnerDashboardClient.tsx(82,37): error TS2339: Property 'sendTestNotification' does not exist on type 'PushNotificationManager'.
+src/components/dashboards/sales/FinalReportModal.tsx(519,34): error TS2339: Property 'name' does not exist on type 'User'.
+src/components/dashboards/sales/QuickRecordAllModal.tsx(557,24): error TS2345: Argument of type '{ feedback: string | null; shift: ShiftType; timeOfSales: string; userId: string; salesRecords?: { breadType: string; quantity: number; unitPrice: number; totalAmount: number; timestamp: string; }[] | undefined; remainingBreads?: { ...; }[] | undefined; totalRevenue?: number | undefined; totalItemsSold?: number | un...' is not assignable to parameter of type '{ salesRecords: { breadType: string; quantity: number; unitPrice: number; totalAmount: number; timestamp: string; }[]; remainingBreads: { breadType: string; quantity: number; unitPrice: number; totalAmount: number; }[]; ... 6 more ...; userId?: string | undefined; }'.
+  Types of property 'salesRecords' are incompatible.
+    Type '{ breadType: string; quantity: number; unitPrice: number; totalAmount: number; timestamp: string; }[] | undefined' is not assignable to type '{ breadType: string; quantity: number; unitPrice: number; totalAmount: number; timestamp: string; }[]'.
+      Type 'undefined' is not assignable to type '{ breadType: string; quantity: number; unitPrice: number; totalAmount: number; timestamp: string; }[]'.
+src/components/dashboards/sales/sales-metrics.tsx(124,35): error TS2304: Cannot find name 'ArrowUp'.
+src/components/dashboards/sales/sales-metrics.tsx(125,35): error TS2304: Cannot find name 'ArrowDown'.
+src/components/dashboards/sales/sales-metrics.tsx(126,20): error TS2304: Cannot find name 'ArrowUp'.
+src/components/dashboards/sales/SalesRepDashboard.tsx(769,9): error TS2322: Type '(reportData: SalesReportData) => Promise<void>' is not assignable to type '(reportData: { salesRecords: { breadType: string; quantity: number; unitPrice: number; totalAmount: number; timestamp: string; }[]; remainingBreads: { breadType: string; quantity: number; unitPrice: number; totalAmount: number; }[]; ... 6 more ...; userId?: string | undefined; }) => void'.
+  Types of parameters 'reportData' and 'reportData' are incompatible.
+    Type '{ salesRecords: { breadType: string; quantity: number; unitPrice: number; totalAmount: number; timestamp: string; }[]; remainingBreads: { breadType: string; quantity: number; unitPrice: number; totalAmount: number; }[]; ... 6 more ...; userId?: string | undefined; }' is not assignable to type 'SalesReportData'.
+      Types of property 'feedback' are incompatible.
+        Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+          Type 'null' is not assignable to type 'string | undefined'.
+src/components/dashboards/shared/EnhancedShiftToggle.tsx(51,42): error TS2339: Property 'isAutoMode' does not exist on type 'ShiftContextType'.
+src/components/dashboards/shared/EnhancedShiftToggle.tsx(51,54): error TS2339: Property 'setIsAutoMode' does not exist on type 'ShiftContextType'.
+src/components/modals/MorningPerformanceCheckModal.tsx(107,57): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/modals/MorningPerformanceCheckModal.tsx(333,47): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/modals/NightPerformanceCheckModal.tsx(107,55): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/modals/NightPerformanceCheckModal.tsx(333,47): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/modals/OwnerManagerReportsModal.tsx(90,45): error TS2339: Property 'name' does not exist on type 'object'.
+src/components/modals/OwnerManagerReportsModal.tsx(90,75): error TS2339: Property 'name' does not exist on type 'object'.
+src/components/modals/OwnerManagerReportsModal.tsx(634,28): error TS2339: Property 'notes' does not exist on type 'BatchData'.
+src/components/modals/OwnerManagerReportsModal.tsx(634,91): error TS2339: Property 'notes' does not exist on type 'BatchData'.
+src/components/modals/ViewAllSalesModal.tsx(76,14): error TS2352: Conversion of type '{ id: string; bread_type_id: string; quantity: number; unit_price: number | null; discount: number | null; returned: boolean; leftovers: number; shift: "morning" | "night"; recorded_by: string; created_at: string; updated_at: string; bread_types: { ...; }; recorded_by_user: { ...; }; }[]' to type 'SalesLogWithDetails[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'leftover' is missing in type '{ id: string; bread_type_id: string; quantity: number; unit_price: number | null; discount: number | null; returned: boolean; leftovers: number; shift: "morning" | "night"; recorded_by: string; created_at: string; updated_at: string; bread_types: { ...; }; recorded_by_user: { ...; }; }' but required in type 'SalesLogWithDetails'.
+src/components/ui/connection-indicator.tsx(3,37): error TS2307: Cannot find module '@/hooks/use-realtime-data' or its corresponding type declarations.
+src/components/ui/error-boundary-enhanced.tsx(68,32): error TS2345: Argument of type 'ErrorInfo' is not assignable to parameter of type '{ componentStack: string; }'.
+  Types of property 'componentStack' are incompatible.
+    Type 'string | null | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+src/components/ui/index.ts(18,10): error TS2300: Duplicate identifier 'LoadingSpinner'.
+src/components/ui/index.ts(74,21): error TS2300: Duplicate identifier 'LoadingSpinner'.
+src/components/ui/performance-optimized.tsx(43,11): error TS18046: 'aVal' is of type 'unknown'.
+src/components/ui/performance-optimized.tsx(43,18): error TS18046: 'bVal' is of type 'unknown'.
+src/components/ui/performance-optimized.tsx(44,11): error TS18046: 'aVal' is of type 'unknown'.
+src/components/ui/performance-optimized.tsx(44,18): error TS18046: 'bVal' is of type 'unknown'.
+src/components/ui/performance-optimized.tsx(56,13): error TS2304: Cannot find name 'SkeletonTable'.
+src/hooks/index.ts(9,15): error TS2307: Cannot find module './use-realtime-data' or its corresponding type declarations.
+src/hooks/use-activity-logger.ts(6,33): error TS2307: Cannot find module '@/lib/shift-utils' or its corresponding type declarations.
+src/hooks/use-batches-query.ts(2,122): error TS2305: Module '"@/lib/batches/api-actions"' has no exported member 'generateNextBatchNumber'.
+src/hooks/use-batches.ts(15,3): error TS2305: Module '"@/lib/batches/api-actions"' has no exported member 'generateNextBatchNumber'.
+src/hooks/use-batches.ts(30,5): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options: DefinedInitialDataOptions<unknown, Error, unknown, string[]>, queryClient?: QueryClient | undefined): DefinedUseQueryResult<unknown, Error>', gave the following error.
+    Type '(shift?: "morning" | "night" | undefined) => Promise<Batch[]>' is not assignable to type 'QueryFunction<unknown, string[]>'.
+      Types of parameters 'shift' and 'context' are incompatible.
+        Type '{ client: QueryClient; queryKey: string[]; signal: AbortSignal; meta: Record<string, unknown> | undefined; pageParam?: unknown; direction?: unknown; }' is not assignable to type '"morning" | "night" | undefined'.
+  Overload 2 of 3, '(options: UndefinedInitialDataOptions<Batch[], Error, Batch[], string[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Type '(shift?: "morning" | "night" | undefined) => Promise<Batch[]>' is not assignable to type 'unique symbol | QueryFunction<Batch[], string[], never> | undefined'.
+      Type '(shift?: "morning" | "night" | undefined) => Promise<Batch[]>' is not assignable to type 'QueryFunction<Batch[], string[], never>'.
+        Types of parameters 'shift' and 'context' are incompatible.
+          Type '{ client: QueryClient; queryKey: string[]; signal: AbortSignal; meta: Record<string, unknown> | undefined; pageParam?: unknown; direction?: unknown; }' is not assignable to type '"morning" | "night" | undefined'.
+  Overload 3 of 3, '(options: UseQueryOptions<Batch[], Error, Batch[], string[]>, queryClient?: QueryClient | undefined): UseQueryResult<Batch[], Error>', gave the following error.
+    Type '(shift?: "morning" | "night" | undefined) => Promise<Batch[]>' is not assignable to type 'unique symbol | QueryFunction<Batch[], string[], never> | undefined'.
+      Type '(shift?: "morning" | "night" | undefined) => Promise<Batch[]>' is not assignable to type 'QueryFunction<Batch[], string[], never>'.
+        Types of parameters 'shift' and 'context' are incompatible.
+          Type '{ client: QueryClient; queryKey: string[]; signal: AbortSignal; meta: Record<string, unknown> | undefined; pageParam?: unknown; direction?: unknown; }' is not assignable to type '"morning" | "night" | undefined'.
+src/hooks/use-batches.ts(37,46): error TS18046: 'rawBatches' is of type 'unknown'.
+src/hooks/use-batches.ts(37,61): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/hooks/use-batches.ts(42,17): error TS2345: Argument of type 'unknown[]' is not assignable to parameter of type 'readonly string[]'.
+  Type 'unknown' is not assignable to type 'string'.
+src/hooks/use-batches.ts(53,19): error TS18046: 'rawBatches' is of type 'unknown'.
+src/hooks/use-batches.ts(53,34): error TS7006: Parameter 'b' implicitly has an 'any' type.
+src/hooks/use-batches.ts(66,5): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options: DefinedInitialDataOptions<unknown, Error, unknown, string[]>, queryClient?: QueryClient | undefined): DefinedUseQueryResult<unknown, Error>', gave the following error.
+    Type '(shift?: "morning" | "night" | undefined) => Promise<Batch[]>' is not assignable to type 'QueryFunction<unknown, string[]>'.
+      Types of parameters 'shift' and 'context' are incompatible.
+        Type '{ client: QueryClient; queryKey: string[]; signal: AbortSignal; meta: Record<string, unknown> | undefined; pageParam?: unknown; direction?: unknown; }' is not assignable to type '"morning" | "night" | undefined'.
+  Overload 2 of 3, '(options: UndefinedInitialDataOptions<Batch[], Error, Batch[], string[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Type '(shift?: "morning" | "night" | undefined) => Promise<Batch[]>' is not assignable to type 'unique symbol | QueryFunction<Batch[], string[], never> | undefined'.
+      Type '(shift?: "morning" | "night" | undefined) => Promise<Batch[]>' is not assignable to type 'QueryFunction<Batch[], string[], never>'.
+        Types of parameters 'shift' and 'context' are incompatible.
+          Type '{ client: QueryClient; queryKey: string[]; signal: AbortSignal; meta: Record<string, unknown> | undefined; pageParam?: unknown; direction?: unknown; }' is not assignable to type '"morning" | "night" | undefined'.
+  Overload 3 of 3, '(options: UseQueryOptions<Batch[], Error, Batch[], string[]>, queryClient?: QueryClient | undefined): UseQueryResult<Batch[], Error>', gave the following error.
+    Type '(shift?: "morning" | "night" | undefined) => Promise<Batch[]>' is not assignable to type 'unique symbol | QueryFunction<Batch[], string[], never> | undefined'.
+      Type '(shift?: "morning" | "night" | undefined) => Promise<Batch[]>' is not assignable to type 'QueryFunction<Batch[], string[], never>'.
+        Types of parameters 'shift' and 'context' are incompatible.
+          Type '{ client: QueryClient; queryKey: string[]; signal: AbortSignal; meta: Record<string, unknown> | undefined; pageParam?: unknown; direction?: unknown; }' is not assignable to type '"morning" | "night" | undefined'.
+src/hooks/use-batches.ts(78,5): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options: DefinedInitialDataOptions<unknown, Error, unknown, string[]>, queryClient?: QueryClient | undefined): DefinedUseQueryResult<unknown, Error>', gave the following error.
+    Type '(shift?: "morning" | "night" | undefined) => Promise<any>' is not assignable to type 'QueryFunction<unknown, string[]>'.
+      Types of parameters 'shift' and 'context' are incompatible.
+        Type '{ client: QueryClient; queryKey: string[]; signal: AbortSignal; meta: Record<string, unknown> | undefined; pageParam?: unknown; direction?: unknown; }' is not assignable to type '"morning" | "night" | undefined'.
+  Overload 2 of 3, '(options: UndefinedInitialDataOptions<any, Error, any, string[]>, queryClient?: QueryClient | undefined): UseQueryResult<any, Error>', gave the following error.
+    Type '(shift?: "morning" | "night" | undefined) => Promise<any>' is not assignable to type 'unique symbol | QueryFunction<any, string[], never> | undefined'.
+      Type '(shift?: "morning" | "night" | undefined) => Promise<any>' is not assignable to type 'QueryFunction<any, string[], never>'.
+        Types of parameters 'shift' and 'context' are incompatible.
+          Type '{ client: QueryClient; queryKey: string[]; signal: AbortSignal; meta: Record<string, unknown> | undefined; pageParam?: unknown; direction?: unknown; }' is not assignable to type '"morning" | "night" | undefined'.
+  Overload 3 of 3, '(options: UseQueryOptions<any, Error, any, string[]>, queryClient?: QueryClient | undefined): UseQueryResult<any, Error>', gave the following error.
+    Type '(shift?: "morning" | "night" | undefined) => Promise<any>' is not assignable to type 'unique symbol | QueryFunction<any, string[], never> | undefined'.
+      Type '(shift?: "morning" | "night" | undefined) => Promise<any>' is not assignable to type 'QueryFunction<any, string[], never>'.
+        Types of parameters 'shift' and 'context' are incompatible.
+          Type '{ client: QueryClient; queryKey: string[]; signal: AbortSignal; meta: Record<string, unknown> | undefined; pageParam?: unknown; direction?: unknown; }' is not assignable to type '"morning" | "night" | undefined'.
+src/hooks/use-dashboard.ts(42,9): error TS2353: Object literal may only specify known properties, and 'totalSales' does not exist in type 'DashboardMetrics | ((prevState: DashboardMetrics | null) => DashboardMetrics | null)'.
+src/hooks/use-inventory.ts(95,65): error TS2551: Property 'leftover' does not exist on type '{ id: string; bread_type_id: string; quantity: number; unit_price: number | null; discount: number | null; returned: boolean; leftovers: number; shift: "morning" | "night"; recorded_by: string; created_at: string; updated_at: string; }'. Did you mean 'leftovers'?
+src/hooks/use-offline-mutations.ts(43,31): error TS2551: Property 'leftover' does not exist on type '{ id: string; created_at: string; bread_type_id: string; quantity: number; unit_price?: number | null | undefined; discount?: number | null | undefined; returned?: boolean | undefined; leftovers?: number | undefined; shift: "morning" | "night"; recorded_by: string; updated_at?: string | undefined; }'. Did you mean 'leftovers'?
+src/hooks/use-offline.ts(183,14): error TS2678: Type '"action_added"' is not comparable to type '"action_completed" | "action_failed" | "sync_started" | "sync_completed"'.
+src/hooks/use-offline.ts(258,9): error TS2353: Object literal may only specify known properties, and 'interval' does not exist in type 'SyncOptions'.
+src/hooks/use-sales-management.ts(85,22): error TS2345: Argument of type 'string' is not assignable to parameter of type 'NonNullable<"morning" | "night">'.
+src/hooks/use-sales-management.ts(102,22): error TS2345: Argument of type 'string' is not assignable to parameter of type 'NonNullable<"morning" | "night">'.
+src/lib/activities/activity-service.ts(100,7): error TS2322: Type '{ id: string; user_id: string; user_name: string; user_role: "manager" | "sales_rep"; activity_type: "created" | "sale" | "batch" | "report" | "login" | "end_shift"; shift: "morning" | "night" | null; message: string; metadata: Json; created_at: string; }[]' is not assignable to type 'Activity[]'.
+  Type '{ id: string; user_id: string; user_name: string; user_role: "manager" | "sales_rep"; activity_type: "created" | "sale" | "batch" | "report" | "login" | "end_shift"; shift: "morning" | "night" | null; message: string; metadata: Json; created_at: string; }' is not assignable to type 'Activity'.
+    Types of property 'shift' are incompatible.
+      Type '"morning" | "night" | null' is not assignable to type '"morning" | "night" | undefined'.
+        Type 'null' is not assignable to type '"morning" | "night" | undefined'.
+src/lib/activities/server-activity-service.ts(50,8): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: { id?: string | undefined; user_id: string; user_name: string; user_role: "manager" | "sales_rep"; activity_type: "sale" | "batch" | "report" | "login" | "end_shift" | "created"; shift?: "morning" | ... 2 more ... | undefined; message: string; metadata?: Json | undefined; created_at?: string | undefined; }, options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Argument of type '{ user_id: string; user_name: string; user_role: "manager" | "sales_rep"; activity_type: "sale" | "batch" | "report" | "login" | "end_shift" | "created"; shift: "morning" | "night" | undefined; message: string; metadata: { ...; }; }[]' is not assignable to parameter of type '{ id?: string | undefined; user_id: string; user_name: string; user_role: "manager" | "sales_rep"; activity_type: "sale" | "batch" | "report" | "login" | "end_shift" | "created"; shift?: "morning" | ... 2 more ... | undefined; message: string; metadata?: Json | undefined; created_at?: string | undefined; }'.
+      Type '{ user_id: string; user_name: string; user_role: "manager" | "sales_rep"; activity_type: "sale" | "batch" | "report" | "login" | "end_shift" | "created"; shift: "morning" | "night" | undefined; message: string; metadata: { ...; }; }[]' is missing the following properties from type '{ id?: string | undefined; user_id: string; user_name: string; user_role: "manager" | "sales_rep"; activity_type: "sale" | "batch" | "report" | "login" | "end_shift" | "created"; shift?: "morning" | ... 2 more ... | undefined; message: string; metadata?: Json | undefined; created_at?: string | undefined; }': user_id, user_name, user_role, activity_type, message
+  Overload 2 of 2, '(values: { id?: string | undefined; user_id: string; user_name: string; user_role: "manager" | "sales_rep"; activity_type: "sale" | "batch" | "report" | "login" | "end_shift" | "created"; shift?: "morning" | ... 2 more ... | undefined; message: string; metadata?: Json | undefined; created_at?: string | undefined; }[], options?: { ...; } | undefined): PostgrestFilterBuilder<...>', gave the following error.
+    Type '{ user_id: string; user_name: string; user_role: "manager" | "sales_rep"; activity_type: "sale" | "batch" | "report" | "login" | "end_shift" | "created"; shift: "morning" | "night" | undefined; message: string; metadata: { ...; }; }' is not assignable to type '{ id?: string | undefined; user_id: string; user_name: string; user_role: "manager" | "sales_rep"; activity_type: "sale" | "batch" | "report" | "login" | "end_shift" | "created"; shift?: "morning" | ... 2 more ... | undefined; message: string; metadata?: Json | undefined; created_at?: string | undefined; }'.
+      Types of property 'metadata' are incompatible.
+        Type '{ [key: string]: unknown; bread_type?: string | undefined; quantity?: number | undefined; revenue?: number | undefined; batch_number?: string | undefined; }' is not assignable to type 'Json | undefined'.
+          Type '{ [key: string]: unknown; bread_type?: string | undefined; quantity?: number | undefined; revenue?: number | undefined; batch_number?: string | undefined; }' is missing the following properties from type 'Json[]': length, pop, push, concat, and 35 more.
+src/lib/auth/signup-actions.ts(35,60): error TS18047: 'invite' is possibly 'null'.
+src/lib/auth/signup-actions.ts(36,18): error TS18047: 'invite' is possibly 'null'.
+src/lib/auth/signup-actions.ts(70,21): error TS18047: 'invite' is possibly 'null'.
+src/lib/auth/signup-actions.ts(138,17): error TS18047: 'invite' is possibly 'null'.
+src/lib/auth/signup-actions.ts(159,15): error TS18047: 'invite' is possibly 'null'.
+src/lib/auth/signup-actions.ts(160,21): error TS18047: 'invite' is possibly 'null'.
+src/lib/auth/signup-actions.ts(173,20): error TS18047: 'invite' is possibly 'null'.
+src/lib/bread-types/actions.ts(32,5): error TS2322: Type '{ id: string; name: string; size: string | undefined; unit_price: number; created_by: string | null; created_at: string; }[]' is not assignable to type 'BreadType[]'.
+  Type '{ id: string; name: string; size: string | undefined; unit_price: number; created_by: string | null; created_at: string; }' is not assignable to type 'BreadType'.
+    Types of property 'created_by' are incompatible.
+      Type 'string | null' is not assignable to type 'string'.
+        Type 'null' is not assignable to type 'string'.
+src/lib/reports/queries.ts(298,23): error TS18047: 'batches' is possibly 'null'.
+src/lib/reports/queries.ts(424,3): error TS2322: Type '{ id: string; name: string; size: string | undefined; unit_price: number; createdBy: string | null; createdAt: Date; isActive: boolean; }[]' is not assignable to type 'BreadType[]'.
+  Type '{ id: string; name: string; size: string | undefined; unit_price: number; createdBy: string | null; createdAt: Date; isActive: boolean; }' is missing the following properties from type 'BreadType': created_by, created_at
+src/lib/supabase/middleware.ts(29,37): error TS2345: Argument of type '[string, Partial<SerializeOptions>]' is not assignable to parameter of type '[key: string] | [options: Omit<ResponseCookie, "value" | "expires">]'.
+  Type '[string, Partial<SerializeOptions>]' is not assignable to type '[options: Omit<ResponseCookie, "value" | "expires">]'.
+    Source has 2 element(s) but target allows only 1.
+supabase/functions/handle-new-user/index.ts(1,23): error TS2307: Cannot find module 'https://deno.land/std@0.168.0/http/server.ts' or its corresponding type declarations.
+supabase/functions/handle-new-user/index.ts(2,30): error TS2307: Cannot find module 'https://esm.sh/@supabase/supabase-js@2' or its corresponding type declarations.
+supabase/functions/handle-new-user/index.ts(9,14): error TS7006: Parameter 'req' implicitly has an 'any' type.
+supabase/functions/handle-new-user/index.ts(18,7): error TS2304: Cannot find name 'Deno'.
+supabase/functions/handle-new-user/index.ts(19,7): error TS2304: Cannot find name 'Deno'.
+supabase/functions/handle-new-user/index.ts(80,31): error TS18046: 'error' is of type 'unknown'.

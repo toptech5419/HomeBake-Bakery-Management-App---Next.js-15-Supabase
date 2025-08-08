@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { deleteBreadTypeAction, refetchBreadTypesAction } from './actions';
 import { useRouter } from 'next/navigation';
 import { BreadType } from '@/types/database';
-import { RefreshCw, Cookie, MoreVertical, Edit, Trash2, Loader2, Plus, DollarSign, Package, CheckCircle, XCircle } from 'lucide-react';
+import { RefreshCw, Cookie, MoreVertical, Edit, Trash2, Loader2, Plus, DollarSign, Package, CheckCircle, XCircle, Wifi, WifiOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createUserMessages, withRetry } from '@/lib/utils/error-handling';
 
 interface User {
   id: string;
@@ -21,17 +22,67 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   const toast = useToast();
   const router = useRouter();
 
-  const refetchBreadTypes = async () => {
+  // Network status monitoring
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      const message = createUserMessages.network.connectionRestored();
+      toast.success(message.message, message.title, message.duration);
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      const message = createUserMessages.network.connectionLost();
+      toast.warning(message.message, message.title, message.duration);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Initial check
+    setIsOnline(navigator.onLine);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [toast]);
+
+  const refetchBreadTypes = async (showSuccessMessage: boolean = false) => {
+    if (!isOnline) {
+      const message = createUserMessages.network.connectionLost();
+      toast.warning(message.message, message.title, message.duration);
+      return;
+    }
+
     try {
       setIsRefreshing(true);
       setLoadingId('refetch');
-      const updated = await refetchBreadTypesAction();
+      
+      const updated = await withRetry(async () => {
+        return await refetchBreadTypesAction();
+      }, 3, 1000);
+      
       setBreadTypes(updated);
-    } catch {
-      toast.error('Failed to refresh bread types');
+      setRetryCount(0); // Reset retry count on success
+      
+      if (showSuccessMessage) {
+        const message = createUserMessages.dashboard.dataRefreshSuccess();
+        toast.success(message.message, message.title, message.duration);
+      }
+    } catch (error) {
+      const message = createUserMessages.breadTypes.refreshError(error);
+      if (message.type === 'error') {
+        toast.error(message.message, message.title, message.duration);
+      } else {
+        toast.warning(message.message, message.title, message.duration);
+      }
+      setRetryCount(prev => prev + 1);
     } finally {
       setLoadingId(null);
       setIsRefreshing(false);
@@ -43,20 +94,44 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
   };
   
   const handleDelete = async (breadType: BreadType) => {
-    if (!window.confirm('Are you sure you want to delete this bread type? This action cannot be undone.')) return;
+    // Enhanced confirmation dialog with more context
+    const confirmMessage = `Delete "${breadType.name}"?\n\nThis action cannot be undone. The bread type will be permanently removed from your system.\n\nNote: If this bread type has any production history, sales records, or inventory, deletion will be blocked to preserve your business data.`;
+    
+    if (!window.confirm(confirmMessage)) return;
+
+    if (!isOnline) {
+      const message = createUserMessages.network.connectionLost();
+      toast.warning(message.message, message.title, message.duration);
+      return;
+    }
+    
     setLoadingId(breadType.id);
     setLoadingAction('delete');
+    
     try {
-      const result = await deleteBreadTypeAction(user, breadType.id);
+      const result = await withRetry(async () => {
+        return await deleteBreadTypeAction(user, breadType.id);
+      }, 2, 1500); // Less retries for delete operations
+      
       if (result?.success) {
-        toast.success('Bread type deleted successfully!');
-        await refetchBreadTypes();
+        const message = createUserMessages.breadTypes.deleteSuccess(breadType.name);
+        toast.success(message.message, message.title, message.duration);
+        await refetchBreadTypes(false); // Don't show success message for auto-refresh
       } else {
-        toast.error(result?.error || 'Failed to delete bread type.');
+        const message = createUserMessages.breadTypes.deleteError(breadType.name, result?.error);
+        if (message.type === 'warning') {
+          toast.warning(message.message, message.title, message.duration);
+        } else {
+          toast.error(message.message, message.title, message.duration);
+        }
       }
-    } catch (err: unknown) {
-      const error = err as Error;
-      toast.error(error.message || 'An unexpected error occurred.');
+    } catch (error) {
+      const message = createUserMessages.breadTypes.deleteError(breadType.name, error);
+      if (message.type === 'warning') {
+        toast.warning(message.message, message.title, message.duration);
+      } else {
+        toast.error(message.message, message.title, message.duration);
+      }
     } finally {
       setLoadingId(null);
       setLoadingAction(null);
@@ -255,6 +330,29 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
                     <DollarSign className="w-3 h-3 mr-1" />
                     {formatPrice(totalRevenue)}
                   </Badge>
+                  {/* Connection Status Indicator */}
+                  <Badge className={`px-3 py-1 ${
+                    isOnline 
+                      ? 'bg-gradient-to-r from-green-500 to-green-600 text-white' 
+                      : 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+                  }`}>
+                    {isOnline ? (
+                      <>
+                        <Wifi className="w-3 h-3 mr-1" />
+                        Online
+                      </>
+                    ) : (
+                      <>
+                        <WifiOff className="w-3 h-3 mr-1" />
+                        Offline
+                      </>
+                    )}
+                  </Badge>
+                  {retryCount > 0 && (
+                    <Badge className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-3 py-1">
+                      {retryCount} {retryCount === 1 ? 'Retry' : 'Retries'}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
@@ -266,12 +364,18 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
               >
                 <Button
                   variant="outline"
-                  onClick={refetchBreadTypes}
-                  disabled={isRefreshing}
-                  className="bg-white/50 backdrop-blur border-white/30 hover:bg-white/70 transition-all duration-300 shadow-lg"
+                  onClick={() => refetchBreadTypes(true)}
+                  disabled={isRefreshing || !isOnline}
+                  className={`bg-white/50 backdrop-blur border-white/30 hover:bg-white/70 transition-all duration-300 shadow-lg ${
+                    !isOnline ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                  {!isOnline ? (
+                    <WifiOff className="w-4 h-4 mr-2 text-red-500" />
+                  ) : (
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  )}
+                  {!isOnline ? 'Offline' : isRefreshing ? 'Refreshing...' : 'Refresh'}
                 </Button>
               </motion.div>
               

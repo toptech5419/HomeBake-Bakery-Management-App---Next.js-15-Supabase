@@ -34,7 +34,7 @@ export async function getBreadTypes(): Promise<BreadType[]> {
       name: item.name,
       size: item.size || undefined,
       unit_price: item.unit_price,
-      created_by: item.created_by,
+      created_by: item.created_by || undefined,
       created_at: item.created_at,
     }));
   } catch (error) {
@@ -105,10 +105,25 @@ export async function deleteBreadType(currentUser: User, id: string) {
   }
   
   // Check if this bread type is being used in any related tables
+  // Based on database schema, these tables have foreign key references to bread_types.id:
   const checks = await Promise.all([
-    // Check production logs
+    // Check current batches
     supabase
-      .from('production_logs')
+      .from('batches')
+      .select('id')
+      .eq('bread_type_id', id)
+      .limit(1),
+    
+    // Check all batches (historical records)
+    supabase
+      .from('all_batches')
+      .select('id')
+      .eq('bread_type_id', id)
+      .limit(1),
+    
+    // Check available stock
+    supabase
+      .from('available_stock')
       .select('id')
       .eq('bread_type_id', id)
       .limit(1),
@@ -118,20 +133,67 @@ export async function deleteBreadType(currentUser: User, id: string) {
       .from('sales_logs')
       .select('id')
       .eq('bread_type_id', id)
+      .limit(1),
+      
+    // Check production logs
+    supabase
+      .from('production_logs')
+      .select('id')
+      .eq('bread_type_id', id)
+      .limit(1),
+    
+    // Check remaining bread records
+    supabase
+      .from('remaining_bread')
+      .select('id')
+      .eq('bread_type_id', id)
+      .limit(1),
+    
+    // Check inventory logs
+    supabase
+      .from('inventory_logs')
+      .select('id')
+      .eq('bread_type_id', id)
       .limit(1)
   ]);
   
-  const [productionResult, salesResult] = checks;
+  const [
+    batchesResult, 
+    allBatchesResult, 
+    stockResult, 
+    salesResult, 
+    productionResult,
+    remainingBreadResult,
+    inventoryLogsResult
+  ] = checks;
   
-  if (productionResult.data && productionResult.data.length > 0) {
-    throw new Error('Cannot delete this bread type as it has production records. Please archive it instead.');
+  if (batchesResult.data && batchesResult.data.length > 0) {
+    throw new Error('Cannot delete this bread type as it has active batch records. Please complete or cancel batches first.');
+  }
+  
+  if (allBatchesResult.data && allBatchesResult.data.length > 0) {
+    throw new Error('Cannot delete this bread type as it has historical batch records. These records are needed for reporting and auditing.');
+  }
+  
+  if (stockResult.data && stockResult.data.length > 0) {
+    throw new Error('Cannot delete this bread type as it has inventory records. Please clear the inventory first.');
   }
   
   if (salesResult.data && salesResult.data.length > 0) {
     throw new Error('Cannot delete this bread type as it has sales records. Please archive it instead.');
   }
   
-  // Note: Additional checks for inventory table will be handled by database constraints
+  if (productionResult.data && productionResult.data.length > 0) {
+    throw new Error('Cannot delete this bread type as it has production records. These records are needed for operational tracking.');
+  }
+  
+  if (remainingBreadResult.data && remainingBreadResult.data.length > 0) {
+    throw new Error('Cannot delete this bread type as it has remaining bread records. Please process remaining inventory first.');
+  }
+  
+  if (inventoryLogsResult.data && inventoryLogsResult.data.length > 0) {
+    throw new Error('Cannot delete this bread type as it has inventory log records. These records are needed for audit trails.');
+  }
   
   // Perform the deletion
   const { error } = await supabase.from('bread_types').delete().eq('id', id);
@@ -141,14 +203,22 @@ export async function deleteBreadType(currentUser: User, id: string) {
     
     // Handle foreign key constraint violations with user-friendly messages
     if (error.code === '23503') {
-      if (error.message.includes('inventory')) {
-        throw new Error('Cannot delete this bread type as it has inventory records. Please clear the inventory first or contact your administrator.');
-      } else if (error.message.includes('production_logs')) {
-        throw new Error('Cannot delete this bread type as it has production records. Please archive it instead.');
+      if (error.message.includes('batches') || error.message.includes('batch')) {
+        throw new Error('Cannot delete this bread type as it has batch records. Historical batch data is required for reporting and auditing purposes.');
+      } else if (error.message.includes('all_batches')) {
+        throw new Error('Cannot delete this bread type as it has historical batch records. These records are needed for reporting and auditing.');
+      } else if (error.message.includes('available_stock')) {
+        throw new Error('Cannot delete this bread type as it has inventory records. Please clear the inventory first.');
       } else if (error.message.includes('sales_logs')) {
-        throw new Error('Cannot delete this bread type as it has sales records. Please archive it instead.');
+        throw new Error('Cannot delete this bread type as it has sales records. These records are needed for financial reporting.');
+      } else if (error.message.includes('production_logs')) {
+        throw new Error('Cannot delete this bread type as it has production records. These records are needed for operational tracking.');
+      } else if (error.message.includes('remaining_bread')) {
+        throw new Error('Cannot delete this bread type as it has remaining bread records. Please process remaining inventory first.');
+      } else if (error.message.includes('inventory_logs')) {
+        throw new Error('Cannot delete this bread type as it has inventory log records. These records are needed for audit trails.');
       } else {
-        throw new Error('Cannot delete this bread type as it is being used by other records in the system.');
+        throw new Error('Cannot delete this bread type as it is being used by other records in the system. Historical data must be preserved for auditing purposes.');
       }
     }
     

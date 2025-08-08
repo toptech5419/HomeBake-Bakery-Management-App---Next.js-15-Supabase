@@ -32,7 +32,8 @@
       "Bash(find:*)",
       "Bash(node:*)",
       "Bash(timeout 5 npm run dev)",
-      "Bash(timeout 30 npm run build:*)"
+      "Bash(timeout 30 npm run build:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": []
   }

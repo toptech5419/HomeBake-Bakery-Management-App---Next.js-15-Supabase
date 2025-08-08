@@ -36,7 +36,7 @@ export default async function BreadTypesPage() {
   const displayName = user.email?.split('@')[0] || 'Owner';
 
   return (
-    <OwnerPageWrapper user={user} displayName={displayName}>
+    <OwnerPageWrapper displayName={displayName}>
       <Suspense fallback={<div>Loading...</div>}>
         <BreadTypesClient breadTypes={breadTypes} user={user} />
       </Suspense>

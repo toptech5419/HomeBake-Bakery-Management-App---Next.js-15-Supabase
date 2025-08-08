@@ -51,7 +51,7 @@ export default async function BreadTypeNewPage({ searchParams }: PageProps) {
   const displayName = user.email?.split('@')[0] || 'Owner';
 
   return (
-    <OwnerPageWrapper user={user} displayName={displayName}>
+    <OwnerPageWrapper displayName={displayName}>
       <Suspense fallback={<div>Loading...</div>}>
         <BreadTypeNewClient initialValues={initialValues} user={user} />
       </Suspense>

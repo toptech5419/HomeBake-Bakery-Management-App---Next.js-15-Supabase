@@ -295,7 +295,7 @@ export async function getBatchReportsFromAllBatches(filters: ReportFilters = {})
 
   // Group by date+shift
   const groups = new Map<string, any>();
-  for (const batch of batches) {
+  for (const batch of batches || []) {
     const date = batch.start_time ? new Date(batch.start_time).toISOString().split('T')[0] : 'unknown';
     const shift = batch.shift;
     const key = `${date}-${shift}`;
@@ -426,8 +426,8 @@ export async function getBreadTypes(): Promise<BreadType[]> {
     name: item.name,
     size: item.size || undefined,
     unit_price: item.unit_price,
-    createdBy: item.created_by,
-    createdAt: new Date(item.created_at),
-    isActive: true
+    created_by: item.created_by || undefined,
+    created_at: item.created_at,
+    is_active: true
   }));
 }

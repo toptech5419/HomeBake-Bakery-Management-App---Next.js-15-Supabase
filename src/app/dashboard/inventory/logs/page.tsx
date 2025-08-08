@@ -16,7 +16,7 @@ export default async function InventoryLogsPage() {
     redirect('/dashboard');
   }
 
-  const productionLogs = await getProductionLogs(user);
+  const productionLogs = await getProductionLogs();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -28,7 +28,7 @@ export default async function InventoryLogsPage() {
       </div>
 
       <InventoryLogsClient 
-        productionLogs={productionLogs as ProductionLogWithBreadType[]}
+        productionLogs={productionLogs as any[]}
       />
     </div>
   );

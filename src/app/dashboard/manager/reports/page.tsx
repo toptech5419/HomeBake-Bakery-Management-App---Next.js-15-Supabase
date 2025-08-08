@@ -68,7 +68,7 @@ export default function ManagerReportsPage() {
             date,
             shift,
             batches: [],
-            manager: batch.users?.name || 'Unknown',
+            manager: (batch as any).users?.name || 'Unknown',
             breadTypes: new Set(),
             endTimes: [],
             statuses: [],
@@ -76,13 +76,15 @@ export default function ManagerReportsPage() {
           };
         }
         groups[key].batches.push(batch);
-        if (batch.bread_types && typeof batch.bread_types.name === 'string') groups[key].breadTypes.add(batch.bread_types.name);
-        if (batch.end_time) groups[key].endTimes.push(batch.end_time);
-        groups[key].statuses.push(batch.status);
-        groups[key].totalUnits += batch.actual_quantity || 0;
+        if ((batch as any).bread_types && typeof (batch as any).bread_types.name === 'string') {
+          groups[key].breadTypes.add((batch as any).bread_types.name);
+        }
+        if ((batch as any).end_time) groups[key].endTimes.push((batch as any).end_time);
+        groups[key].statuses.push((batch as any).status);
+        groups[key].totalUnits += (batch as any).actual_quantity || 0;
       }
       // Build array
-      const arr = Object.values(groups).map((g: unknown) => {
+      const arr = Object.values(groups).map((g: any) => {
         const allCompleted = g.statuses.every((s: string) => s === 'completed');
         return {
           ...g,
@@ -100,7 +102,7 @@ export default function ManagerReportsPage() {
   }, []);
 
   // Filtering
-  const filtered = groupedReports.filter((r) => {
+  const filtered = groupedReports.filter((r: any) => {
     const matchesShift = filterShift === 'All' || r.shift === filterShift;
     const matchesSearch =
       r.date.includes(search) ||
@@ -111,8 +113,8 @@ export default function ManagerReportsPage() {
 
   // Summary
   const totalReports = filtered.length;
-  const completedReports = filtered.filter(r => r.status === 'Completed').length;
-  const totalProduction = filtered.reduce((sum, r) => sum + r.totalUnits, 0);
+  const completedReports = filtered.filter((r: any) => r.status === 'Completed').length;
+  const totalProduction = filtered.reduce((sum: number, r: any) => sum + r.totalUnits, 0);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -195,7 +197,7 @@ export default function ManagerReportsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filtered.map((report) => (
+            {filtered.map((report: any) => (
               <div
                 key={report.id}
                 className={cn(

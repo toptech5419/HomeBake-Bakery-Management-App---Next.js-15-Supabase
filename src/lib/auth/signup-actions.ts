@@ -32,6 +32,10 @@ export async function signup(prevState: { error?: { _form?: string } }, formData
     // Validate the QR invite token
     const invite = await validateQRInvite(token);
     
+    if (!invite) {
+      throw new Error('Invalid or expired invite token');
+    }
+    
     console.log('Invite validated successfully for role:', invite.role);
     const role = invite.role as 'manager' | 'sales_rep';
 
@@ -118,6 +122,10 @@ export async function signupWithToken(token: string, formData: FormData) {
     
     // Validate the QR invite token
     const invite = await validateQRInvite(token);
+    
+    if (!invite) {
+      throw new Error('Invalid or expired invite token');
+    }
     
     // Extract form data
     const email = formData.get('email') as string;

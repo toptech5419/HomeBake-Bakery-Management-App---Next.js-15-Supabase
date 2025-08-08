@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     console.log(`  Shift: ${validatedShift}`);
     console.log(`  Current Date: ${new Date().toLocaleDateString()}`);
     
-    const { data: batchesData, error: batchesError } = await supabase
+    let { data: batchesData, error: batchesError } = await supabase
       .from('batches')
       .select(`
         *,

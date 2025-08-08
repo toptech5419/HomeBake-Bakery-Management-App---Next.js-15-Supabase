@@ -14,9 +14,9 @@ export interface User {
 export interface BreadType {
   id: string
   name: string
-  size?: string | null
+  size?: string | null | undefined
   unit_price: number
-  created_by?: string | null
+  created_by?: string | null | undefined
   created_at: string
   is_active?: boolean
 }

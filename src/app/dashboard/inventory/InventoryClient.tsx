@@ -91,7 +91,11 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
       <div className="bg-white/80 backdrop-blur-sm px-4 py-4 border-b border-orange-100">
         <div className="flex items-center justify-between">
           <BackButton 
-            userRole={(user as Record<string, unknown>)?.user_metadata?.role as string || (user as Record<string, unknown>)?.role as string}
+            userRole={
+              ((user as any)?.user_metadata?.role as string) || 
+              ((user as any)?.role as string) || 
+              'owner'
+            }
             size="md"
             showText={false}
             className="flex-shrink-0"
