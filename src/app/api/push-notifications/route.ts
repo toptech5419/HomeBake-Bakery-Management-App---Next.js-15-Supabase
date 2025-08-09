@@ -7,7 +7,9 @@ import { createClient } from '@supabase/supabase-js';
 // Configure web-push with VAPID keys
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_KEY!;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY!;
-const vapidEmail = process.env.VAPID_EMAIL || 'mailto:admin@homebake.com';
+const vapidEmail = process.env.VAPID_EMAIL?.startsWith('mailto:') 
+  ? process.env.VAPID_EMAIL 
+  : `mailto:${process.env.VAPID_EMAIL || 'admin@homebake.com'}`;
 
 if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
