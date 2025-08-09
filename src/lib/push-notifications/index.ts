@@ -71,7 +71,6 @@ class PushNotificationService {
         }
       }
 
-      console.log('Push notifications initialized successfully');
       return true;
     } catch (error) {
       console.error('Failed to initialize push notifications:', error);
@@ -88,7 +87,6 @@ class PushNotificationService {
         scope: '/'
       });
       
-      console.log('Service worker registered successfully');
       
       // Wait for service worker to be ready
       await navigator.serviceWorker.ready;
@@ -167,7 +165,6 @@ class PushNotificationService {
       // Save subscription to database
       await this.saveSubscriptionToDatabase();
 
-      console.log('Push subscription successful');
     } catch (error) {
       console.error('Failed to subscribe to push notifications:', error);
       throw error;
@@ -204,7 +201,6 @@ class PushNotificationService {
         throw error;
       }
 
-      console.log('Push subscription saved to database');
     } catch (error) {
       console.error('Failed to save push subscription:', error);
       throw error;
@@ -214,7 +210,9 @@ class PushNotificationService {
   /**
    * Toggle push notifications on/off
    */
-  async toggleNotifications(): Promise<boolean> {
+  async toggleNotifications(userId?: string): Promise<boolean> {
+    const currentState = this._isEnabled; // Move outside try block for scope access
+    
     try {
       if (!this._isSupported) {
         throw new Error('Push notifications not supported');
@@ -226,25 +224,31 @@ class PushNotificationService {
         throw new Error('Notification permission denied');
       }
 
-      this._isEnabled = !this._isEnabled;
+      const targetState = !currentState;
 
-      if (this._isEnabled) {
-        // Subscribe to push notifications
+      if (targetState) {
+        // Enabling notifications
         await this.subscribeToPush();
+        
+        // Verify we have a subscription before saving
+        if (!this.subscription) {
+          throw new Error('Failed to create push subscription');
+        }
+        
+        // Save with the subscription data
+        this._isEnabled = true;
+        await this.savePreferences(userId);
+        
       } else {
-        // Unsubscribe from push notifications
+        // Disabling notifications
+        this._isEnabled = false;
         await this.unsubscribeFromPush();
+        await this.savePreferences(userId);
       }
-
-      // Save updated preferences
-      await this.savePreferences();
-
-      console.log(`Push notifications ${this._isEnabled ? 'enabled' : 'disabled'}`);
       return this._isEnabled;
     } catch (error) {
-      console.error('Failed to toggle push notifications:', error);
-      // Revert state change on error
-      this._isEnabled = !this._isEnabled;
+      // Restore previous state on error
+      this._isEnabled = currentState;
       throw error;
     }
   }
@@ -269,36 +273,51 @@ class PushNotificationService {
   /**
    * Save preferences to database
    */
-  private async savePreferences(): Promise<void> {
+  private async savePreferences(userId?: string): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      let user_id = userId;
+      
+      if (!user_id) {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (!user) {
+          throw new Error('No authenticated user found - please pass user ID explicitly');
+        }
+        user_id = user.id;
+      }
+      
+      // Prepare subscription data - only save if we're enabled AND have a subscription
+      const subscriptionData = (this._isEnabled && this.subscription) ? {
+        endpoint: this.subscription.endpoint,
+        p256dh_key: this.subscription.keys.p256dh,
+        auth_key: this.subscription.keys.auth
+      } : {
+        endpoint: null,
+        p256dh_key: null,
+        auth_key: null
+      };
 
       const { error } = await supabase
         .from('push_notification_preferences')
         .upsert({
-          user_id: user.id,
+          user_id: user_id,
           enabled: this._isEnabled,
-          endpoint: this.subscription?.endpoint || null,
-          p256dh_key: this.subscription?.keys.p256dh || null,
-          auth_key: this.subscription?.keys.auth || null,
+          ...subscriptionData,
           user_agent: navigator.userAgent
         }, {
           onConflict: 'user_id'
         });
 
       if (error) {
-        console.error('Error saving preferences:', error);
         throw error;
       }
     } catch (error) {
-      console.error('Failed to save preferences:', error);
       throw error;
     }
   }
 
   /**
-   * Send a test notification
+   * Send a test notification (both browser and push notification)
    */
   async sendTestNotification(): Promise<void> {
     if (!this._isSupported || !this._isEnabled) {
@@ -306,6 +325,7 @@ class PushNotificationService {
     }
 
     try {
+      // Show a browser notification for immediate feedback
       const testPayload: NotificationPayload = {
         title: 'HomeBake Test Notification',
         body: 'Push notifications are working perfectly! 🍞',
@@ -315,8 +335,28 @@ class PushNotificationService {
       };
 
       await this.sendNotification(testPayload);
+      
+      // Also trigger a server-side push notification for testing
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      const response = await fetch(`${baseUrl}/api/push-notifications`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          activity_type: 'login',
+          user_id: 'test-user',
+          user_name: 'Test User',
+          user_role: 'sales_rep',
+          message: 'This is a test notification from HomeBake! 🍞',
+          metadata: { test: true }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Test notification API call failed');
+      }
     } catch (error) {
-      console.error('Failed to send test notification:', error);
       throw error;
     }
   }

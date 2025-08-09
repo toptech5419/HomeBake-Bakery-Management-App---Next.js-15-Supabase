@@ -33,7 +33,8 @@
       "Bash(node:*)",
       "Bash(timeout 5 npm run dev)",
       "Bash(timeout 30 npm run build:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(timeout 15 npm run dev -- --port 3000)"
     ],
     "deny": []
   }

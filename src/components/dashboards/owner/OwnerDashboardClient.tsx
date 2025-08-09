@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { TrendingUp, Users, Settings, ChevronRight, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { OwnerHeader } from '@/components/layout/owner-header';
@@ -8,13 +8,12 @@ import { OwnerSidebar } from '@/components/layout/owner-sidebar';
 import { useOwnerDashboard } from '@/hooks/use-owner-dashboard';
 import { useReportCounters } from '@/hooks/use-report-counters';
 import { useActivities } from '@/hooks/use-live-activities';
-import { pushNotifications } from '@/lib/push-notifications';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { OwnerReportsModal } from '@/components/modals/OwnerReportsModal';
 import { PerformanceShiftSelectorModal } from '@/components/modals/PerformanceShiftSelectorModal';
 import ActivityNotifications from '@/components/notifications/ActivityNotifications';
 import AllNotificationsModal from '@/components/notifications/AllNotificationsModal';
-import { useOptimizedToast, createToastHelpers } from '@/components/ui/toast-optimized';
+import { usePushNotifications } from '@/hooks/use-push-notifications';
 
 interface OwnerDashboardClientProps {
   user: { id: string; email?: string };
@@ -22,10 +21,8 @@ interface OwnerDashboardClientProps {
 }
 
 
-export default function OwnerDashboardClient({ displayName }: OwnerDashboardClientProps) {
+export default function OwnerDashboardClient({ displayName, user }: OwnerDashboardClientProps) {
   const router = useRouter();
-  const { toast } = useOptimizedToast();
-  const toastHelpers = createToastHelpers(toast);
   const { stats, isLoading, error, refetch } = useOwnerDashboard();
   const { totalCount } = useReportCounters();
   const { activities, isLoading: activitiesLoading, refetch: refetchActivities } = useActivities({
@@ -33,127 +30,20 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
     enablePolling: true
   });
   
+  // Use the new push notifications hook
+  const {
+    isEnabled: pushNotificationsEnabled,
+    isSupported: pushNotificationsSupported,
+    isLoading: pushNotificationsLoading,
+    toggleNotifications: handlePushNotificationToggle,
+    sendTestNotification
+  } = usePushNotifications(user.id);
+  
   const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true);
   const [reportsModalOpen, setReportsModalOpen] = useState(false);
   const [performanceModalOpen, setPerformanceModalOpen] = useState(false);
 
-  // Initialize push notifications
-  useEffect(() => {
-    try {
-      console.log('Push notifications object:', pushNotifications);
-      console.log('Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(pushNotifications)));
-      
-      pushNotifications.initialize();
-      
-      // Check if methods exist before calling
-      if (typeof pushNotifications.isEnabled === 'function') {
-        setPushNotificationsEnabled(pushNotifications.isEnabled());
-      } else if (typeof pushNotifications.getEnabledStatus === 'function') {
-        setPushNotificationsEnabled(pushNotifications.getEnabledStatus());
-      } else {
-        console.warn('Push notification status methods not available');
-        setPushNotificationsEnabled(false);
-      }
-    } catch (error) {
-      console.error('Push notifications initialization error:', error);
-      setPushNotificationsEnabled(false);
-    }
-  }, []);
-
-
-  const handlePushNotificationToggle = async () => {
-    try {
-      const newState = await pushNotifications.toggleNotifications();
-      setPushNotificationsEnabled(newState);
-      
-      if (newState) {
-        toast({
-          title: '🔔 Notifications Enabled',
-          description: 'You\'ll receive real-time alerts when staff perform activities.',
-          type: 'success',
-          duration: 6000
-        });
-        
-        // Send a test notification after a short delay
-        setTimeout(async () => {
-          try {
-            await pushNotifications.sendTestNotification();
-            toast({
-              title: '✨ Test Sent',
-              description: 'Check if you received the test notification!',
-              type: 'info',
-              duration: 3000
-            });
-          } catch (error) {
-            console.log('Test notification failed (this is normal on some browsers)');
-          }
-        }, 1000);
-      } else {
-        toast({
-          title: '🔕 Notifications Disabled',
-          description: 'You won\'t receive alerts for bakery activities.',
-          type: 'info',
-          duration: 4000
-        });
-      }
-    } catch (error) {
-      console.error('Push notification toggle error:', error);
-      
-      // Determine specific error messages
-      if (error instanceof Error) {
-        if (error.message.includes('permission denied') || error.message.includes('Notification permission denied')) {
-          toast({
-            title: '❌ Permission Denied',
-            description: 'Browser notification permission was denied. Please enable notifications in your browser settings and try again.',
-            type: 'error',
-            duration: 8000
-          });
-        } else if (error.message.includes('not supported')) {
-          toast({
-            title: '⚠️ Not Supported',
-            description: 'Push notifications are not supported in this browser. Try using Chrome, Firefox, or Safari.',
-            type: 'warning',
-            duration: 6000
-          });
-        } else if (error.message.includes('VAPID key')) {
-          toast({
-            title: '🔧 Configuration Error',
-            description: 'Push notifications are not properly configured. Please contact support.',
-            type: 'error',
-            duration: 6000
-          });
-        } else {
-          toast({
-            title: '❌ Toggle Failed',
-            description: 'Failed to toggle push notifications. Please try again or refresh the page.',
-            type: 'error',
-            duration: 5000
-          });
-        }
-      } else {
-        toast({
-          title: '❌ Unknown Error',
-          description: 'Something went wrong with push notifications. Please try again.',
-          type: 'error',
-          duration: 4000
-        });
-      }
-      
-      // Revert state on error
-      try {
-        if (typeof pushNotifications.isEnabled === 'function') {
-          setPushNotificationsEnabled(pushNotifications.isEnabled());
-        } else {
-          setPushNotificationsEnabled(false);
-        }
-      } catch (revertError) {
-        console.error('Error reverting push notification state:', revertError);
-        setPushNotificationsEnabled(false);
-      }
-    }
-  };
 
   const handleAddStaffMember = () => {
     router.push('/dashboard/users/invite');
@@ -320,25 +210,42 @@ export default function OwnerDashboardClient({ displayName }: OwnerDashboardClie
 
               {/* Push Notification Toggle */}
               <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                      <Settings size={20} className="text-purple-600" />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                        <Settings size={20} className="text-purple-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">Push Notifications</div>
+                        <div className="text-sm text-gray-500">
+                          {!pushNotificationsSupported ? 'Not supported in this browser' : 
+                           pushNotificationsLoading ? 'Loading...' :
+                           'Get real-time alerts'}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-semibold text-gray-900">Push Notifications</div>
-                      <div className="text-sm text-gray-500">Get real-time alerts</div>
-                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={pushNotificationsEnabled}
+                        disabled={!pushNotificationsSupported || pushNotificationsLoading}
+                        onChange={() => handlePushNotificationToggle(user.id)}
+                      />
+                      <div className={`relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all ${pushNotificationsEnabled ? 'peer-checked:bg-orange-500' : ''} ${(!pushNotificationsSupported || pushNotificationsLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
+                    </label>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
-                      checked={pushNotificationsEnabled}
-                      onChange={handlePushNotificationToggle}
-                    />
-                    <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-                  </label>
+                  
+                  {/* Test Notification Button */}
+                  {pushNotificationsEnabled && (
+                    <button
+                      onClick={sendTestNotification}
+                      className="w-full py-2 px-4 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-colors text-sm font-medium border border-orange-200"
+                    >
+                      🧪 Send Test Notification
+                    </button>
+                  )}
                 </div>
               </div>
 

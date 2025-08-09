@@ -1,6 +1,7 @@
 'use server';
 
 import { createServer } from '@/lib/supabase/server';
+import { triggerPushNotification } from '@/lib/push-notifications/server';
 
 export interface ActivityData {
   user_id: string;
@@ -47,7 +48,7 @@ async function logActivity(data: ActivityData): Promise<void> {
     
     const { data: insertResult, error } = await supabase
       .from('activities')
-      .insert([activityRecord])
+      .insert(activityRecord)
       .select()
       .single();
 
@@ -60,6 +61,19 @@ async function logActivity(data: ActivityData): Promise<void> {
     }
     
     console.log('✅ Activity logged successfully:', insertResult);
+    
+    // Trigger push notification to owners (async, don't await)
+    triggerPushNotification({
+      activity_type: data.activity_type,
+      user_id: data.user_id,
+      user_name: data.user_name,
+      user_role: data.user_role,
+      message: data.message,
+      metadata: data.metadata
+    }).catch(error => {
+      console.error('🔔 Push notification failed (non-blocking):', error);
+    });
+    
   } catch (error) {
     console.error('💥 Failed to log activity with exception:', error);
     // Don't throw error to prevent breaking main operations
