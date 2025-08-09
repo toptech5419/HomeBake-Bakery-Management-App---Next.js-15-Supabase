@@ -125,23 +125,23 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
     <div className="min-h-screen flex flex-col">
       {/* Mobile-First Header */}
       <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-4 mb-4">
+        <div className="px-3 sm:px-4 py-4 sm:py-6">
+          <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.back()}
-              className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl"
+              className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl touch-manipulation flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="bg-white/20 p-3 rounded-xl">
-              <TrendingUp className="h-6 w-6" />
+            <div className="bg-white/20 p-2 sm:p-3 rounded-xl flex-shrink-0">
+              <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold">All Sales</h1>
-              <p className="text-green-100 text-sm">
-                View all sales for the {currentShift} shift • {userName}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold truncate">All Sales</h1>
+              <p className="text-green-100 text-xs sm:text-sm truncate">
+                {currentShift?.charAt(0).toUpperCase() + currentShift?.slice(1)} Shift • {userName}
               </p>
             </div>
           </div>
@@ -150,17 +150,17 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
 
       {/* Search and Stats Bar */}
       <div className="bg-orange-50 border-b border-gray-200">
-        <div className="max-w-6xl mx-auto p-4">
+        <div className="px-3 sm:px-4 py-4">
           <div className="flex flex-col gap-4">
             {/* Search and Filter Row */}
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 sm:h-5 sm:w-5" />
                 <Input
                   placeholder="Search by bread type, quantity, or seller..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 w-full text-base py-3 touch-manipulation min-h-[48px]"
+                  className="pl-10 sm:pl-12 w-full text-sm sm:text-base py-2 sm:py-3 touch-manipulation min-h-[44px] sm:min-h-[48px]"
                 />
               </div>
               
@@ -168,7 +168,7 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
               <div className="relative">
                 <button
                   onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                  className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 text-base font-medium text-gray-700 bg-white min-w-[120px] h-[48px] touch-manipulation"
+                  className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 text-sm sm:text-base font-medium text-gray-700 bg-white min-w-[100px] sm:min-w-[120px] h-[44px] sm:h-[48px] touch-manipulation"
                 >
                   <Filter className="h-4 w-4" />
                   <span className="hidden sm:inline">Filter</span>
@@ -278,7 +278,7 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
             </p>
           </div>
         ) : (
-          <div className="max-w-6xl mx-auto p-4">
+          <div className="px-3 sm:px-4 py-4">
             {/* Results Header */}
             <div className="mb-4">
               <p className="text-base text-gray-600">
@@ -288,55 +288,55 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
             </div>
               
             {/* Sales List - Mobile-Optimized Cards */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {filteredSales.map((sale: SalesLogWithDetails) => (
-                <div key={sale.id} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md transition-all duration-200 touch-manipulation">
+                <div key={sale.id} className="bg-white rounded-xl lg:rounded-2xl border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-all duration-200 touch-manipulation">
                   {/* Header Row */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <TrendingUp className="h-5 w-5 text-green-500" />
-                      <h3 className="text-lg font-semibold text-gray-900 truncate">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                      <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
+                      <h3 className="text-sm sm:text-lg font-semibold text-gray-900 truncate">
                         {sale.bread_types.name}
                       </h3>
                     </div>
-                    <Badge className={`${getStatusColor(sale.returned)} px-3 py-1`} variant="outline">
+                    <Badge className={`${getStatusColor(sale.returned)} px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm flex-shrink-0`} variant="outline">
                       {getStatusDisplay(sale.returned)}
                     </Badge>
                   </div>
                   
                   {/* Main Details Grid */}
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
                     <div>
-                      <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-1">Quantity</p>
-                      <p className="text-base font-semibold text-gray-900">{sale.quantity} units</p>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Quantity</p>
+                      <p className="text-sm sm:text-base font-semibold text-gray-900">{sale.quantity} units</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-1">Unit Price</p>
-                      <p className="text-base font-semibold text-gray-900">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Unit Price</p>
+                      <p className="text-sm sm:text-base font-semibold text-gray-900">
                         {sale.unit_price ? formatCurrencyNGN(sale.unit_price) : 'N/A'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-1">Total</p>
-                      <p className="text-base font-semibold text-green-600">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total</p>
+                      <p className="text-sm sm:text-base font-semibold text-green-600">
                         {formatCurrencyNGN((sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0))}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-1">Seller</p>
-                      <p className="text-base font-semibold text-gray-900 truncate">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Seller</p>
+                      <p className="text-sm sm:text-base font-semibold text-gray-900 truncate">
                         {sale.recorded_by_user?.name || 'Unknown'}
                       </p>
                     </div>
                   </div>
 
                   {/* Footer Row - Time and Extras */}
-                  <div className="flex items-center justify-between text-sm text-gray-500 pt-3 border-t border-gray-100">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                       <span>{new Date(sale.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4">
                       {(sale.discount && sale.discount > 0) && (
                         <span className="text-red-600 font-medium">-{formatCurrencyNGN(sale.discount)}</span>
                       )}

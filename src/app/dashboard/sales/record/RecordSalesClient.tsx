@@ -210,22 +210,22 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
     <div className="min-h-screen flex flex-col">
       {/* Mobile-First Header with Back Button */}
       <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-4 mb-4">
+        <div className="px-3 sm:px-4 py-4 sm:py-6">
+          <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.back()}
-              className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl"
+              className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl touch-manipulation flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="bg-white/20 p-3 rounded-xl">
-              <ShoppingCart className="h-6 w-6" />
+            <div className="bg-white/20 p-2 sm:p-3 rounded-xl flex-shrink-0">
+              <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold">Record Sales</h1>
-              <p className="text-orange-100 text-sm">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold truncate">Record Sales</h1>
+              <p className="text-orange-100 text-xs sm:text-sm truncate">
                 {currentShift?.charAt(0).toUpperCase() + currentShift?.slice(1)} Shift • {userName}
               </p>
             </div>
@@ -241,7 +241,7 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
             <p className="mt-6 text-gray-600 text-lg">Loading bread types...</p>
           </div>
         ) : (
-          <div className="max-w-4xl mx-auto p-4 space-y-8">
+          <div className="px-3 sm:px-4 py-4 space-y-4 sm:space-y-8">
             
             {/* Bread Type Selection */}
             <div className="space-y-6">

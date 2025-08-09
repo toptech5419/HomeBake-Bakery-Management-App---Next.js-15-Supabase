@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Search, Package, Clock, User, Calendar, TrendingUp, RefreshCw, Filter, X } from 'lucide-react';
+import { ArrowLeft, Search, Package, Clock, User, Calendar, TrendingUp, RefreshCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getAllBatchesWithDetails } from '@/lib/batches/api-actions';
 import { useShift } from '@/contexts/ShiftContext';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface AllProductionBatchesClientProps {
   userId: string;
@@ -40,12 +40,11 @@ interface BatchWithDetails {
   };
 }
 
-export function AllProductionBatchesClient({ userId, userName, userRole }: AllProductionBatchesClientProps) {
+export function AllProductionBatchesClient({ userName }: AllProductionBatchesClientProps) {
   const { currentShift } = useShift();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
 
   // Fetch all batches for the current day and shift
   const {
@@ -161,53 +160,30 @@ export function AllProductionBatchesClient({ userId, userName, userRole }: AllPr
       <div className="flex-1 overflow-y-auto bg-gradient-to-b from-orange-50/30 to-yellow-50/30">
         <div className="px-3 sm:px-4 py-4 space-y-4 sm:space-y-6">
           
-          {/* Summary Stats - Mobile First Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl p-3 sm:p-4 border border-orange-200/50 shadow-sm">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Package className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-lg sm:text-xl lg:text-2xl font-display font-bold text-gray-900 truncate">{totalBatches}</div>
-                  <div className="text-xs sm:text-sm text-gray-600">Total Batches</div>
-                </div>
+          {/* Summary Stats - Compact Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-orange-200/50 shadow-sm">
+              <div className="text-center">
+                <div className="text-xl font-bold text-blue-600">{totalBatches}</div>
+                <div className="text-xs text-gray-600 mt-1">Total Batches</div>
               </div>
             </div>
-
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl p-3 sm:p-4 border border-orange-200/50 shadow-sm">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-lg sm:text-xl lg:text-2xl font-display font-bold text-gray-900 truncate">{totalQuantity}</div>
-                  <div className="text-xs sm:text-sm text-gray-600">Total Units</div>
-                </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-orange-200/50 shadow-sm">
+              <div className="text-center">
+                <div className="text-xl font-bold text-green-600">{totalQuantity}</div>
+                <div className="text-xs text-gray-600 mt-1">Total Units</div>
               </div>
             </div>
-
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl p-3 sm:p-4 border border-orange-200/50 shadow-sm">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-lg sm:text-xl lg:text-2xl font-display font-bold text-gray-900 truncate">{activeBatches}</div>
-                  <div className="text-xs sm:text-sm text-gray-600">Active Now</div>
-                </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-orange-200/50 shadow-sm">
+              <div className="text-center">
+                <div className="text-xl font-bold text-purple-600">{activeBatches}</div>
+                <div className="text-xs text-gray-600 mt-1">Active Now</div>
               </div>
             </div>
-
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl p-3 sm:p-4 border border-orange-200/50 shadow-sm">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Package className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-base sm:text-lg lg:text-xl font-display font-bold text-gray-900 truncate">{formatCurrencyNGN(totalValue)}</div>
-                  <div className="text-xs sm:text-sm text-gray-600">Total Value</div>
-                </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-orange-200/50 shadow-sm">
+              <div className="text-center">
+                <div className="text-lg font-bold text-orange-600">{formatCurrencyNGN(totalValue)}</div>
+                <div className="text-xs text-gray-600 mt-1">Total Value</div>
               </div>
             </div>
           </div>
@@ -327,108 +303,55 @@ export function AllProductionBatchesClient({ userId, userName, userRole }: AllPr
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}
-                  className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl p-4 sm:p-6 border border-orange-200/50 shadow-sm hover:shadow-md transition-all duration-200"
+                  className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-orange-200/50 shadow-sm hover:shadow-md transition-all duration-200"
                 >
-                  {/* Header Row - Batch Number and Status */}
-                  <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Package className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  {/* Header Row - Compact */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="w-6 h-6 bg-gradient-to-r from-orange-500 to-amber-500 rounded-md flex items-center justify-center flex-shrink-0">
+                        <Package className="h-3 w-3 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm sm:text-base font-semibold text-gray-900 truncate">
+                        <h4 className="text-sm font-semibold text-gray-900 truncate">
                           #{batch.batch_number}
                         </h4>
-                        <p className="text-xs sm:text-sm text-gray-600 truncate">
+                        <p className="text-xs text-gray-600 truncate">
                           {batch.bread_type?.name || 'Unknown'}
                         </p>
                       </div>
                     </div>
-                    <Badge className={`${getStatusColor(batch.status)} text-xs sm:text-sm flex-shrink-0`} variant="outline">
+                    <Badge className={`${getStatusColor(batch.status)} text-xs px-2 py-1 flex-shrink-0`} variant="outline">
                       {getStatusDisplay(batch.status)}
                     </Badge>
                   </div>
 
-                  {/* Main Details Grid - Mobile Responsive */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  {/* Compact Details Grid - 2 columns */}
+                  <div className="grid grid-cols-2 gap-3 mb-2">
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Quantity</p>
-                      <p className="text-sm sm:text-base font-semibold text-gray-900">
+                      <p className="text-xs text-gray-500 mb-0.5">Quantity</p>
+                      <p className="text-sm font-semibold text-gray-900">
                         {batch.actual_quantity || 0} units
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Unit Price</p>
-                      <p className="text-sm sm:text-base font-semibold text-orange-600">
-                        {formatCurrencyNGN(batch.bread_type?.unit_price || 0)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total Value</p>
-                      <p className="text-sm sm:text-base font-semibold text-green-600">
+                      <p className="text-xs text-gray-500 mb-0.5">Value</p>
+                      <p className="text-sm font-semibold text-green-600">
                         {formatCurrencyNGN((batch.bread_type?.unit_price || 0) * (batch.actual_quantity || 0))}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Manager</p>
-                      <p className="text-sm sm:text-base font-semibold text-gray-900 truncate">
-                        {batch.created_by_user?.name || 'Unknown'}
-                      </p>
-                    </div>
                   </div>
 
-                  {/* Footer Row - Time and Meta Info */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 pt-3 border-t border-gray-100">
-                    <div className="flex items-center gap-3 sm:gap-4">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span>Created: {new Date(batch.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <User className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span className="capitalize">{batch.shift}</span>
-                      </div>
-                    </div>
-                    {batch.start_time && (
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span>Started: {new Date(batch.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
+                  {/* Compact Footer */}
+                  <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                    <span>{new Date(batch.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="capitalize">{batch.shift}</span>
+                    {batch.status === 'active' && (
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    )}
+                    {batch.status === 'completed' && (
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     )}
                   </div>
-
-                  {/* Notes Section */}
-                  {batch.notes && (
-                    <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Notes</p>
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {batch.notes}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Status Details */}
-                  {batch.status === 'completed' && batch.end_time && (
-                    <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-                        <p className="text-xs sm:text-sm text-green-600">
-                          Completed at {new Date(batch.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {batch.status === 'active' && (
-                    <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0"></div>
-                        <p className="text-xs sm:text-sm text-blue-600">
-                          Currently in production
-                        </p>
-                      </div>
-                    </div>
-                  )}
                 </motion.div>
               ))}
             </div>

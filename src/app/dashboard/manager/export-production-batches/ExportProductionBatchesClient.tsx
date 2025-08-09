@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ArrowLeft, Search, Package, Clock, User, Calendar, Download, 
+  ArrowLeft, Search, Package, Clock, User, Download, 
   Share2, FileText, FileSpreadsheet, MessageSquare, Facebook, 
-  Twitter, Mail, Check, X, RefreshCw, Filter, CheckSquare
+  Twitter, Mail, Check, X, RefreshCw, CheckSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,9 +15,8 @@ import { getBatches } from '@/lib/batches/api-actions';
 import { Batch } from '@/lib/batches/actions';
 import { useShift } from '@/contexts/ShiftContext';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase/client';
 
 interface ExportProductionBatchesClientProps {
   userId: string;
@@ -35,14 +34,13 @@ interface BatchWithDetails extends Batch {
   };
 }
 
-export function ExportProductionBatchesClient({ userId, userName, userRole }: ExportProductionBatchesClientProps) {
+export function ExportProductionBatchesClient({ userName }: ExportProductionBatchesClientProps) {
   const { currentShift } = useShift();
   const router = useRouter();
   const [selectedBatches, setSelectedBatches] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [exporting, setExporting] = useState(false);
-  const [showExportOptions, setShowExportOptions] = useState(false);
 
   // Fetch all batches with details and shift filtering
   const {
@@ -72,21 +70,11 @@ export function ExportProductionBatchesClient({ userId, userName, userRole }: Ex
 
   // Calculate summary stats
   const totalBatches = filteredBatches.length;
-  const totalQuantity = useMemo(() => {
-    return filteredBatches.reduce((sum, batch) => sum + (batch.actual_quantity || 0), 0);
-  }, [filteredBatches]);
   const selectedQuantity = useMemo(() => {
     return filteredBatches
       .filter(batch => selectedBatches.includes(batch.id))
       .reduce((sum, batch) => sum + (batch.actual_quantity || 0), 0);
   }, [filteredBatches, selectedBatches]);
-  const totalValue = useMemo(() => {
-    return filteredBatches.reduce((sum, batch) => {
-      const unitPrice = batch.bread_type?.unit_price || 0;
-      const quantity = batch.actual_quantity || 0;
-      return sum + (unitPrice * quantity);
-    }, 0);
-  }, [filteredBatches]);
   const selectedValue = useMemo(() => {
     return filteredBatches
       .filter(batch => selectedBatches.includes(batch.id))
@@ -357,53 +345,30 @@ Generated from HomeBake Bakery Management System`;
       <div className="flex-1 overflow-y-auto bg-gradient-to-b from-blue-50/30 to-cyan-50/30">
         <div className="px-3 sm:px-4 py-4 space-y-4 sm:space-y-6">
           
-          {/* Summary Stats - Mobile First Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl p-3 sm:p-4 border border-blue-200/50 shadow-sm">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Package className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-lg sm:text-xl lg:text-2xl font-display font-bold text-gray-900 truncate">{totalBatches}</div>
-                  <div className="text-xs sm:text-sm text-gray-600">Available</div>
-                </div>
+          {/* Summary Stats - Compact Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-200/50 shadow-sm">
+              <div className="text-center">
+                <div className="text-xl font-bold text-blue-600">{totalBatches}</div>
+                <div className="text-xs text-gray-600 mt-1">Available</div>
               </div>
             </div>
-
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl p-3 sm:p-4 border border-blue-200/50 shadow-sm">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-lg sm:text-xl lg:text-2xl font-display font-bold text-gray-900 truncate">{selectedBatches.length}</div>
-                  <div className="text-xs sm:text-sm text-gray-600">Selected</div>
-                </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-200/50 shadow-sm">
+              <div className="text-center">
+                <div className="text-xl font-bold text-green-600">{selectedBatches.length}</div>
+                <div className="text-xs text-gray-600 mt-1">Selected</div>
               </div>
             </div>
-
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl p-3 sm:p-4 border border-blue-200/50 shadow-sm">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Package className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-lg sm:text-xl lg:text-2xl font-display font-bold text-gray-900 truncate">{selectedQuantity}</div>
-                  <div className="text-xs sm:text-sm text-gray-600">Units</div>
-                </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-200/50 shadow-sm">
+              <div className="text-center">
+                <div className="text-xl font-bold text-purple-600">{selectedQuantity}</div>
+                <div className="text-xs text-gray-600 mt-1">Units</div>
               </div>
             </div>
-
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl p-3 sm:p-4 border border-blue-200/50 shadow-sm">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Package className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-base sm:text-lg lg:text-xl font-display font-bold text-gray-900 truncate">{formatCurrencyNGN(selectedValue)}</div>
-                  <div className="text-xs sm:text-sm text-gray-600">Value</div>
-                </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-blue-200/50 shadow-sm">
+              <div className="text-center">
+                <div className="text-lg font-bold text-orange-600">{formatCurrencyNGN(selectedValue)}</div>
+                <div className="text-xs text-gray-600 mt-1">Value</div>
               </div>
             </div>
           </div>
@@ -489,7 +454,7 @@ Generated from HomeBake Bakery Management System`;
                 <h3 className="text-lg sm:text-xl font-bold text-blue-800">Export Options</h3>
               </div>
               
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
                 {exportOptions.map((option, index) => (
                   <motion.button
                     key={option.label}
@@ -559,66 +524,52 @@ Generated from HomeBake Bakery Management System`;
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                   onClick={() => handleSelectBatch(batch.id)}
-                  className={`cursor-pointer bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl p-4 sm:p-6 border transition-all duration-200 touch-manipulation hover:shadow-md ${
+                  className={`cursor-pointer bg-white/80 backdrop-blur-sm rounded-lg p-3 border transition-all duration-200 touch-manipulation hover:shadow-md ${
                     selectedBatches.includes(batch.id)
                       ? 'border-blue-500 bg-blue-50/80 shadow-md'
                       : 'border-blue-200/50 shadow-sm hover:border-blue-300'
                   }`}
                 >
-                  <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="flex items-center gap-3">
                     {/* Selection Checkbox */}
-                    <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                       selectedBatches.includes(batch.id)
                         ? 'border-blue-500 bg-blue-500'
                         : 'border-gray-300 hover:border-blue-400'
                     }`}>
                       {selectedBatches.includes(batch.id) && (
-                        <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                        <Check className="w-3 h-3 text-white" />
                       )}
                     </div>
 
                     {/* Batch Icon */}
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Package className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                    <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-md flex items-center justify-center flex-shrink-0">
+                      <Package className="h-3 w-3 text-white" />
                     </div>
 
-                    {/* Batch Details */}
+                    {/* Batch Details - Compact */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                        <h4 className="text-sm sm:text-base font-semibold text-gray-900 truncate">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-sm font-semibold text-gray-900 truncate">
                           {batch.bread_type?.name || 'Unknown'}
                         </h4>
-                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full flex-shrink-0">
-                          #{batch.batch_number}
+                        <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded flex-shrink-0">
+                          #{batch.batch_number.slice(-3)}
                         </span>
-                        <Badge className={`${getStatusColor(batch.status)} text-xs flex-shrink-0`} variant="outline">
+                        <Badge className={`${getStatusColor(batch.status)} text-xs px-1.5 py-0.5 flex-shrink-0`} variant="outline">
                           {getStatusDisplay(batch.status)}
                         </Badge>
                       </div>
                       
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-2">
-                        <div className="flex items-center gap-1">
-                          <Package className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                      {/* Compact info - 2 columns */}
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                        <div>
                           <span>{batch.actual_quantity || 0} units</span>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div>
                           <span className="text-orange-600 font-medium">{formatCurrencyNGN((batch.actual_quantity || 0) * (batch.bread_type?.unit_price || 0))}</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                          <span>{new Date(batch.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <User className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                          <span className="truncate">{batch.created_by_user?.name || 'Unknown'}</span>
-                        </div>
                       </div>
-
-                      {batch.notes && (
-                        <div className="text-xs sm:text-sm text-gray-600 truncate">
-                          📝 {batch.notes}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </motion.div>
