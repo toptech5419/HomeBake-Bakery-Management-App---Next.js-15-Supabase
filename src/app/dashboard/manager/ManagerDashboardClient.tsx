@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Plus, Clock, Package, FileText, LogOut, ChevronRight, Download, AlertTriangle } from 'lucide-react';
 import { CreateBatchModal } from '@/components/modals/CreateBatchModal';
-import { ViewAllBatchesModal } from '@/components/modals/ViewAllBatchesModal';
-import { ExportAllBatchesModal } from '@/components/modals/ExportAllBatchesModal';
 import { useManagerDashboard } from '@/hooks/use-manager-dashboard';
 import { useShift } from '@/contexts/ShiftContext';
 import { useData } from '@/contexts/DataContext';
@@ -49,6 +48,7 @@ export default function ManagerDashboardClient({
   const { currentShift, setCurrentShift } = useShift();
   const { refreshBatches } = useData();
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   // Use the simplified manager dashboard hook with shift filtering
   const {
@@ -62,8 +62,6 @@ export default function ManagerDashboardClient({
 
   // Local state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isViewAllBatchesModalOpen, setIsViewAllBatchesModalOpen] = useState(false);
-  const [isExportAllBatchesModalOpen, setIsExportAllBatchesModalOpen] = useState(false);
   const [showEndShiftModal, setShowEndShiftModal] = useState(false);
   const [isDeletingBatches, setIsDeletingBatches] = useState(false);
   const [isCheckingBatches, setIsCheckingBatches] = useState(false);
@@ -85,14 +83,14 @@ export default function ManagerDashboardClient({
     // DataContext will also update via polling
   };
 
-  // Handler for viewing all batches
+  // Handler for viewing all batches - Navigate to page instead of modal
   const handleViewAllBatches = () => {
-    setIsViewAllBatchesModalOpen(true);
+    router.push('/dashboard/manager/all-production-batches');
   };
 
-  // Handler for exporting all batches
+  // Handler for exporting all batches - Navigate to page instead of modal
   const handleExportAllBatches = () => {
-    setIsExportAllBatchesModalOpen(true);
+    router.push('/dashboard/manager/export-production-batches');
   };
 
   // Handler for End Shift button
@@ -419,21 +417,7 @@ export default function ManagerDashboardClient({
         />
       )}
 
-      {isViewAllBatchesModalOpen && (
-        <ViewAllBatchesModal
-          isOpen={isViewAllBatchesModalOpen}
-          onClose={() => setIsViewAllBatchesModalOpen(false)}
-          currentShift={currentShift}
-        />
-      )}
 
-      {isExportAllBatchesModalOpen && (
-        <ExportAllBatchesModal
-          isOpen={isExportAllBatchesModalOpen}
-          onClose={() => setIsExportAllBatchesModalOpen(false)}
-          currentShift={currentShift}
-        />
-      )}
 
       {/* End Shift Modal */}
       {showEndShiftModal && (

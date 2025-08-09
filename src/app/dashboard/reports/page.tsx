@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { BarChart3, Package, Search, Filter, Download, ChevronDown, Clock, User, Eye, Share2, Calendar, X } from "lucide-react";
+import { BarChart3, Package, Search, Filter, Download, ChevronDown, Clock, User, Eye, Share2, Calendar, X, ArrowLeft } from "lucide-react";
 import { cn } from '@/lib/utils';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Modal } from '@/components/ui/modal';
@@ -331,32 +331,23 @@ export default function ReportsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Back Button */}
-      <div className="p-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleBackNavigation}
-          className="w-12 h-12 rounded-full bg-white/80 backdrop-blur-sm shadow-lg hover:bg-white hover:shadow-xl transition-all duration-200 flex items-center justify-center group border border-gray-200/50"
-          aria-label="Go back to previous page"
-        >
-          <ChevronDown 
-            style={{ transform: 'rotate(90deg)' }} 
-            className="w-5 h-5 text-gray-700 group-hover:text-blue-600 transition-colors duration-200" 
-          />
-        </Button>
-      </div>
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white p-4 sm:p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-              <BarChart3 className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-2xl font-bold">Reports</h1>
-              <p className="text-xs sm:text-sm opacity-90">Production reports and analytics</p>
-            </div>
+        <div className="flex items-center gap-2 sm:gap-4 mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleBackNavigation}
+            className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl touch-manipulation flex-shrink-0"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center flex-shrink-0">
+            <BarChart3 className="w-6 h-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold truncate">Reports</h1>
+            <p className="text-xs sm:text-sm opacity-90 truncate">Production reports and analytics</p>
           </div>
         </div>
         {/* Summary Cards */}
