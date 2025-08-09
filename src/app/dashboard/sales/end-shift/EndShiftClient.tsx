@@ -11,6 +11,7 @@ import { useShift } from '@/contexts/ShiftContext';
 import { toast } from 'sonner';
 import { createSalesLog } from '@/lib/sales/actions';
 import { useRouter } from 'next/navigation';
+import { setNavigationHistory } from '@/lib/utils/navigation-history';
 
 interface EndShiftClientProps {
   userId: string;
@@ -304,6 +305,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       };
 
       toast.success('Shift feedback submitted successfully!');
+
+      // Set navigation history so final-report knows to come back here
+      setNavigationHistory('/dashboard/sales/end-shift', 'sales_rep', 'end-shift');
 
       // Navigate to final report page with data
       const encodedData = encodeURIComponent(JSON.stringify(reportData));

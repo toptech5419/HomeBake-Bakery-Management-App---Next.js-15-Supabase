@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { getNavigationHistory } from '@/lib/utils/navigation-history';
 
 interface FinalReportClientProps {
   userId: string;
@@ -232,6 +233,13 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
     setShowShareMenu(false);
   }, [reportData, currentShift]);
 
+  // Smart back navigation using history
+  const handleBackNavigation = useCallback(() => {
+    const historyPath = getNavigationHistory(user?.user_metadata?.role || 'sales_rep');
+    console.log('Final Report back navigation:', { historyPath, userRole: user?.user_metadata?.role });
+    router.push(historyPath);
+  }, [router, user]);
+
   if (!reportData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -249,7 +257,7 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push('/dashboard/sales')}
+              onClick={handleBackNavigation}
               className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -501,7 +509,7 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
 
           {/* Close Button */}
           <button
-            onClick={() => router.push('/dashboard/sales')}
+            onClick={handleBackNavigation}
             disabled={isSaving}
             className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-bold text-base hover:shadow-lg transition-all duration-200 disabled:opacity-50 touch-manipulation min-h-[56px]"
           >

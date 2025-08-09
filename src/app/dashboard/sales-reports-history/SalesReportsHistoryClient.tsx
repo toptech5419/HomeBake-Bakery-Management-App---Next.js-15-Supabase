@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import './styles.css';
 import { useRouter } from 'next/navigation';
 import { 
@@ -22,7 +23,7 @@ import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { UserRole } from '@/types';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-// Removed FinalReportModal import - now using page route
+import { FinalReportViewModal } from '@/components/modals/FinalReportViewModal';
 
 // Type for sales data items
 interface SalesDataItem {
@@ -92,23 +93,64 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
   const [showFilters, setShowFilters] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareReportId, setShareReportId] = useState<string | null>(null);
+  const [showFinalReportModal, setShowFinalReportModal] = useState(false);
+  const [selectedReportData, setSelectedReportData] = useState<ReportData | null>(null);
+  const [selectedReportMeta, setSelectedReportMeta] = useState<{
+    userName: string;
+    reportDate: string;
+  } | null>(null);
+  const filterButtonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+  const [mounted, setMounted] = useState(false);
   
   const router = useRouter();
 
-  // Handle clicking outside filter dropdown
+  // Set mounted state for portal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Handle clicking outside filter dropdown and escape key
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      if (showFilters && !target.closest('.filter-dropdown')) {
+      if (showFilters && 
+          !target.closest('.filter-dropdown') && 
+          !target.closest('.filter-dropdown-portal')) {
         setShowFilters(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showFilters) {
+        setShowFilters(false);
+      }
     };
+
+    if (showFilters) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscapeKey);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleEscapeKey);
+      };
+    }
   }, [showFilters]);
+
+  // Calculate dropdown position when showing
+  const handleToggleFilter = () => {
+    if (!showFilters && filterButtonRef.current) {
+      const rect = filterButtonRef.current.getBoundingClientRect();
+      const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      
+      setDropdownPosition({
+        top: rect.bottom + scrollY + 8,
+        right: window.innerWidth - rect.right - scrollX
+      });
+    }
+    setShowFilters(!showFilters);
+  };
 
   // Fetch reports from Supabase with real async query
   const fetchReports = useCallback(async () => {
@@ -199,8 +241,16 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
 
   const handleViewReport = (report: ShiftReport) => {
     const reportData = convertToReportData(report);
-    const encodedData = encodeURIComponent(JSON.stringify(reportData));
-    router.push(`/dashboard/sales/final-report?data=${encodedData}`);
+    
+    // Set the report data and meta information for the modal
+    setSelectedReportData(reportData);
+    setSelectedReportMeta({
+      userName: 'Sales Rep', // You can get the actual user name from report if needed
+      reportDate: formatDate(report.report_date)
+    });
+    
+    // Open the modal
+    setShowFinalReportModal(true);
   };
 
   const handleDownloadReport = (report: ShiftReport) => {
@@ -364,7 +414,8 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
               {/* Filter Dropdown */}
               <div className="relative filter-dropdown">
                 <button
-                  onClick={() => setShowFilters(!showFilters)}
+                  ref={filterButtonRef}
+                  onClick={handleToggleFilter}
                   className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 border border-orange-200 rounded-xl hover:bg-orange-50 transition-all duration-200 text-sm font-medium text-gray-700 bg-white/70 backdrop-blur-sm min-w-[100px] sm:min-w-[120px]"
                 >
                   <Filter size={14} />
@@ -372,10 +423,18 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
                   <ChevronDown className={`transform transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} size={14} />
                 </button>
                 
-                {/* Filter Dropdown Menu */}
-                {showFilters && (
-                  <div className="absolute right-0 top-full mt-1 w-48 sm:w-56 bg-white/95 backdrop-blur-md border border-orange-200 rounded-xl shadow-xl z-50 filter-dropdown overflow-hidden">
-                    <div className="p-1.5">
+                {/* Portal-based Dropdown */}
+                {mounted && showFilters && createPortal(
+                  <div 
+                    className="fixed bg-white border border-orange-200 rounded-xl shadow-2xl overflow-hidden filter-dropdown-portal"
+                    style={{
+                      top: dropdownPosition.top,
+                      right: dropdownPosition.right,
+                      minWidth: '200px',
+                      zIndex: 99999
+                    }}
+                  >
+                    <div className="p-2">
                       {[
                         { value: 'all', label: 'All Reports', icon: '📊' },
                         { value: 'day', label: 'Day Shift', icon: '🌅' },
@@ -388,21 +447,22 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
                             setSelectedFilter(filter.value);
                             setShowFilters(false);
                           }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm transition-all duration-200 ${
+                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition-all duration-200 hover:bg-orange-50 ${
                             selectedFilter === filter.value
-                              ? 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 border border-orange-200 shadow-sm'
-                              : 'text-gray-700 hover:bg-orange-50'
+                              ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                              : 'text-gray-700'
                           }`}
                         >
-                          <span className="text-sm">{filter.icon}</span>
+                          <span className="text-base">{filter.icon}</span>
                           <span className="flex-1 text-left font-medium">{filter.label}</span>
                           {selectedFilter === filter.value && (
-                            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
+                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                           )}
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </div>,
+                  document.body
                 )}
               </div>
             </div>
@@ -589,7 +649,18 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
         )}
       </div>
 
-      {/* FinalReportModal converted to page route */}
+      {/* Final Report View Modal */}
+      <FinalReportViewModal
+        isOpen={showFinalReportModal}
+        onClose={() => {
+          setShowFinalReportModal(false);
+          setSelectedReportData(null);
+          setSelectedReportMeta(null);
+        }}
+        reportData={selectedReportData}
+        userName={selectedReportMeta?.userName}
+        reportDate={selectedReportMeta?.reportDate}
+      />
 
       {/* Share Modal */}
       {showShareModal && shareReportId && (
