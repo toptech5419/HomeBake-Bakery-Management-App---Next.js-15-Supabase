@@ -516,7 +516,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               <Target className="h-6 w-6 text-blue-600" />
             </div>
             <div className="text-2xl font-display font-bold text-gray-900">
-              {metrics.productionTotalAmount.toLocaleString()}
+              {formatCurrencyNGN(metrics.productionTotalAmount)}
             </div>
             <div className="text-sm text-gray-600 mt-1">Production Total Amount</div>
           </ModernCardContent>
@@ -528,7 +528,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               <Clock className="h-6 w-6 text-red-600" />
             </div>
             <div className="text-2xl font-display font-bold text-gray-900">
-              {metrics.remainingTarget.toLocaleString()}
+              {formatCurrencyNGN(metrics.remainingTarget)}
             </div>
             <div className="text-sm text-gray-600 mt-1">Remaining Target</div>
           </ModernCardContent>
@@ -540,7 +540,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               <Target className="h-6 w-6 text-indigo-600" />
             </div>
             <div className="text-2xl font-display font-bold text-gray-900">
-              {metrics.salesTarget.toLocaleString()}
+              {formatCurrencyNGN(metrics.salesTarget)}
             </div>
             <div className="text-sm text-gray-600 mt-1">Sales Target</div>
           </ModernCardContent>
@@ -585,13 +585,13 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
                 </div>
                 <div>
                   <div className="text-2xl font-display font-bold text-gray-900">
-                    {metrics.remainingTarget.toLocaleString()}
+                    {formatCurrencyNGN(metrics.remainingTarget)}
                   </div>
                   <div className="text-sm text-gray-600">Remaining</div>
                 </div>
                 <div>
                   <div className="text-2xl font-display font-bold text-gray-900">
-                    {metrics.salesTarget.toLocaleString()}
+                    {formatCurrencyNGN(metrics.salesTarget)}
                   </div>
                   <div className="text-sm text-gray-600">Target</div>
                 </div>
