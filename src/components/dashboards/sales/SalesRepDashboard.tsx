@@ -531,24 +531,24 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <div className="text-2xl font-display font-bold text-gray-900">
+              <div className="flex gap-2 text-center">
+                <div className="flex-1 min-w-0">
+                  <div className="text-base md:text-lg lg:text-xl font-display font-bold text-gray-900 overflow-hidden text-ellipsis whitespace-nowrap px-1">
                     {formatCurrencyNGN(metrics.todaySales)}
                   </div>
-                  <div className="text-sm text-gray-600">Sold</div>
+                  <div className="text-xs sm:text-sm text-gray-600 mt-1">Sold</div>
                 </div>
-                <div>
-                  <div className="text-2xl font-display font-bold text-gray-900">
+                <div className="flex-1 min-w-0">
+                  <div className="text-base md:text-lg lg:text-xl font-display font-bold text-gray-900 overflow-hidden text-ellipsis whitespace-nowrap px-1">
                     {formatCurrencyNGN(metrics.remainingTarget)}
                   </div>
-                  <div className="text-sm text-gray-600">Remaining</div>
+                  <div className="text-xs sm:text-sm text-gray-600 mt-1">Remaining</div>
                 </div>
-                <div>
-                  <div className="text-2xl font-display font-bold text-gray-900">
+                <div className="flex-1 min-w-0">
+                  <div className="text-base md:text-lg lg:text-xl font-display font-bold text-gray-900 overflow-hidden text-ellipsis whitespace-nowrap px-1">
                     {formatCurrencyNGN(metrics.salesTarget)}
                   </div>
-                  <div className="text-sm text-gray-600">Target</div>
+                  <div className="text-xs sm:text-sm text-gray-600 mt-1">Target</div>
                 </div>
               </div>
             </div>

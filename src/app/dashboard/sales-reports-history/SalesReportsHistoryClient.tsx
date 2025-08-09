@@ -100,7 +100,7 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
     reportDate: string;
   } | null>(null);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const [mounted, setMounted] = useState(false);
   
   const router = useRouter();
@@ -144,9 +144,19 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
       const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
       const scrollY = window.pageYOffset || document.documentElement.scrollTop;
       
+      // Calculate left position, but ensure dropdown doesn't go off-screen
+      let leftPosition = rect.left + scrollX;
+      const dropdownWidth = 200; // minWidth from styles
+      const screenWidth = window.innerWidth;
+      
+      // If dropdown would go off the right edge, adjust position
+      if (leftPosition + dropdownWidth > screenWidth - 20) {
+        leftPosition = rect.right + scrollX - dropdownWidth;
+      }
+      
       setDropdownPosition({
         top: rect.bottom + scrollY + 8,
-        right: window.innerWidth - rect.right - scrollX
+        left: Math.max(20, leftPosition) // Ensure at least 20px from left edge
       });
     }
     setShowFilters(!showFilters);
@@ -429,7 +439,7 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
                     className="fixed bg-white border border-orange-200 rounded-xl shadow-2xl overflow-hidden filter-dropdown-portal"
                     style={{
                       top: dropdownPosition.top,
-                      right: dropdownPosition.right,
+                      left: dropdownPosition.left,
                       minWidth: '200px',
                       zIndex: 99999
                     }}
