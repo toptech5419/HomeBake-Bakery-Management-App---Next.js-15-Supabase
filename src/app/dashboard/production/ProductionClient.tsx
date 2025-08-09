@@ -18,11 +18,11 @@ import {
   Activity,
   BarChart3,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  ChevronRight
 } from 'lucide-react';
 import { CreateBatchModal } from '@/components/modals/CreateBatchModal';
-import { ExportAllBatchesModal } from '@/components/modals/ExportAllBatchesModal';
-import { ViewAllBatchesModal } from '@/components/modals/ViewAllBatchesModal';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { useOptimizedToast } from '@/components/ui/toast-optimized';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
@@ -206,8 +206,7 @@ export function ProductionClient({ }: ProductionClientProps) {
   } = useActiveBatches(60000, currentShift);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [isViewAllModalOpen, setIsViewAllModalOpen] = useState(false);
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -245,11 +244,15 @@ export function ProductionClient({ }: ProductionClientProps) {
   };
 
   const handleExportAll = () => {
-    setIsExportModalOpen(true);
+    router.push('/dashboard/manager/export-production-batches');
   };
 
   const handleReports = () => {
-    setIsViewAllModalOpen(true);
+    router.push('/dashboard/manager/all-production-batches');
+  };
+
+  const handleViewAllBatches = () => {
+    router.push('/dashboard/manager/all-production-batches');
   };
 
   const totalProduction = activeBatches.reduce((sum, batch) => sum + (batch.actual_quantity || 0), 0);
@@ -524,15 +527,26 @@ export function ProductionClient({ }: ProductionClientProps) {
                       Active production for {currentShift} shift
                     </CardDescription>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                    className="text-gray-500 hover:text-orange-600 h-8 w-8 p-0"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {activeBatches.length > 3 && (
+                      <button
+                        onClick={handleViewAllBatches}
+                        className="text-sm text-orange-600 hover:text-orange-700 flex items-center gap-1 font-medium transition-colors"
+                      >
+                        View All
+                        <ChevronRight size={16} />
+                      </button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefresh}
+                      disabled={isRefreshing}
+                      className="text-gray-500 hover:text-orange-600 h-8 w-8 p-0"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
@@ -556,10 +570,20 @@ export function ProductionClient({ }: ProductionClientProps) {
                 ) : (
                   <div className="p-4 space-y-3">
                     <AnimatePresence>
-                      {activeBatches.map((batch, index) => (
+                      {activeBatches.slice(0, 3).map((batch, index) => (
                         <BatchItem key={batch.id} batch={batch} index={index} />
                       ))}
                     </AnimatePresence>
+                    {activeBatches.length > 3 && (
+                      <div className="pt-2 border-t border-gray-100">
+                        <button
+                          onClick={handleViewAllBatches}
+                          className="w-full text-center py-3 text-orange-600 hover:text-orange-700 text-sm font-medium hover:bg-orange-50 rounded-lg transition-all duration-150"
+                        >
+                          View {activeBatches.length - 3} more batches
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -611,22 +635,6 @@ export function ProductionClient({ }: ProductionClientProps) {
               isOpen={isCreateModalOpen}
               onClose={() => setIsCreateModalOpen(false)}
               onBatchCreated={handleBatchCreated}
-              currentShift={currentShift}
-            />
-          )}
-
-          {isExportModalOpen && (
-            <ExportAllBatchesModal
-              isOpen={isExportModalOpen}
-              onClose={() => setIsExportModalOpen(false)}
-              currentShift={currentShift}
-            />
-          )}
-
-          {isViewAllModalOpen && (
-            <ViewAllBatchesModal
-              isOpen={isViewAllModalOpen}
-              onClose={() => setIsViewAllModalOpen(false)}
               currentShift={currentShift}
             />
           )}
