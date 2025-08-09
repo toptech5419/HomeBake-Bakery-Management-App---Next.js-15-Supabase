@@ -21,10 +21,7 @@ import {
   Target,
   Loader2
 } from 'lucide-react';
-import { SalesModal } from '@/components/dashboards/sales/SalesModal';
-import { QuickRecordAllModal } from '@/components/dashboards/sales/QuickRecordAllModal';
-import { FinalReportModal } from '@/components/dashboards/sales/FinalReportModal';
-import { ViewAllSalesModal } from '@/components/modals/ViewAllSalesModal';
+// Removed modal imports - now using page routes
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { ProductionTableSkeleton } from '@/components/ui/loading-skeleton';
 import { Pagination } from '@/components/ui/pagination';
@@ -96,11 +93,7 @@ export default function SalesManagementClient({
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'available' | 'low'>('all');
-  const [showSalesModal, setShowSalesModal] = useState(false);
-  const [showQuickRecordModal, setShowQuickRecordModal] = useState(false);
-  const [showFinalReportModal, setShowFinalReportModal] = useState(false);
-  const [showViewAllSalesModal, setShowViewAllSalesModal] = useState(false);
-  const [finalReportData, setFinalReportData] = useState<unknown>(null);
+  // Removed modal state - now using page routes
   
   // Transition state management
   const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
@@ -231,39 +224,14 @@ export default function SalesManagementClient({
     toast.success('Sale recorded successfully');
   };
 
-  const handleFinalSubmit = async (feedbackData: unknown) => {
-    try {
-      setShowTransitionOverlay(true);
-      setIsTransitioning(true);
-      
-      const processedData = {
-        ...feedbackData as Record<string, unknown>,
-        submittedAt: new Date().toISOString(),
-      };
-    
-      setShowQuickRecordModal(false);
-      setShowFinalReportModal(true);
-      setFinalReportData(processedData);
-    
-      setTimeout(() => {
-        setShowTransitionOverlay(false);
-        setIsTransitioning(false);
-      }, 100);
-      
-    } catch (error) {
-      console.error('Error processing feedback:', error);
-      setShowTransitionOverlay(false);
-      setIsTransitioning(false);
-      toast.error('Failed to process report');
-    }
-  };
+  // Removed modal transition handler - now using page routes
 
   const goBack = () => {
     router.back();
   };
 
   const recordNewSale = () => {
-    setShowSalesModal(true);
+    router.push('/dashboard/sales/record');
   };
 
   const viewReportsHistory = () => {
@@ -271,11 +239,11 @@ export default function SalesManagementClient({
   };
 
   const generateShiftReport = () => {
-    setShowQuickRecordModal(true);
+    router.push('/dashboard/sales/end-shift');
   };
 
   const viewAllSales = () => {
-    setShowViewAllSalesModal(true);
+    router.push('/dashboard/sales/all-sales');
   };
 
   const filterProducts = (filter: 'all' | 'available' | 'low') => {
@@ -669,36 +637,7 @@ export default function SalesManagementClient({
         <Plus className="h-6 w-6" />
       </button>
 
-      {/* Modals */}
-      <SalesModal
-        isOpen={showSalesModal}
-        onClose={() => setShowSalesModal(false)}
-        userId={userId}
-        currentShift={currentShift}
-        onSalesRecorded={handleSalesRecorded}
-      />
-
-      <QuickRecordAllModal
-        isOpen={showQuickRecordModal}
-        onClose={() => setShowQuickRecordModal(false)}
-        userId={userId}
-        onSalesRecorded={handleSalesRecorded}
-        onRemainingUpdated={handleSalesRecorded}
-        onReportComplete={handleFinalSubmit}
-      />
-
-      <FinalReportModal
-        isOpen={showFinalReportModal}
-        onClose={() => setShowFinalReportModal(false)}
-        reportData={finalReportData}
-      />
-
-      <ViewAllSalesModal
-        isOpen={showViewAllSalesModal}
-        onClose={() => setShowViewAllSalesModal(false)}
-        currentShift={currentShift}
-        userId={userId}
-      />
+      {/* All modals converted to page routes */}
     </div>
   );
 }

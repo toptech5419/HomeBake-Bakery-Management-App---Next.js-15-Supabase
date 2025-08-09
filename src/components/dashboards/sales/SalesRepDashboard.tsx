@@ -23,10 +23,7 @@ import { useEndShiftContext } from '@/contexts/EndShiftContext';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { logEndShiftActivity } from '@/lib/activities/server-activity-service';
-import { SalesModal } from '@/components/dashboards/sales/SalesModal';
-import { QuickRecordAllModal } from '@/components/dashboards/sales/QuickRecordAllModal';
-import { FinalReportModal } from '@/components/dashboards/sales/FinalReportModal';
-import { ViewAllSalesModal } from '@/components/modals/ViewAllSalesModal';
+// Removed modal imports - now using page routes
 import { toast } from 'sonner';
 import ShiftToggle from '@/components/shift/shift-toggle';
 
@@ -113,11 +110,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     recentSales: []
   });
   const [loading, setLoading] = useState(true);
-  const [showQuickRecordModal, setShowQuickRecordModal] = useState(false);
-  const [showSalesModal, setShowSalesModal] = useState(false);
-  const [showFinalReportModal, setShowFinalReportModal] = useState(false);
-  const [showViewAllSalesModal, setShowViewAllSalesModal] = useState(false);
-  const [finalReportData, setFinalReportData] = useState<SalesReportData | null>(null);
+  // Removed modal state - now using page routes
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isInModalTransition, setIsInModalTransition] = useState(false);
   const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
@@ -260,45 +253,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     fetchDashboardData();
   }, [currentShift, userId]);
 
-  // Enhanced transition handler with proper state coordination
-  const handleQuickRecordComplete = useCallback(async (reportData: SalesReportData) => {
-    try {
-      // Step 1: Set transition states immediately
-      setIsTransitioning(true);
-      setIsInModalTransition(true);
-      setShowTransitionOverlay(true);
-      
-      // Step 2: Close QuickRecordModal with smooth transition
-      setShowQuickRecordModal(false);
-      
-      // Step 3: Wait for QuickRecordModal to close (300ms for smooth transition)
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Step 4: Set final report data with proper typing
-      setFinalReportData(reportData);
-      
-      // Step 5: Open FinalReportModal
-      setShowFinalReportModal(true);
-      
-      // Step 6: Wait for FinalReportModal to open (200ms)
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // Step 7: Clear transition states
-      setIsTransitioning(false);
-      setIsInModalTransition(false);
-      setShowTransitionOverlay(false);
-      
-    } catch (error) {
-      console.error('Error during modal transition:', error);
-      // Reset all states on error
-      setIsTransitioning(false);
-      setIsInModalTransition(false);
-      setShowTransitionOverlay(false);
-      setShowQuickRecordModal(false);
-      setShowFinalReportModal(false);
-      setFinalReportData(null);
-    }
-  }, []);
+  // Removed modal transition handler - now using page routes
 
   // Enhanced sales recorded handler with transition awareness
   const handleSalesRecorded = useCallback(() => {
@@ -687,7 +642,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               variant="secondary"
               size="md"
               leftIcon={<History className="h-4 w-4" />}
-              onClick={() => setShowViewAllSalesModal(true)}
+              onClick={() => router.push('/dashboard/sales/all-sales')}
               className="hover-lift"
             >
               View All Sales
@@ -709,7 +664,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               variant="success"
               size="lg"
               leftIcon={<RotateCcw className="h-5 w-5" />}
-              onClick={() => setShowQuickRecordModal(true)}
+              onClick={() => router.push('/dashboard/sales/end-shift')}
               className="hover-lift"
               fullWidth
             >
@@ -720,7 +675,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               variant="primary"
               size="lg"
               leftIcon={<Plus className="h-5 w-5" />}
-              onClick={() => setShowSalesModal(true)}
+              onClick={() => router.push('/dashboard/sales/record')}
               className="hover-lift"
               fullWidth
             >
@@ -746,45 +701,10 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
         variant="primary"
         size="xl"
         className="fixed bottom-8 right-8 rounded-full shadow-xl z-50 h-16 w-16 hover-lift"
-        onClick={() => setShowSalesModal(true)}
+        onClick={() => router.push('/dashboard/sales/record')}
       >
         <Plus className="h-6 w-6" />
       </ModernButton>
-
-      {/* Modals */}
-      <SalesModal
-        isOpen={showSalesModal}
-        onClose={() => setShowSalesModal(false)}
-        userId={userId}
-        currentShift={currentShift}
-        onSalesRecorded={handleSalesRecorded}
-      />
-
-      <QuickRecordAllModal
-        isOpen={showQuickRecordModal}
-        onClose={() => setShowQuickRecordModal(false)}
-        userId={userId}
-        onSalesRecorded={handleSalesRecorded}
-        onRemainingUpdated={handleSalesRecorded}
-        onReportComplete={handleQuickRecordComplete}
-      />
-
-      <FinalReportModal
-        isOpen={showFinalReportModal}
-        onClose={() => {
-          setShowFinalReportModal(false);
-          // Refresh dashboard data when final report modal closes
-          fetchDashboardData();
-        }}
-        reportData={finalReportData}
-      />
-
-      <ViewAllSalesModal
-        isOpen={showViewAllSalesModal}
-        onClose={() => setShowViewAllSalesModal(false)}
-        currentShift={currentShift}
-        userId={userId}
-      />
     </div>
   );
 }

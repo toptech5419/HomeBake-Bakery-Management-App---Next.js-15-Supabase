@@ -22,7 +22,7 @@ import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { UserRole } from '@/types';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { FinalReportModal } from '@/components/dashboards/sales/FinalReportModal';
+// Removed FinalReportModal import - now using page route
 
 // Type for sales data items
 interface SalesDataItem {
@@ -90,10 +90,8 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<ShiftReport | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareReportId, setShareReportId] = useState<string | null>(null);
-  const [reportDataForModal, setReportDataForModal] = useState<ReportData | null>(null);
   
   const router = useRouter();
 
@@ -200,8 +198,9 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
   };
 
   const handleViewReport = (report: ShiftReport) => {
-    setSelectedReport(report);
-    setReportDataForModal(convertToReportData(report));
+    const reportData = convertToReportData(report);
+    const encodedData = encodeURIComponent(JSON.stringify(reportData));
+    router.push(`/dashboard/sales/final-report?data=${encodedData}`);
   };
 
   const handleDownloadReport = (report: ShiftReport) => {
@@ -323,7 +322,7 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 p-3 sm:p-4">
-      <div className="max-w-6xl mx-auto overflow-y-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header with Back Button */}
         <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-orange-100 p-4 sm:p-5 mb-4">
           <div className="flex flex-col gap-3">
@@ -375,7 +374,7 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
                 
                 {/* Filter Dropdown Menu */}
                 {showFilters && (
-                  <div className="absolute right-0 top-full mt-1 w-48 sm:w-56 bg-white/95 backdrop-blur-md border border-orange-200 rounded-xl shadow-xl z-10 filter-dropdown overflow-hidden">
+                  <div className="absolute right-0 top-full mt-1 w-48 sm:w-56 bg-white/95 backdrop-blur-md border border-orange-200 rounded-xl shadow-xl z-50 filter-dropdown overflow-hidden">
                     <div className="p-1.5">
                       {[
                         { value: 'all', label: 'All Reports', icon: '📊' },
@@ -487,7 +486,7 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
         </div>
 
         {/* Reports List */}
-        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
+        <div className="space-y-3">
           {filteredReports.map((report, index) => (
             <div key={report.id} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-orange-100 overflow-hidden hover:shadow-md hover:border-orange-200 transition-all duration-200 group report-card hover-lift animate-fade-in-up" data-animation-delay={index}>
               <div className="p-3 sm:p-4">
@@ -590,13 +589,7 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
         )}
       </div>
 
-      {/* Use FinalReportModal for viewing reports in view-only mode */}
-      <FinalReportModal
-        isOpen={!!selectedReport}
-        onClose={() => setSelectedReport(null)}
-        reportData={reportDataForModal}
-        viewOnly={true}
-      />
+      {/* FinalReportModal converted to page route */}
 
       {/* Share Modal */}
       {showShareModal && shareReportId && (
