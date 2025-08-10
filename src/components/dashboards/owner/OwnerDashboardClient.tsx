@@ -9,10 +9,7 @@ import { useOwnerDashboard } from '@/hooks/use-owner-dashboard';
 import { useReportCounters } from '@/hooks/use-report-counters';
 import { useActivities } from '@/hooks/use-live-activities';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { OwnerReportsModal } from '@/components/modals/OwnerReportsModal';
-import { PerformanceShiftSelectorModal } from '@/components/modals/PerformanceShiftSelectorModal';
 import ActivityNotifications from '@/components/notifications/ActivityNotifications';
-import AllNotificationsModal from '@/components/notifications/AllNotificationsModal';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
 
 interface OwnerDashboardClientProps {
@@ -39,10 +36,7 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
     sendTestNotification
   } = usePushNotifications(user.id);
   
-  const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [reportsModalOpen, setReportsModalOpen] = useState(false);
-  const [performanceModalOpen, setPerformanceModalOpen] = useState(false);
 
 
   const handleAddStaffMember = () => {
@@ -50,11 +44,15 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
   };
 
   const handleCheckReports = () => {
-    setReportsModalOpen(true);
+    router.push('/owner-dashboard/reports');
   };
 
   const handlePerformanceCheck = () => {
-    setPerformanceModalOpen(true);
+    router.push('/owner-dashboard/performance');
+  };
+
+  const handleViewAllNotifications = () => {
+    router.push('/owner-dashboard/notifications');
   };
 
 
@@ -199,7 +197,7 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
                   
                   {activities.length > 3 && (
                     <button 
-                      onClick={() => setShowAllNotifications(true)}
+                      onClick={handleViewAllNotifications}
                       className="w-full text-center py-3 text-orange-600 font-medium hover:bg-orange-50 rounded-xl transition-colors border border-orange-200 shadow-sm hover:shadow-md"
                     >
                       View All Notifications ({activities.length})
@@ -263,26 +261,6 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
               </div>
             </div>
 
-      {/* All Notifications Modal */}
-      <AllNotificationsModal
-        isOpen={showAllNotifications}
-        onClose={() => setShowAllNotifications(false)}
-        activities={activities}
-        onRefresh={refetchActivities}
-        isRefreshing={activitiesLoading}
-      />
-      
-      {/* Reports Modal */}
-      <OwnerReportsModal 
-        isOpen={reportsModalOpen} 
-        onClose={() => setReportsModalOpen(false)} 
-      />
-      
-      {/* Performance Modal */}
-      <PerformanceShiftSelectorModal 
-        isOpen={performanceModalOpen} 
-        onClose={() => setPerformanceModalOpen(false)} 
-      />
     </div>
   );
 }

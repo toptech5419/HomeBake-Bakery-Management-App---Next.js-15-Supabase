@@ -15,16 +15,47 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, children, title, className, footer }: ModalProps) {
+  // Disable background scroll when modal is open
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      
+      // Handle escape key
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      };
+      
+      document.addEventListener('keydown', handleEscape);
+      
+      return () => {
+        document.body.style.overflow = 'unset';
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto">
-      <div className="min-h-full w-full flex items-start justify-center p-3 py-4 sm:p-4 sm:py-12">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm overflow-hidden"
+      onClick={handleBackdropClick}
+    >
+      <div className="w-full h-full flex items-center justify-center p-3 sm:p-4">
         <div
           className={cn(
-            'relative w-full max-w-lg rounded-lg border bg-white shadow-lg max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] flex flex-col',
+            'relative w-full max-w-lg rounded-lg border bg-white shadow-lg max-h-[90vh] flex flex-col overflow-hidden',
             className
           )}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Fixed Header */}
           <div className="flex items-start justify-between p-4 sm:p-6 pb-3 sm:pb-4 border-b border-gray-100 flex-shrink-0">
@@ -42,9 +73,11 @@ export function Modal({ isOpen, onClose, children, title, className, footer }: M
             </button>
           </div>
 
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-3 sm:py-4">
-            {children}
+          {/* Scrollable Content - Full Modal Scrolling */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="px-4 sm:px-6 py-3 sm:py-4">
+              {children}
+            </div>
           </div>
 
           {/* Fixed Footer */}
