@@ -76,6 +76,27 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
     }
   }, [isOpen]);
 
+  // Disable background scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      
+      // Handle escape key
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      };
+      
+      document.addEventListener('keydown', handleEscape);
+      
+      return () => {
+        document.body.style.overflow = 'unset';
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }
+  }, [isOpen, onClose]);
+
   // Fetch bread types from Supabase
   const fetchBreadTypes = async () => {
     try {
@@ -142,26 +163,36 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
       setIsSubmitting(true);
       console.log('⏳ Setting submitting state to true');
 
-      // Create the batch with shift information
+      // Get bread type info for optimistic updates
+      const breadType = breadTypes.find(bt => bt.id === formData.breadTypeId);
+      
+      // Create the batch with shift information and bread type info
       console.log('🏭 Creating batch with data:', {
         bread_type_id: formData.breadTypeId,
         actual_quantity: quantity,
         notes: formData.notes || undefined,
-        shift: shift
+        shift: shift,
+        breadType: breadType?.name
       });
 
       const newBatch = await createBatch({
         bread_type_id: formData.breadTypeId,
         actual_quantity: quantity,
         notes: formData.notes || undefined,
-        shift: shift
+        shift: shift,
+        // Pass bread type info for optimistic updates
+        breadTypeInfo: breadType ? {
+          id: breadType.id,
+          name: breadType.name,
+          size: breadType.size,
+          unit_price: breadType.unit_price
+        } : null
       });
 
       console.log('✅ Batch created successfully:', newBatch);
 
       // Show success message
-      // Find the bread type name for the toast
-      const breadType = breadTypes.find(bt => bt.id === formData.breadTypeId);
+      // Use the breadType variable we already found above
       const breadTypeName = breadType ? `${breadType.name}${breadType.size ? ` (${breadType.size})` : ''}` : 'bread';
       
       toast.batchCreated(`${breadTypeName} - ${quantity} units`);
@@ -211,6 +242,13 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
     setFormData(prev => ({ ...prev, notes: value }));
   };
 
+  // Handle backdrop click
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -220,8 +258,8 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        onClick={onClose}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-hidden"
+        onClick={handleBackdropClick}
       >
         {/* Proper modal container */}
         <motion.div

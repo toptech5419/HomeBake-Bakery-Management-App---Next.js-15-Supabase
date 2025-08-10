@@ -35,7 +35,9 @@
       "Bash(timeout 30 npm run build:*)",
       "Bash(npx tsx:*)",
       "Bash(timeout 15 npm run dev -- --port 3000)",
-      "Bash(timeout 10s npm run dev)"
+      "Bash(timeout 10s npm run dev)",
+      "Bash(cmd //c:*)",
+      "Bash(timeout 8 npm run dev)"
     ],
     "deny": []
   }

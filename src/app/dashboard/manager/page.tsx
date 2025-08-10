@@ -24,26 +24,18 @@ export default async function ManagerDashboardPage() {
     .single();
   if (profileError || !profile || (profile.role !== 'manager' && profile.role !== 'owner')) redirect('/dashboard');
 
-  // --- Shift detection ---
-  let currentShift: 'morning' | 'night' = 'morning';
+  // --- Let client handle shift selection ---
+  // Server provides fallback data, but client will use user's stored preference
   let shiftStartTime: string | null = null;
-  
-  // Infer from current hour (Nigeria time)
-  const now = new Date();
-  const tz = 'Africa/Lagos';
-  const local = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-  const hour = local.getHours();
-  currentShift = hour >= 6 && hour < 14 ? 'morning' : 'night';
-  shiftStartTime = null;
 
   try {
-    // --- Active Batches - Only active batches for current shift ---
+    // --- Active Batches - Get minimal data (client will handle shift filtering) ---
     const { data: activeBatches, error: activeBatchesError } = await supabase
       .from('batches')
-      .select('id, bread_type_id, actual_quantity, status, created_at, batch_number')
+      .select('id, bread_type_id, actual_quantity, status, created_at, batch_number, shift')
       .eq('status', 'active')
-      .eq('shift', currentShift) // Filter by current shift
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(10); // Limit for performance, client will filter and manage data
 
     if (activeBatchesError) {
       console.error('Error fetching active batches:', activeBatchesError);
@@ -66,10 +58,10 @@ export default async function ManagerDashboardPage() {
       }
     }
 
-    // --- Active Batches Count ---
+    // --- Provide initial data (client will filter by user's preferred shift) ---
     const activeBatchesCount = activeBatches?.length || 0;
 
-    // --- Recent Batches - Only active batches for current shift ---
+    // --- Recent Batches - Provide initial data (client will filter) ---
     const recentActiveBatches = (activeBatches || []).slice(0, 5).map(b => ({
       id: b.id,
       product: breadTypeMap[b.bread_type_id] || 'Unknown',
@@ -77,9 +69,10 @@ export default async function ManagerDashboardPage() {
       status: b.status,
       time: getRelativeTime(b.created_at),
       batchNumber: b.batch_number || 'N/A',
+      shift: b.shift, // Include shift info for client filtering
     }));
 
-    // --- Production Overview - Based on active batches for current shift ---
+    // --- Initial progress data ---
     const progressPercentage = Math.min(100, Math.max(0, (activeBatchesCount * 15)));
 
     // --- Pass all data to client component ---
@@ -87,7 +80,6 @@ export default async function ManagerDashboardPage() {
       <ManagerDashboardClient
         userName={profile.name}
         userId={profile.id}
-        currentShift={currentShift}
         shiftStartTime={shiftStartTime}
         activeBatchesCount={activeBatchesCount}
         recentBatches={recentActiveBatches}
@@ -103,8 +95,7 @@ export default async function ManagerDashboardPage() {
       <ManagerDashboardClient
         userName={profile.name}
         userId={profile.id}
-        currentShift={currentShift}
-        shiftStartTime={shiftStartTime}
+        shiftStartTime={null}
         activeBatchesCount={0}
         recentBatches={[]}
         totalBatches={0}

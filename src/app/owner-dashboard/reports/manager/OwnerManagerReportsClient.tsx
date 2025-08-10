@@ -20,7 +20,7 @@ import {
   Copy,
   RefreshCw
 } from 'lucide-react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getManagerReports, type BatchData, type GroupedReport } from '@/lib/reports/manager-reports-server-actions';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
@@ -32,34 +32,6 @@ import { useRouter } from 'next/navigation';
 interface OwnerManagerReportsClientProps {
   user: { id: string; email?: string };
   displayName: string;
-}
-
-// Types matching the manager reports structure
-interface BatchData {
-  id: string;
-  bread_type_id: string;
-  batch_number: string;
-  start_time: string;
-  end_time?: string;
-  actual_quantity: number;
-  status: string;
-  shift: string;
-  created_by: string;
-  bread_types: { name: string } | { name: string }[] | null;
-  users: { name: string } | { name: string }[] | null;
-}
-
-interface GroupedReport {
-  id: string;
-  date: string;
-  shift: string;
-  batches: BatchData[];
-  manager: string;
-  breadTypes: string[];
-  totalBatches: number;
-  totalUnits: number;
-  status: string;
-  latestEndTime: string;
 }
 
 // Utility functions
@@ -161,69 +133,10 @@ export default function OwnerManagerReportsClient({ user, displayName }: OwnerMa
 
   const fetchReports = async () => {
     setLoading(true);
-    const supabase = createClientComponentClient();
     
     try {
-      const { data: batches, error } = await supabase
-        .from('all_batches')
-        .select(`
-          id, bread_type_id, batch_number, start_time, end_time, actual_quantity, 
-          status, shift, created_by, 
-          bread_types (name), 
-          users:created_by (name)
-        `)
-        .order('start_time', { ascending: false });
-
-      if (error) {
-        setGroupedReports([]);
-        setLoading(false);
-        return;
-      }
-
-      // Group by date+shift
-      const groups: Record<string, any> = {};
-      for (const batch of batches || []) {
-        const date = batch.start_time ? batch.start_time.split('T')[0] : 'unknown';
-        const shift = batch.shift;
-        const key = `${date}-${shift}`;
-        
-        if (!groups[key]) {
-          groups[key] = {
-            id: key,
-            date,
-            shift,
-            batches: [],
-            manager: getName(batch.users),
-            breadTypes: new Set(),
-            totalUnits: 0,
-            endTimes: [],
-            statuses: []
-          };
-        }
-        
-        groups[key].batches.push(batch);
-        const breadTypeName = getName(batch.bread_types);
-        if (breadTypeName && breadTypeName !== 'Unknown') {
-          groups[key].breadTypes.add(breadTypeName);
-        }
-        if (batch.end_time) groups[key].endTimes.push(batch.end_time);
-        groups[key].statuses.push(batch.status);
-        groups[key].totalUnits += batch.actual_quantity || 0;
-      }
-
-      // Convert to array with calculated fields
-      // Since all_batches contains historical/completed records, all should be marked as completed
-      const arr = Object.values(groups).map((g: any) => {
-        return {
-          ...g,
-          totalBatches: g.batches.length,
-          status: 'Completed', // All records from all_batches are completed by definition
-          latestEndTime: g.endTimes.length > 0 ? g.endTimes.sort().slice(-1)[0] : '',
-          breadTypes: Array.from(g.breadTypes),
-        };
-      });
-
-      setGroupedReports(arr);
+      const reports = await getManagerReports();
+      setGroupedReports(reports);
     } catch (error) {
       console.error('Error fetching reports:', error);
       setGroupedReports([]);

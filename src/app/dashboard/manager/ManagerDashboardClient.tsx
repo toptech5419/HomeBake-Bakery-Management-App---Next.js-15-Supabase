@@ -22,12 +22,12 @@ interface RecentBatch {
   status: string;
   time: string;
   batchNumber: string;
+  shift: 'morning' | 'night';
 }
 
 interface ManagerDashboardClientProps {
   userName: string;
   userId: string;
-  currentShift: 'morning' | 'night';
   shiftStartTime: string | null;
   activeBatchesCount: number;
   recentBatches: RecentBatch[];
@@ -167,23 +167,35 @@ export default function ManagerDashboardClient({
         type: 'success'
       });
       
-      // Force refresh all data sources with current shift
-      await refreshData();
+      console.log('🧹 Clearing all caches and refreshing UI...');
       
-      // Also refresh batches specifically for current shift
-      await refreshBatches(currentShift);
+      // 1. Clear ALL React Query cache
+      queryClient.clear();
       
-      // Invalidate all React Query caches for batches
-      queryClient.invalidateQueries({ queryKey: ['batches'] });
-      queryClient.invalidateQueries({ queryKey: ['batches', 'active'] });
-      queryClient.invalidateQueries({ queryKey: ['batches', 'stats'] });
-      queryClient.invalidateQueries({ queryKey: ['batches', 'active', currentShift] });
-      queryClient.invalidateQueries({ queryKey: ['batches', 'stats', currentShift] });
+      // 2. Clear browser caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => caches.delete(cacheName))
+        );
+        console.log('🗑️ Cleared browser caches');
+      }
       
-      // Force a page reload to ensure all caches are cleared
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // 3. Clear localStorage and sessionStorage (but preserve shift preference)
+      const preservedShift = localStorage.getItem('homebake-current-shift');
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Restore the user's shift preference
+      if (preservedShift) {
+        localStorage.setItem('homebake-current-shift', preservedShift);
+        console.log('🔄 Preserved user shift preference:', preservedShift);
+      }
+      console.log('🗑️ Cleared browser storage (preserved shift preference)');
+      
+      // 4. Force immediate reload without waiting
+      console.log('🔄 Force reloading page immediately...');
+      window.location.href = window.location.href;
       
     } catch (err) {
       console.error('Error ending shift:', err);
@@ -204,12 +216,16 @@ export default function ManagerDashboardClient({
     setShowEndShiftModal(false);
   };
 
-  // Use dashboard data or fallback to props
+  // Filter initial server data by user's current shift preference
+  const filteredInitialBatches = initialRecentBatches.filter(batch => batch.shift === currentShift);
+  const filteredInitialCount = filteredInitialBatches.length;
+
+  // Use dashboard data or fallback to filtered props
   const displayData = dashboardData || {
-    activeBatchesCount: initialActiveBatchesCount,
-    recentBatches: initialRecentBatches,
-    totalBatches: initialTotalBatches,
-    progressPercentage: initialProgressPercentage,
+    activeBatchesCount: filteredInitialCount,
+    recentBatches: filteredInitialBatches,
+    totalBatches: filteredInitialCount,
+    progressPercentage: Math.min(100, Math.max(0, (filteredInitialCount * 15))),
   };
 
   // Helper function to get shift label
@@ -327,21 +343,52 @@ export default function ManagerDashboardClient({
               </button>
             </div>
             <div className="space-y-3">
-              {displayData.recentBatches.map((batch) => (
-                <div key={batch.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                    <div>
-                      <p className="font-medium text-gray-900">{batch.product}</p>
-                      <p className="text-sm text-gray-500">Batch #{batch.batchNumber}</p>
+              {displayData.recentBatches.map((batch) => {
+                // Check if this is an optimistic/loading batch
+                const isOptimistic = batch.id?.startsWith('temp-') || batch.batchNumber?.startsWith('TMP-') || batch.batchNumber === 'Creating...';
+                
+                return (
+                  <div 
+                    key={batch.id} 
+                    className={`flex items-center justify-between p-3 rounded-lg transition-all duration-200 ${
+                      isOptimistic 
+                        ? 'bg-orange-50 border border-orange-200 animate-pulse' 
+                        : 'bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${
+                        isOptimistic ? 'bg-orange-500' : 'bg-green-500'
+                      }`}></div>
+                      <div>
+                        <p className={`font-medium ${
+                          isOptimistic ? 'text-orange-800' : 'text-gray-900'
+                        }`}>
+                          {batch.product}
+                          {isOptimistic && <span className="ml-2 text-xs">(Creating...)</span>}
+                        </p>
+                        <p className={`text-sm ${
+                          isOptimistic ? 'text-orange-600' : 'text-gray-500'
+                        }`}>
+                          Batch #{batch.batchNumber}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-semibold ${
+                        isOptimistic ? 'text-orange-800' : 'text-gray-900'
+                      }`}>
+                        {batch.quantity}
+                      </p>
+                      <p className={`text-xs ${
+                        isOptimistic ? 'text-orange-600' : 'text-gray-500'
+                      }`}>
+                        {batch.time}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">{batch.quantity}</p>
-                    <p className="text-xs text-gray-500">{batch.time}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

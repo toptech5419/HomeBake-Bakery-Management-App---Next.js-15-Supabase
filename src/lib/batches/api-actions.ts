@@ -3,13 +3,16 @@
 import { Batch, CreateBatchData, UpdateBatchData } from './actions';
 
 // Create a new batch using server API
-export async function createBatch(data: Omit<CreateBatchData, 'batch_number'>): Promise<Batch> {
+export async function createBatch(data: Omit<CreateBatchData, 'batch_number'> & { breadTypeInfo?: any }): Promise<Batch> {
+  // Remove breadTypeInfo before sending to server (it's only for optimistic updates)
+  const { breadTypeInfo, ...serverData } = data;
+  
   const response = await fetch('/api/batches', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(serverData),
   });
 
   const result = await response.json();

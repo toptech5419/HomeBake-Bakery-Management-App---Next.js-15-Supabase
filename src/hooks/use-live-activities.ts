@@ -2,7 +2,8 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { activityService, Activity } from '@/lib/activities/activity-service';
+import { Activity } from '@/lib/activities/activity-service';
+import { getRecentActivities } from '@/lib/activities/server-actions';
 
 interface UseActivitiesOptions {
   pollingInterval?: number; // in milliseconds, default 30 seconds
@@ -31,7 +32,7 @@ export function useActivities(options: UseActivitiesOptions = {}): UseActivities
     refetch
   } = useQuery({
     queryKey: ['activities'],
-    queryFn: () => activityService.getRecentActivities(100),
+    queryFn: () => getRecentActivities(100),
     refetchInterval: enablePolling ? pollingInterval : false,
     refetchIntervalInBackground: false,
     staleTime: 25000, // Consider data stale after 25 seconds
@@ -40,8 +41,9 @@ export function useActivities(options: UseActivitiesOptions = {}): UseActivities
 
   // Auto-cleanup old activities periodically (once per hour)
   useEffect(() => {
-    const cleanupInterval = setInterval(() => {
-      activityService.cleanupOldActivities();
+    const cleanupInterval = setInterval(async () => {
+      const { cleanupOldActivities } = await import('@/lib/activities/server-actions');
+      cleanupOldActivities();
     }, 60 * 60 * 1000); // 1 hour
 
     return () => clearInterval(cleanupInterval);

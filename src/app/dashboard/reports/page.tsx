@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { BarChart3, Package, Search, Filter, Download, ChevronDown, Clock, User, Eye, Share2, Calendar, X, ArrowLeft } from "lucide-react";
 import { cn } from '@/lib/utils';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getManagerReports } from '@/lib/reports/manager-reports-server-actions';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -148,67 +148,33 @@ export default function ReportsPage() {
   useEffect(() => {
     const fetchReports = async () => {
       setLoading(true);
-      const supabase = createClientComponentClient();
-      // Fetch all_batches with bread_types and users
-      const { data: batches, error } = await supabase
-        .from('all_batches')
-        .select(`id, bread_type_id, batch_number, start_time, end_time, actual_quantity, status, shift, created_by, notes, bread_types (name), users:created_by (name)`)
-        .order('start_time', { ascending: false });
-      console.log('Fetched batches:', batches); // DEBUG LOG
-      if (error) {
+      try {
+        // Use server action to fetch reports data (already grouped)
+        const groupedReports = await getManagerReports();
+        console.log('Fetched grouped reports:', groupedReports); // DEBUG LOG
+        
+        // Convert from server action GroupedReport to page GroupedReport format
+        const pageReports = groupedReports.map(report => ({
+          ...report,
+          missingManager: report.manager.startsWith('User ID'),
+          endTimes: report.batches
+            .filter(batch => batch.end_time)
+            .map(batch => batch.end_time!),
+          statuses: report.batches.map(batch => batch.status),
+          latestEndTime: report.batches
+            .filter(batch => batch.end_time)
+            .map(batch => batch.end_time!)
+            .sort()
+            .slice(-1)[0] || ''
+        }));
+        
+        setGroupedReports(pageReports);
+      } catch (error) {
+        console.error('Error fetching reports:', error);
         setGroupedReports([]);
+      } finally {
         setLoading(false);
-        return;
       }
-      // Group by date+shift
-      const groups: Record<string, GroupedReportBuilder> = {};
-      for (const batch of batches) {
-        const date = batch.start_time ? batch.start_time.split('T')[0] : 'unknown';
-        const shift = batch.shift;
-        const key = `${date}-${shift}`;
-        // Determine manager name or fallback to user id
-        let managerName = 'Unknown';
-        const userName = getName(batch.users);
-        if (userName !== 'Unknown') {
-          managerName = userName;
-        } else if (batch.created_by) {
-          managerName = `User ID: ${batch.created_by}`;
-        }
-        if (!groups[key]) {
-          groups[key] = {
-            id: key,
-            date,
-            shift,
-            batches: [],
-            manager: managerName,
-            breadTypes: new Set(),
-            endTimes: [],
-            statuses: [],
-            totalUnits: 0,
-            missingManager: managerName.startsWith('User ID'),
-          };
-        }
-        groups[key].batches.push(batch);
-        const breadTypeName = getName(batch.bread_types);
-        if (breadTypeName && breadTypeName !== 'Unknown') groups[key].breadTypes.add(breadTypeName);
-        if (batch.end_time) groups[key].endTimes.push(batch.end_time);
-        groups[key].statuses.push(batch.status);
-        groups[key].totalUnits += batch.actual_quantity || 0;
-      }
-      // Build array
-      const arr = Object.values(groups).map((g: GroupedReportBuilder) => {
-        const allCompleted = g.statuses.every((s: string) => s === 'completed');
-        return {
-          ...g,
-          totalBatches: g.batches.length,
-          totalUnits: g.totalUnits,
-          status: allCompleted ? 'Completed' : 'In Progress',
-          latestEndTime: g.endTimes.length > 0 ? g.endTimes.sort().slice(-1)[0] : '',
-          breadTypes: Array.from(g.breadTypes),
-        };
-      });
-      setGroupedReports(arr);
-      setLoading(false);
     };
     fetchReports();
   }, []);
@@ -557,6 +523,26 @@ function ShareModal({ report, onClose, getShareText }: ShareModalProps) {
   const shareText = getShareText(report);
 
   const [hasWebShare, setHasWebShare] = useState(false);
+  
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    
+    // Handle escape key
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
+
   useEffect(() => {
     if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined' && window.navigator.share) {
       setHasWebShare(true);
@@ -602,9 +588,21 @@ function ShareModal({ report, onClose, getShareText }: ShareModalProps) {
     onClose();
   };
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl shadow-lg p-4 sm:p-6 animate-fade-in flex flex-col gap-4">
+    <div 
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm overflow-hidden"
+      onClick={handleBackdropClick}
+    >
+      <div 
+        className="bg-white w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl shadow-lg p-4 sm:p-6 animate-fade-in flex flex-col gap-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-base font-bold">Share Report</h3>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100"><X className="w-5 h-5" /></button>

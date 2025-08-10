@@ -24,7 +24,6 @@ interface InventoryClientProps {
 
 export default function InventoryClient({ serverUser }: InventoryClientProps) {
   const { user: clientUser } = useAuth();
-  const { currentShift, isLoading: shiftLoading } = useAutoShift();
 
   // Use server user if available, otherwise fall back to client user
   const user = serverUser || clientUser;
@@ -38,11 +37,12 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
     dataSourceInfo,
     isFetching,
     isError,
-    refetch
-  } = useInventoryData(user);
+    refetch,
+    realtimeConnectionState
+  } = useInventoryData(user); // Uses automatic 10AM/10PM inventory shift logic
 
   // Handle loading state
-  if (isLoading || shiftLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
@@ -77,7 +77,7 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-white">
-      {/* Real-time indicator */}
+      {/* Real-time indicators */}
       {isFetching && (
         <div className="fixed top-4 right-4 z-50">
           <div className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
@@ -86,6 +86,22 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
           </div>
         </div>
       )}
+      
+      {/* Real-time connection status */}
+      <div className="fixed top-4 left-4 z-40">
+        <div className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${
+          realtimeConnectionState === 'connected' 
+            ? 'bg-green-500 text-white' 
+            : realtimeConnectionState === 'connecting'
+            ? 'bg-yellow-500 text-white'
+            : 'bg-red-500 text-white'
+        }`}>
+          <div className={`w-2 h-2 rounded-full ${
+            realtimeConnectionState === 'connected' ? 'bg-white animate-pulse' : 'bg-white/60'
+          }`}></div>
+          <span className="capitalize">{realtimeConnectionState || 'offline'}</span>
+        </div>
+      </div>
 
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm px-4 py-4 border-b border-orange-100">
@@ -115,7 +131,8 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
               <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center space-x-2">
                   <Clock className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
-                  <span className="font-semibold text-gray-900 capitalize text-sm md:text-base">{currentShift} Shift</span>
+                  <span className="font-semibold text-gray-900 capitalize text-sm md:text-base">{dataSourceInfo.currentShift} Shift</span>
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">AUTO</span>
                 </div>
                               <div className="flex items-center gap-1">
                 {dataSourceInfo.source === 'all_batches' && (
@@ -147,6 +164,7 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
             
             <div className="mt-2 text-xs text-gray-500">
               {dataSourceInfo.recordCount} records • Auto-switching at {dataSourceInfo.nextShiftTime}
+              <div className="mt-1 text-blue-600">{dataSourceInfo.dataWindow}</div>
               {shiftStatus.shouldShowArchivedData && (
                 <div className="flex items-center space-x-1 mt-1 text-purple-600">
                   <Archive className="w-3 h-3" />

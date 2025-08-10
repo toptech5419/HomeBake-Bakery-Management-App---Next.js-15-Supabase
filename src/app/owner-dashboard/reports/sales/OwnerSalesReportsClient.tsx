@@ -19,7 +19,7 @@ import {
   Copy,
   RefreshCw
 } from 'lucide-react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getSalesReports, type SalesReport, type SalesDataItem, type RemainingBreadItem } from '@/lib/reports/sales-reports-server-actions';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
@@ -33,36 +33,7 @@ interface OwnerSalesReportsClientProps {
   displayName: string;
 }
 
-// Types matching the sales reports structure
-interface SalesDataItem {
-  breadType?: string;
-  quantity?: number;
-  unitPrice?: number;
-  totalAmount?: number;
-  timestamp?: string;
-}
-
-interface RemainingBreadItem {
-  breadType?: string;
-  quantity?: number;
-  unitPrice?: number;
-  totalAmount?: number;
-}
-
-interface ShiftReport {
-  id: string;
-  user_id: string;
-  shift: 'morning' | 'night';
-  report_date: string;
-  total_revenue: number;
-  total_items_sold: number;
-  total_remaining: number;
-  feedback: string | null;
-  sales_data: SalesDataItem[];
-  remaining_breads: RemainingBreadItem[];
-  created_at: string;
-  updated_at: string;
-}
+// Types are imported from server actions
 
 // Utility functions
 const formatDate = (dateStr: string) => {
@@ -106,15 +77,15 @@ const LoadingSkeleton = () => (
 export default function OwnerSalesReportsClient({ user, displayName }: OwnerSalesReportsClientProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [reports, setReports] = useState<ShiftReport[]>([]);
+  const [reports, setReports] = useState<SalesReport[]>([]);
   const [search, setSearch] = useState('');
   const [filterShift, setFilterShift] = useState('All');
   const [showDropdown, setShowDropdown] = useState<string | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [viewModalData, setViewModalData] = useState<ShiftReport | null>(null);
+  const [viewModalData, setViewModalData] = useState<SalesReport | null>(null);
   const [viewModalTitle, setViewModalTitle] = useState('');
   const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [shareModalData, setShareModalData] = useState<ShiftReport | null>(null);
+  const [shareModalData, setShareModalData] = useState<SalesReport | null>(null);
   const [exportDropdownPosition, setExportDropdownPosition] = useState({ top: 0, left: 0 });
   const [mounted, setMounted] = useState(false);
   const exportButtonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
@@ -159,22 +130,10 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
 
   const fetchReports = async () => {
     setLoading(true);
-    const supabase = createClientComponentClient();
     
     try {
-      const { data: reportsData, error } = await supabase
-        .from('shift_reports')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching sales reports:', error);
-        setReports([]);
-        setLoading(false);
-        return;
-      }
-
-      setReports(reportsData || []);
+      const reportsData = await getSalesReports();
+      setReports(reportsData);
     } catch (error) {
       console.error('Error fetching sales reports:', error);
       setReports([]);
@@ -202,7 +161,7 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
   const totalRemaining = filtered.reduce((sum, r) => sum + r.total_remaining, 0);
 
   // Export functionality
-  const handleExportReport = (report: ShiftReport) => {
+  const handleExportReport = (report: SalesReport) => {
     const csvRows = [
       ['Sales Report', report.shift, report.report_date],
       [''],
@@ -271,10 +230,10 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
   };
 
   // Share functionality
-  const getShareText = (report: ShiftReport) => 
+  const getShareText = (report: SalesReport) => 
     `💰 Sales Report - ${report.shift.charAt(0).toUpperCase() + report.shift.slice(1)} (${formatDate(report.report_date)})\n💵 Revenue: ${formatCurrencyNGN(report.total_revenue)}\n📦 Items Sold: ${report.total_items_sold}\n🍞 Remaining: ${formatCurrencyNGN(report.total_remaining)}\n🔥 Top Items: ${getTopItems(report.sales_data).slice(0,2).join(', ')}`;
 
-  const handleShare = (platform: string, report: ShiftReport) => {
+  const handleShare = (platform: string, report: SalesReport) => {
     const text = getShareText(report);
     
     switch (platform) {
@@ -295,7 +254,7 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
   };
 
   // Handle view report - show sales details
-  const handleViewReport = (report: ShiftReport) => {
+  const handleViewReport = (report: SalesReport) => {
     setShowDropdown(null);
     setViewModalData(report);
     setViewModalTitle(`${formatDate(report.report_date)} - ${report.shift.charAt(0).toUpperCase() + report.shift.slice(1)} Shift Sales`);
@@ -323,7 +282,7 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
   };
 
   // Open share modal instead of dropdown - 100% reliable
-  const handleShareClick = (report: ShiftReport) => {
+  const handleShareClick = (report: SalesReport) => {
     setShareModalData(report);
     setShareModalOpen(true);
   };
@@ -668,9 +627,9 @@ function SalesShareModal({
   onClose, 
   onShare 
 }: { 
-  report: ShiftReport; 
+  report: SalesReport; 
   onClose: () => void; 
-  onShare: (platform: string, report: ShiftReport) => void;
+  onShare: (platform: string, report: SalesReport) => void;
 }) {
   const shareOptions = [
     { platform: 'whatsapp', label: 'WhatsApp', icon: '💬', color: 'bg-green-500 hover:bg-green-600' },

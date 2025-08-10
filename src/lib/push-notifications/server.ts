@@ -29,7 +29,7 @@ export async function triggerPushNotification(data: NotificationData): Promise<v
     }
 
     // Call the push notification API
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const response = await fetch(`${baseUrl}/api/push-notifications`, {
       method: 'POST',
       headers: {

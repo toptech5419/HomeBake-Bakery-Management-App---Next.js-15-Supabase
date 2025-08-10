@@ -1,7 +1,6 @@
 import { createServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { getInventoryShiftContext } from '@/lib/utils/enhanced-shift-utils';
-import { SHIFT_CONSTANTS } from '@/lib/utils/shift-utils';
+import { getInventoryShiftInfo, validateShiftData } from '@/lib/utils/inventory-shift-utils';
 
 // Force dynamic rendering for API routes that require authentication
 export const dynamic = 'force-dynamic';
@@ -21,7 +20,7 @@ export async function GET(request: NextRequest) {
       authError: authError?.message
     });
     
-    // Proper authentication check for production
+    // Production authentication check
     if (authError || !user) {
       console.log('❌ API: Authentication failed');
       return NextResponse.json(
@@ -33,69 +32,36 @@ export async function GET(request: NextRequest) {
     console.log('✅ API: User authenticated successfully');
 
     const { searchParams } = new URL(request.url);
-    const shift = searchParams.get('shift');
-    const dateParam = searchParams.get('date') || new Date().toISOString().split('T')[0];
+    const requestedShift = searchParams.get('shift');
+    
+    // Get current inventory shift info (automatic 10AM/10PM detection)
+    const inventoryShiftInfo = getInventoryShiftInfo();
+    const actualShift = inventoryShiftInfo.currentShift;
+    
+    console.log('🕒 Inventory shift info:', {
+      requested: requestedShift,
+      actual: actualShift,
+      dataRange: inventoryShiftInfo.dataFetchRange.description
+    });
 
-    if (!shift || !['morning', 'night'].includes(shift)) {
+    // Validate shift parameter
+    if (!requestedShift || !['morning', 'night'].includes(requestedShift)) {
       return NextResponse.json(
         { error: 'Valid shift (morning or night) is required' },
         { status: 400 }
       );
     }
 
-    // Type assertion for shift after validation
-    const validatedShift = shift as 'morning' | 'night';
+    // Production safety: Always use actual current shift
+    const validatedShift = actualShift; // Force current shift regardless of request
+    const { dataFetchRange } = inventoryShiftInfo;
 
-    // Get enhanced shift context including manager alignment
-    const shiftContext = await getInventoryShiftContext(user?.id);
-    
-    console.log(`🔍 Enhanced Shift Context for ${validatedShift} shift:`);
-    console.log(`   User ID: ${user?.id || 'No user'}`);
-    console.log(`   Show Archived Data: ${shiftContext.shouldShowArchivedData}`);
-    console.log(`   Data Source: ${shiftContext.dataSource}`);
+    console.log(`🔍 Using production shift: ${validatedShift}`);
+    console.log(`📅 Data fetch range: ${dataFetchRange.description}`);
+    console.log(`🕒 Time range: ${dataFetchRange.startTime} - ${dataFetchRange.endTime}`);
 
-    // Get current shift period boundaries using Nigeria timezone and correct shift logic
-    function getCurrentShiftPeriod(shift: 'morning' | 'night') {
-      // Get current time in Nigeria timezone
-      const now = new Date();
-      const nigeriaTime = new Date(now.toLocaleString("en-US", {timeZone: SHIFT_CONSTANTS.NIGERIA_TIMEZONE}));
-      
-      if (shift === 'morning') {
-        // Morning shift: Show ALL morning batches from 00:00 AM (midnight) to 11:59 PM current date
-        const searchStart = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), 0, 0, 0);
-        const searchEnd = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), 23, 59, 59);
-        
-        console.log(`☀️ Morning shift: Searching from ${searchStart.toLocaleDateString()} 00:00 to ${searchEnd.toLocaleDateString()} 23:59`);
-        return { searchStart, searchEnd };
-      } else {
-        // Night shift: Show ALL night batches from 3:00 PM (15:00) previous day to 2:59 PM (14:59) current day
-        const searchStart = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate() - 1, 15, 0, 0);
-        const searchEnd = new Date(nigeriaTime.getFullYear(), nigeriaTime.getMonth(), nigeriaTime.getDate(), 14, 59, 59);
-        
-        console.log(`🌙 Night shift: Searching from ${searchStart.toLocaleDateString()} 15:00 to ${searchEnd.toLocaleDateString()} 14:59`);
-        return { searchStart, searchEnd };
-      }
-    }
-
-    // Get current shift period boundaries
-    const { searchStart, searchEnd } = getCurrentShiftPeriod(validatedShift);
-
-    // Convert Nigeria local times to UTC for database query
-    // Nigeria time is UTC+1, so subtract 1 hour to get UTC
-    const utcSearchStart = new Date(searchStart.getTime() - (1 * 60 * 60 * 1000));
-    const utcSearchEnd = new Date(searchEnd.getTime() - (1 * 60 * 60 * 1000));
-    
-    console.log(`🔍 Timezone conversion:`);
-    console.log(`  Local start: ${searchStart.toLocaleString()}`);
-    console.log(`  Local end: ${searchEnd.toLocaleString()}`);
-    console.log(`  UTC start: ${utcSearchStart.toISOString()}`);
-    console.log(`  UTC end: ${utcSearchEnd.toISOString()}`);
-
-    // Query the batches table based on shift assignment, not creation time
+    // Query batches table with proper time range
     console.log(`🔍 Querying batches table for ${validatedShift} shift...`);
-    console.log(`🔍 Query parameters:`);
-    console.log(`  Shift: ${validatedShift}`);
-    console.log(`  Current Date: ${new Date().toLocaleDateString()}`);
     
     let { data: batchesData, error: batchesError } = await supabase
       .from('batches')
@@ -109,21 +75,19 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq('shift', validatedShift)
-      .gte('created_at', utcSearchStart.toISOString())
-      .lt('created_at', utcSearchEnd.toISOString())
+      .gte('created_at', dataFetchRange.startTime)
+      .lt('created_at', dataFetchRange.endTime)
       .order('created_at', { ascending: false });
 
     console.log(`📊 Active batches query result: ${batchesData?.length || 0} records`);
     
     let dataSource = 'batches';
-    const archivedData: unknown[] = [];
+    let totalArchivedBatches = 0;
 
-    if (batchesData && batchesData.length > 0) {
-      console.log(`✅ Found ${batchesData.length} active batches`);
-    } else {
+    // If no active batches found, check all_batches table
+    if (!batchesData || batchesData.length === 0) {
       console.log(`⚠️ No active batches found, checking archived data...`);
       
-      // If no active batches, check all_batches table
       const { data: allBatchesData, error: allBatchesError } = await supabase
         .from('all_batches')
         .select(`
@@ -136,8 +100,8 @@ export async function GET(request: NextRequest) {
           )
         `)
         .eq('shift', validatedShift)
-        .gte('created_at', utcSearchStart.toISOString())
-        .lt('created_at', utcSearchEnd.toISOString())
+        .gte('created_at', dataFetchRange.startTime)
+        .lt('created_at', dataFetchRange.endTime)
         .order('created_at', { ascending: false });
 
       console.log(`📊 All_batches query result: ${allBatchesData?.length || 0} records`);
@@ -151,20 +115,31 @@ export async function GET(request: NextRequest) {
       }
 
       if (allBatchesData && allBatchesData.length > 0) {
-        batchesData = [...(allBatchesData || [])];
+        batchesData = allBatchesData;
         dataSource = 'all_batches';
+        totalArchivedBatches = allBatchesData.length;
         console.log(`✅ Found ${allBatchesData.length} archived batches`);
       } else {
-        // No batches found in current shift period - show empty state
+        // No batches found - return empty state
         console.log(`📭 No batches found for current ${validatedShift} shift period`);
-        console.log(`📭 Showing empty state - no fallback to previous shifts`);
+        return NextResponse.json({ 
+          data: [],
+          totalUnits: 0,
+          totalBatches: 0,
+          totalArchivedBatches: 0,
+          shift: validatedShift,
+          source: 'batches',
+          recordCount: 0,
+          dataFetchRange: dataFetchRange,
+          shiftContext: {
+            shouldShowArchivedData: dataSource === 'all_batches',
+            isManager: false, // Inventory page doesn't need manager context
+          }
+        });
       }
     }
 
-    // Combine current shift data with archived data if needed
-    const allBatches = [...(batchesData || []), ...archivedData];
-
-    if (batchesError && allBatches.length === 0) {
+    if (batchesError) {
       console.error('Error fetching batches:', batchesError);
       return NextResponse.json(
         { error: 'Failed to fetch inventory data' },
@@ -175,9 +150,12 @@ export async function GET(request: NextRequest) {
     // Group by bread type and calculate totals
     const inventoryMap = new Map();
     
-    for (const batch of allBatches) {
+    for (const batch of batchesData || []) {
       const breadType = (batch as any).bread_type;
-      if (!breadType) continue;
+      if (!breadType) {
+        console.warn('⚠️ Batch without bread_type found:', (batch as any).id);
+        continue;
+      }
 
       const key = breadType.id;
       
@@ -189,7 +167,7 @@ export async function GET(request: NextRequest) {
           price: breadType.unit_price,
           quantity: 0,
           batches: 0,
-          archivedBatches: 0,
+          archivedBatches: dataSource === 'all_batches' ? 0 : 0,
         });
       }
 
@@ -197,8 +175,8 @@ export async function GET(request: NextRequest) {
       item.quantity += (batch as any).actual_quantity || 0;
       item.batches += 1;
       
-      // Track archived batches separately
-      if (archivedData.some((archived: any) => archived.id === (batch as any).id)) {
+      // Track archived batches
+      if (dataSource === 'all_batches') {
         item.archivedBatches += 1;
       }
     }
@@ -209,11 +187,15 @@ export async function GET(request: NextRequest) {
 
     const totalUnits = inventory.reduce((sum, item) => sum + item.quantity, 0);
     const totalBatches = inventory.reduce((sum, item) => sum + item.batches, 0);
-    const totalArchivedBatches = inventory.reduce((sum, item) => sum + (item.archivedBatches || 0), 0);
 
-    console.log(`📊 Final result: ${inventory.length} inventory items, ${totalUnits} total units`);
-    console.log(`📊 Data source: ${dataSource}`);
-    console.log(`📊 Total batches: ${totalBatches}, Archived: ${totalArchivedBatches}`);
+    console.log(`📊 Final inventory result:`, {
+      inventoryItems: inventory.length,
+      totalUnits: totalUnits,
+      totalBatches: totalBatches,
+      totalArchivedBatches: totalArchivedBatches,
+      dataSource: dataSource,
+      shift: validatedShift
+    });
 
     return NextResponse.json({ 
       data: inventory,
@@ -221,19 +203,29 @@ export async function GET(request: NextRequest) {
       totalBatches,
       totalArchivedBatches,
       shift: validatedShift,
-      date: dateParam,
       source: dataSource,
-      recordCount: allBatches.length,
+      recordCount: batchesData?.length || 0,
+      dataFetchRange: dataFetchRange,
       shiftContext: {
-        shouldShowArchivedData: shiftContext.shouldShowArchivedData,
-        isManager: shiftContext.isManager,
+        shouldShowArchivedData: dataSource === 'all_batches',
+        isManager: false, // Inventory page doesn't need manager-specific context
+      },
+      // Debug info for production monitoring
+      debug: {
+        requestedShift: requestedShift,
+        actualShift: actualShift,
+        shiftBoundary: `${inventoryShiftInfo.shiftStartTime} - ${inventoryShiftInfo.nextShiftTime}`,
+        dataWindow: dataFetchRange.description
       }
     });
 
   } catch (error) {
-    console.error('Unexpected error fetching inventory:', error);
+    console.error('❌ Unexpected error fetching inventory:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

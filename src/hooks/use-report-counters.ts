@@ -1,8 +1,8 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useState, useEffect } from 'react';
+import { getReportCounts } from '@/lib/reports/server-actions';
 
 export interface ReportCounters {
   managerCount: number;
@@ -26,31 +26,15 @@ export const useReportCounters = (): ReportCounters => {
   };
 
   const today = getCurrentDate();
-  const supabase = createClientComponentClient();
 
-  // Query for manager reports (all_batches table)
+  // Combined query for both report types using server action
   const { 
-    data: managerReports, 
-    isLoading: managerLoading,
-    error: managerError 
+    data: reportCounts, 
+    isLoading,
+    error: queryError 
   } = useQuery({
-    queryKey: ['manager-reports-counter', today],
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('all_batches')
-          .select('id, created_at')
-          .gte('created_at', `${today}T00:00:00.000Z`)
-          .lt('created_at', `${today}T23:59:59.999Z`)
-          .limit(1);
-
-        if (error) throw error;
-        return data || [];
-      } catch (err) {
-        console.error('Error fetching manager reports:', err);
-        throw err;
-      }
-    },
+    queryKey: ['report-counters', today],
+    queryFn: () => getReportCounts(),
     refetchInterval: 30000, // 30 seconds
     staleTime: 30000, // Consider data stale after 30 seconds
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
@@ -58,45 +42,15 @@ export const useReportCounters = (): ReportCounters => {
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Query for sales reports (shift_reports table)
-  const { 
-    data: salesReports, 
-    isLoading: salesLoading,
-    error: salesError 
-  } = useQuery({
-    queryKey: ['sales-reports-counter', today],
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('shift_reports')
-          .select('id, created_at')
-          .gte('created_at', `${today}T00:00:00.000Z`)
-          .lt('created_at', `${today}T23:59:59.999Z`)
-          .limit(1);
-
-        if (error) throw error;
-        return data || [];
-      } catch (err) {
-        console.error('Error fetching sales reports:', err);
-        throw err;
-      }
-    },
-    refetchInterval: 30000, // 30 seconds
-    staleTime: 30000,
-    gcTime: 5 * 60 * 1000,
-    retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
-  });
-
   // Handle errors
   useEffect(() => {
-    if (managerError || salesError) {
-      const errorMessage = managerError?.message || salesError?.message || 'Failed to fetch report data';
+    if (queryError) {
+      const errorMessage = queryError?.message || 'Failed to fetch report data';
       setError(errorMessage);
     } else {
       setError(null);
     }
-  }, [managerError, salesError]);
+  }, [queryError]);
 
   // LocalStorage helpers with daily reset
   const getViewedKey = (type: 'manager' | 'sales') => `owner_viewed_${type}_${today}`;
@@ -134,16 +88,14 @@ export const useReportCounters = (): ReportCounters => {
     }
   };
 
-  // Calculate counters
-  const rawManagerCount = (managerReports && managerReports.length > 0) ? 1 : 0;
-  const rawSalesCount = (salesReports && salesReports.length > 0) ? 1 : 0;
+  // Calculate counters with viewed state logic
+  const rawManagerCount = reportCounts?.managerCount || 0;
+  const rawSalesCount = reportCounts?.salesCount || 0;
   
   // Apply viewed state logic
   const managerCount = rawManagerCount && !hasViewed('manager') ? 1 : 0;
   const salesCount = rawSalesCount && !hasViewed('sales') ? 1 : 0;
   const totalCount = managerCount + salesCount;
-
-  const isLoading = managerLoading || salesLoading;
 
   return {
     managerCount,

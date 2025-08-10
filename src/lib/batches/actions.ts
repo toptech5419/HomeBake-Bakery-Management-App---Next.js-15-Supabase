@@ -1,6 +1,7 @@
 'use server';
 
 import { createServer } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import { logBatchActivity, logReportActivity } from '@/lib/activities/server-activity-service';
 
@@ -421,16 +422,29 @@ export async function checkAndSaveBatchesToAllBatches(shift?: 'morning' | 'night
 
 // Delete all batches for current user's shift (for managers/owners only)
 export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<void> {
-  const supabase = await createServer();
+  // Use service role client to bypass RLS for batch deletion
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
+
+  // Get current user from regular client for permission check
+  const regularSupabase = await createServer();
   
   // First, get the current user to check permissions
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await regularSupabase.auth.getUser();
   
   if (authError || !user) {
     throw new Error('Authentication required');
   }
 
-  // Get user role from users table
+  // Get user role from users table using service role client
   const { data: userData, error: userError } = await supabase
     .from('users')
     .select('role')
@@ -448,6 +462,33 @@ export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<voi
 
   console.log(`🧹 Starting batch deletion for current user (${user.id}) - ${shift || 'all'} shift (ALL DATES)`);
 
+  // First, check how many batches will be deleted
+  let countQuery = supabase
+    .from('batches')
+    .select('id, batch_number, shift, created_at')
+    .eq('created_by', user.id); // Filter by current user
+
+  // If shift is specified, filter by shift
+  if (shift) {
+    countQuery = countQuery.eq('shift', shift);
+    console.log(`🎯 Counting batches for current user and shift: ${shift} (ALL DATES)`);
+  } else {
+    console.log('⚠️ No shift specified, counting all batches for current user (ALL DATES)');
+  }
+
+  const { data: batchesToDelete, error: countError } = await countQuery;
+  
+  if (countError) {
+    console.error('Error counting batches to delete:', countError);
+  } else {
+    console.log(`📊 Found ${batchesToDelete?.length || 0} batches to delete for current user - ${shift || 'all'} shift`);
+    if (batchesToDelete && batchesToDelete.length > 0) {
+      batchesToDelete.forEach(batch => {
+        console.log(`   - Batch ${batch.batch_number} (${batch.shift} shift) - ${batch.created_at}`);
+      });
+    }
+  }
+
   // Build the delete query with user and shift filtering (no date restriction)
   let deleteQuery = supabase
     .from('batches')
@@ -457,19 +498,35 @@ export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<voi
   // If shift is specified, filter by shift
   if (shift) {
     deleteQuery = deleteQuery.eq('shift', shift);
-    console.log(`🎯 Filtering by current user and shift: ${shift} (ALL DATES)`);
+    console.log(`🗑️ Deleting batches for current user and shift: ${shift} (ALL DATES)`);
   } else {
-    console.log('⚠️ No shift specified, will delete all batches for current user (ALL DATES)');
+    console.log('🗑️ Deleting all batches for current user (ALL DATES)');
   }
 
-  const { error } = await deleteQuery;
+  const { error, count } = await deleteQuery;
 
   if (error) {
-    console.error('Error deleting batches:', error);
-    throw new Error(`Failed to delete ${shift || 'all'} shift batches for current user`);
+    console.error('❌ Error deleting batches:', error);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error details:', error.details);
+    console.error('❌ Error hint:', error.hint);
+    throw new Error(`Failed to delete ${shift || 'all'} shift batches: ${error.message}`);
   }
 
-  console.log(`✅ Successfully deleted ${shift || 'all'} shift batches for current user (${user.id}) (ALL DATES)`);
+  console.log(`✅ Successfully deleted ${count || 'unknown number of'} ${shift || 'all'} shift batches for current user (${user.id}) (ALL DATES)`);
+  
+  // Verify deletion by counting remaining batches
+  const { data: remainingBatches, error: verifyError } = await countQuery;
+  if (!verifyError) {
+    console.log(`🔍 Verification: ${remainingBatches?.length || 0} batches remain for current user - ${shift || 'all'} shift`);
+    if (remainingBatches && remainingBatches.length > 0) {
+      console.warn('⚠️ Some batches were not deleted:');
+      remainingBatches.forEach(batch => {
+        console.warn(`   - Still exists: ${batch.batch_number} (${batch.shift} shift) - ${batch.created_at}`);
+      });
+    }
+  }
   
   // Invalidate all relevant paths and caches
   revalidatePath('/dashboard');

@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from '@tanstack/react-query';
-import { useAutoShift } from '@/hooks/use-auto-shift';
+import { useInventoryShift } from '@/hooks/use-inventory-shift';
+import { useRealtimeBatches } from '@/hooks/use-realtime-batches';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import React from 'react'; // Added missing import for React
@@ -66,23 +67,37 @@ async function fetchShiftInventory(shift: 'morning' | 'night', date?: string): P
   };
 }
 
-// Main hook for inventory data with enhanced shift management
+// Main hook for inventory data with production-ready automatic shift management
 export function useInventoryData(user?: any) {
-  const { currentShift, shiftStartDateTime, shiftEndDateTime, isLoading: shiftLoading } = useAutoShift();
-
-  const targetDate = new Date().toISOString().split('T')[0];
+  // Use dedicated inventory shift logic (10AM/10PM automatic switching)
+  const {
+    currentShift,
+    shiftStartDateTime,
+    shiftEndDateTime,
+    dataFetchRange,
+    timeUntilNextShift,
+    isLoading: shiftLoading
+  } = useInventoryShift();
+  
+  console.log(`🔄 Inventory automatic shift: ${currentShift}`);
+  console.log(`📅 Data range: ${dataFetchRange.description}`);
 
   // Use fallback user ID if no user is provided (for immediate data loading)
   const effectiveUser = user || { id: 'f45d8ffb-50a1-4e73-8d5c-d2a2f9a160c9' };
 
-  const fetchShiftInventory = async (shift: string, date: string) => {
+  const fetchInventoryData = async () => {
     try {
-      console.log(`🔍 Fetching inventory for shift: ${shift}, date: ${date}`);
+      console.log(`🔍 Fetching inventory for ${currentShift} shift`);
+      console.log(`📅 Using data range: ${dataFetchRange.description}`);
       console.log(`🔍 User authenticated: ${!!effectiveUser}`);
-      console.log(`🔍 User ID: ${effectiveUser?.id}`);
-      console.log(`🔍 Making API call to: /api/inventory/shift?shift=${shift}&date=${date}`);
 
-      const response = await fetch(`/api/inventory/shift?shift=${shift}&date=${date}`, {
+      const params = new URLSearchParams({
+        shift: currentShift,
+        // Pass additional context for production debugging
+        debug: 'true'
+      });
+
+      const response = await fetch(`/api/inventory/shift?${params.toString()}`, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -97,8 +112,13 @@ export function useInventoryData(user?: any) {
       }
 
       const data = await response.json();
-      console.log(`📊 API Response data:`, data);
-      console.log(`📊 API Response data length: ${data.data?.length || 0}`);
+      console.log(`📊 Inventory API Response:`, {
+        items: data.data?.length || 0,
+        totalUnits: data.totalUnits || 0,
+        source: data.source,
+        shift: data.shift,
+        debug: data.debug
+      });
 
       return data;
     } catch (error) {
@@ -107,7 +127,7 @@ export function useInventoryData(user?: any) {
     }
   };
 
-  // Production-ready React Query configuration
+  // Production-ready React Query configuration with improved performance
   const {
     data: inventoryData = { 
       data: [], 
@@ -127,46 +147,33 @@ export function useInventoryData(user?: any) {
     isError,
     isFetching
   } = useQuery({
-    queryKey: ['inventory', currentShift, targetDate, effectiveUser?.id],
-    queryFn: () => {
-      console.log(`🔍 React Query: Executing query function`);
-      console.log(`🔍 React Query: Query key: ['inventory', ${currentShift}, ${targetDate}, ${effectiveUser?.id}]`);
-      return fetchShiftInventory(currentShift, targetDate);
-    },
+    queryKey: ['inventory', currentShift, dataFetchRange.startTime, dataFetchRange.endTime],
+    queryFn: fetchInventoryData,
     enabled: !!currentShift && !shiftLoading,
-    staleTime: 15 * 1000, // 15 seconds - data is fresh for 15 seconds
+    staleTime: 5 * 1000, // 5 seconds - data is fresh for 5 seconds (faster updates)
     gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache for 5 minutes
-    refetchInterval: 15 * 1000, // Refetch every 15 seconds for real-time updates
-    refetchIntervalInBackground: true, // Continue refetching in background
+    refetchInterval: 10 * 1000, // Refetch every 10 seconds for near real-time updates
+    refetchIntervalInBackground: false, // Conserve resources when tab not active
     refetchOnWindowFocus: true, // Refetch when user returns to tab
     retry: 3, // Retry failed requests 3 times
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     refetchOnMount: true, // Always refetch when component mounts
     refetchOnReconnect: true, // Refetch when network reconnects
+    networkMode: 'offlineFirst', // Better offline experience
   });
 
-  // Calculate time until next shift
-  const [timeUntilNextShift, setTimeUntilNextShift] = useState<string>('');
-  
-  useEffect(() => {
-    const updateCountdown = () => {
-      const now = new Date();
-      const timeLeft = shiftEndDateTime.getTime() - now.getTime();
-      
-      if (timeLeft > 0) {
-        const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-        setTimeUntilNextShift(`${hours}h ${minutes}m`);
-      } else {
-        setTimeUntilNextShift('Refreshing...');
-      }
-    };
+  // Add real-time subscriptions for instant updates (after refetch is defined)
+  const { connectionState } = useRealtimeBatches({
+    enabled: true,
+    shift: currentShift,
+    onBatchChange: (event, payload) => {
+      console.log(`📡 Inventory received real-time batch ${event} for ${currentShift} shift`);
+      // Force immediate refetch when batch changes occur
+      refetch();
+    }
+  });
 
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 60000); // Update every minute
-
-    return () => clearInterval(interval);
-  }, [shiftEndDateTime]);
+  // Time until next shift is provided by useInventoryShift hook
 
   const shiftStatus = inventoryData.shiftContext || {
     shouldShowArchivedData: false,
@@ -178,9 +185,12 @@ export function useInventoryData(user?: any) {
     totalBatches: inventoryData.totalBatches || 0,
     totalArchivedBatches: inventoryData.totalArchivedBatches || 0,
     recordCount: inventoryData.recordCount || 0,
-    timeUntilNextShift,
+    timeUntilNextShift: timeUntilNextShift,
     nextShiftTime: currentShift === 'morning' ? '10:00 PM' : '10:00 AM',
     refreshData: refetch,
+    // Production debugging info
+    currentShift: currentShift,
+    dataWindow: dataFetchRange.description,
   };
 
   return {
@@ -193,5 +203,6 @@ export function useInventoryData(user?: any) {
     dataSourceInfo,
     isFetching, // Expose fetching state for UI feedback
     isError, // Expose error state for better error handling
+    realtimeConnectionState: connectionState, // Expose real-time connection status
   };
 }

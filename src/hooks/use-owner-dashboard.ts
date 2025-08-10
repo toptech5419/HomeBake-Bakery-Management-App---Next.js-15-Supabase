@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { getTodayRevenue, getTodayBatchCount, getStaffOnlineCount, getLowStockCount, getLagosDateString } from '@/lib/dashboard/owner-stats';
+import { getOwnerDashboardStats, getTodayRevenue, getTodayBatchCount, getStaffOnlineCount, getLowStockCount } from '@/lib/dashboard/server-actions';
 
 interface OwnerDashboardStats {
   todayRevenue: number;
@@ -36,26 +36,9 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
     try {
       setError(null);
       
-      const [
-        todayRevenue,
-        todayBatches,
-        staffCounts,
-        lowStockCount
-      ] = await Promise.all([
-        getTodayRevenue(),
-        getTodayBatchCount(),
-        getStaffOnlineCount(),
-        getLowStockCount()
-      ]);
-
-      setStats({
-        todayRevenue,
-        todayBatches,
-        staffOnline: staffCounts.online,
-        staffTotal: staffCounts.total,
-        lowStockCount,
-        lastUpdate: new Date().toISOString()
-      });
+      // Use the combined server action for better performance
+      const statsData = await getOwnerDashboardStats();
+      setStats(statsData);
     } catch (err) {
       console.error('Error fetching owner dashboard stats:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch stats');

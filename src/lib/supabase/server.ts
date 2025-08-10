@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
-import type { Database } from '@/types/supabase'
+import type { Database } from '@/types/database'
 
 // Read-only server client for server components (cannot set cookies)
 export async function createServerComponentClient() {
@@ -230,6 +231,33 @@ export async function createServer() {
     console.error('Error creating server client:', error)
     throw new Error('Failed to initialize database connection')
   }
+}
+
+// Service role client for operations that bypass RLS
+export function createServiceRoleClient() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL environment variable is not set')
+  }
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is not set')
+  }
+
+  return createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'homebake-pwa@2.0.0-service-role'
+        }
+      }
+    }
+  )
 }
 
 // Alias for backward compatibility - use createServerComponentClient for server components
