@@ -234,16 +234,6 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
                       <div className={`relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all ${pushNotificationsEnabled ? 'peer-checked:bg-orange-500' : ''} ${(!pushNotificationsSupported || pushNotificationsLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
                     </label>
                   </div>
-                  
-                  {/* Test Notification Button */}
-                  {pushNotificationsEnabled && (
-                    <button
-                      onClick={sendTestNotification}
-                      className="w-full py-2 px-4 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-colors text-sm font-medium border border-orange-200"
-                    >
-                      🧪 Send Test Notification
-                    </button>
-                  )}
                 </div>
               </div>
 

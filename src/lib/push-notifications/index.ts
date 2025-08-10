@@ -46,7 +46,7 @@ class PushNotificationService {
   }
 
   /**
-   * Initialize push notification service
+   * Initialize push notification service (without auth-dependent operations)
    */
   async initialize(): Promise<boolean> {
     if (!this._isSupported) {
@@ -58,22 +58,12 @@ class PushNotificationService {
       // Register service worker
       await this.registerServiceWorker();
       
-      // Check current permission status
-      const permission = await Notification.requestPermission();
-      
-      if (permission === 'granted') {
-        // Load saved preferences
-        await this.loadUserPreferences();
-        
-        // Subscribe to push notifications if enabled
-        if (this._isEnabled) {
-          await this.subscribeToPush();
-        }
-      }
+      // Don't load user preferences here - will be done by React hook where auth is available
+      console.log('Push notifications service initialized (preferences will be loaded by hook)');
 
       return true;
     } catch (error) {
-      console.error('Failed to initialize push notifications:', error);
+      console.error('Failed to initialize push notifications service:', error);
       return false;
     }
   }
@@ -97,18 +87,30 @@ class PushNotificationService {
   }
 
   /**
-   * Load user preferences from database
+   * Load user preferences from database with explicit userId
    */
-  private async loadUserPreferences(): Promise<void> {
+  async loadUserPreferences(userId?: string): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      let finalUserId = userId;
+      
+      if (!finalUserId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.log('❌ No user ID provided and no authenticated user found');
+          return;
+        }
+        finalUserId = user.id;
+      }
+      
+      console.log('🔍 Loading push preferences for user:', finalUserId);
 
       const { data: preferences, error } = await supabase
         .from('push_notification_preferences')
         .select('enabled, endpoint, p256dh_key, auth_key')
-        .eq('user_id', user.id)
+        .eq('user_id', finalUserId)
         .single();
+      
+      console.log('📊 Database query result:', { preferences, error });
 
       if (error && error.code !== 'PGRST116') { // Not found is OK
         console.error('Error loading push preferences:', error);
@@ -116,7 +118,10 @@ class PushNotificationService {
       }
 
       if (preferences) {
-        this._isEnabled = preferences.enabled;
+        // Handle both string and boolean values from database
+        this._isEnabled = preferences.enabled === true || preferences.enabled === 'true';
+        console.log('✅ Loaded push notification preference from DB:', this._isEnabled, '(raw value:', preferences.enabled, ')');
+        
         if (preferences.endpoint && preferences.p256dh_key && preferences.auth_key) {
           this.subscription = {
             endpoint: preferences.endpoint,
@@ -125,10 +130,51 @@ class PushNotificationService {
               auth: preferences.auth_key
             }
           };
+          console.log('✅ Loaded existing subscription from DB');
+        }
+      } else {
+        console.log('ℹ️ No push notification preferences found in DB - creating default record with enabled=true');
+        try {
+          // Create default record with enabled=true (matching database default)
+          await this.createDefaultPreferences(finalUserId);
+          this._isEnabled = true;
+        } catch (createError) {
+          console.warn('⚠️ Failed to create default preferences, using fallback enabled=true');
+          this._isEnabled = true; // Still default to enabled as per schema
         }
       }
     } catch (error) {
-      console.error('Failed to load user preferences:', error);
+      console.error('❌ Failed to load user preferences:', error);
+      // On database failure, default to enabled (to match database default) but don't crash
+      this._isEnabled = true;
+    }
+  }
+
+  /**
+   * Create default preferences record for new users
+   */
+  private async createDefaultPreferences(userId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('push_notification_preferences')
+        .insert({
+          user_id: userId,
+          enabled: true as boolean, // Explicitly ensure boolean type
+          endpoint: null,
+          p256dh_key: null,
+          auth_key: null,
+          user_agent: navigator.userAgent
+        });
+
+      if (error) {
+        console.error('❌ Failed to create default preferences:', error);
+        throw error;
+      }
+      
+      console.log('✅ Created default push notification preferences for user');
+    } catch (error) {
+      console.error('❌ Error creating default preferences:', error);
+      throw error;
     }
   }
 
@@ -301,7 +347,7 @@ class PushNotificationService {
         .from('push_notification_preferences')
         .upsert({
           user_id: user_id,
-          enabled: this._isEnabled,
+          enabled: Boolean(this._isEnabled), // Ensure proper boolean type
           ...subscriptionData,
           user_agent: navigator.userAgent
         }, {
@@ -412,6 +458,13 @@ class PushNotificationService {
    */
   isEnabled(): boolean {
     return this._isEnabled && this._isSupported && Notification.permission === 'granted';
+  }
+
+  /**
+   * Get user preference only (regardless of browser permission)
+   */
+  getUserPreference(): boolean {
+    return this._isEnabled;
   }
 
   /**

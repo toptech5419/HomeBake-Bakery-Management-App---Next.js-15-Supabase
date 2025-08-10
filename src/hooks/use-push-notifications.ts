@@ -19,7 +19,7 @@ export interface PushNotificationHook {
  * Hook for managing push notifications
  */
 export function usePushNotifications(userId?: string): PushNotificationHook {
-  const [isEnabled, setIsEnabled] = useState(false);
+  const [isEnabled, setIsEnabled] = useState<boolean | null>(null); // null = not loaded yet
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isLoading, setIsLoading] = useState(true);
@@ -43,20 +43,34 @@ export function usePushNotifications(userId?: string): PushNotificationHook {
         return;
       }
 
-      // Initialize the service
+      // Initialize the service (service worker registration only)
       const initialized = await pushNotifications.initialize();
       if (!initialized) {
-        setError('Failed to initialize push notifications');
+        console.warn('⚠️ Push notifications service initialization failed - defaulting to disabled');
+        setError('Failed to initialize push notifications service');
+        setIsEnabled(false);
         return;
       }
 
-      // Get current status
-      setIsEnabled(pushNotifications.isEnabled());
+      // Load user preferences from database (pass userId directly if available)
+      await pushNotifications.loadUserPreferences(userId);
+
+      // Get user preference from database (now loaded)
+      const userPreference = pushNotifications.getUserPreference();
+      setIsEnabled(userPreference);
       setPermission(pushNotifications.getPermissionStatus());
+      
+      console.log('Push notifications initialized:', { 
+        userPreference, 
+        fullyEnabled: pushNotifications.isEnabled(), 
+        permission: pushNotifications.getPermissionStatus() 
+      });
 
     } catch (error: any) {
       console.error('❌ Push notification initialization failed:', error);
       setError(error.message || 'Failed to initialize push notifications');
+      // On any initialization error, default to disabled for safety
+      setIsEnabled(false);
     } finally {
       setIsLoading(false);
     }
@@ -201,7 +215,7 @@ export function usePushNotifications(userId?: string): PushNotificationHook {
   }, []);
 
   return {
-    isEnabled,
+    isEnabled: isLoading ? false : Boolean(isEnabled), // Show false during loading, then actual user preference
     isSupported,
     permission,
     isLoading,
