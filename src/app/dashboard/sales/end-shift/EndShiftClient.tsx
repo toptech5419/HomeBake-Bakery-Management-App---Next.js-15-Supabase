@@ -10,6 +10,8 @@ import { supabase } from '@/lib/supabase/client';
 import { useShift } from '@/contexts/ShiftContext';
 import { toast } from 'sonner';
 import { createSalesLog } from '@/lib/sales/actions';
+import { getBreadTypesForSales, getSalesDataForShift, getRemainingBreadData } from '@/lib/reports/sales-reports-server-actions';
+import { getRemainingBread, updateRemainingBread } from '@/lib/reports/actions';
 import { useRouter } from 'next/navigation';
 import { setNavigationHistory } from '@/lib/utils/navigation-history';
 
@@ -60,69 +62,110 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedback, setFeedback] = useState('');
 
+  // Initialize loading state to true so page shows loading on first render
+  const [initialLoading, setInitialLoading] = useState(true);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch bread types
-      const { data: breadTypesData } = await supabase
-        .from('bread_types')
-        .select('id, name, unit_price')
-        .order('name');
+      // Fetch bread types using server action
+      try {
+        const breadTypesData = await getBreadTypesForSales();
+        if (breadTypesData) {
+          setBreadTypes(breadTypesData);
+          setQuickRecordItems(breadTypesData.map((bt: any) => ({ breadType: bt, quantity: 0 })));
+          setQuickRemainingItems(breadTypesData.map((bt: any) => ({ breadType: bt, quantity: 0 })));
+        }
+      } catch (serverActionError) {
+        console.error('Server action failed, falling back to direct query:', serverActionError);
+        // Fallback to direct query
+        const { data: breadTypesData } = await supabase
+          .from('bread_types')
+          .select('id, name, unit_price')
+          .order('name');
 
-      if (breadTypesData) {
-        setBreadTypes(breadTypesData);
-        setQuickRecordItems(breadTypesData.map(bt => ({ breadType: bt, quantity: 0 })));
-        setQuickRemainingItems(breadTypesData.map(bt => ({ breadType: bt, quantity: 0 })));
+        if (breadTypesData) {
+          setBreadTypes(breadTypesData);
+          setQuickRecordItems(breadTypesData.map((bt: any) => ({ breadType: bt, quantity: 0 })));
+          setQuickRemainingItems(breadTypesData.map((bt: any) => ({ breadType: bt, quantity: 0 })));
+        }
       }
 
-      // Fetch all sales logs for current shift
-      const { data: salesData, error: salesError } = await supabase
-        .from('sales_logs')
-        .select(`
-          *,
-          bread_types (
-            id,
-            name,
-            unit_price
-          )
-        `)
-        .eq('shift', currentShift)
-        .eq('recorded_by', userId)
-        .order('created_at', { ascending: false });
+      // Fetch sales data using server action
+      try {
+        const salesData = await getSalesDataForShift(userId, currentShift);
+        if (salesData) {
+          setSalesLogs(salesData);
+          
+          // Auto-fill "Record Additional Sales" with quantities from sales_logs
+          const salesQuantities = new Map<string, number>();
+          
+          salesData.forEach((sale: SalesLog) => {
+            const breadTypeId = sale.bread_type_id;
+            const currentQuantity = salesQuantities.get(breadTypeId) || 0;
+            salesQuantities.set(breadTypeId, currentQuantity + sale.quantity);
+          });
 
-      if (salesError) {
-        console.error('❌ Error fetching sales data:', salesError);
-        throw salesError;
+          // Update quickRecordItems with quantities from sales_logs
+          setQuickRecordItems(prevItems => 
+            prevItems.map(item => ({
+              ...item,
+              quantity: salesQuantities.get(item.breadType.id) || 0
+            }))
+          );
+        }
+      } catch (serverActionError) {
+        console.error('Server action failed, falling back to direct query:', serverActionError);
+        // Fallback to direct query
+        const { data: salesData, error: salesError } = await supabase
+          .from('sales_logs')
+          .select(`
+            *,
+            bread_types (
+              id,
+              name,
+              unit_price
+            )
+          `)
+          .eq('shift', currentShift)
+          .eq('recorded_by', userId)
+          .order('created_at', { ascending: false });
+
+        if (salesError) {
+          console.error('❌ Error fetching sales data:', salesError);
+          throw salesError;
+        }
+
+        if (salesData) {
+          setSalesLogs(salesData);
+          
+          // Auto-fill "Record Additional Sales" with quantities from sales_logs
+          const salesQuantities = new Map<string, number>();
+          
+          salesData.forEach((sale: SalesLog) => {
+            const breadTypeId = sale.bread_type_id;
+            const currentQuantity = salesQuantities.get(breadTypeId) || 0;
+            salesQuantities.set(breadTypeId, currentQuantity + sale.quantity);
+          });
+
+          // Update quickRecordItems with quantities from sales_logs
+          setQuickRecordItems(prevItems => 
+            prevItems.map(item => ({
+              ...item,
+              quantity: salesQuantities.get(item.breadType.id) || 0
+            }))
+          );
+        }
       }
 
-      if (salesData) {
-        setSalesLogs(salesData);
-        
-        // Auto-fill "Record Additional Sales" with quantities from sales_logs
-        const salesQuantities = new Map<string, number>();
-        
-        salesData.forEach((sale: SalesLog) => {
-          const breadTypeId = sale.bread_type_id;
-          const currentQuantity = salesQuantities.get(breadTypeId) || 0;
-          salesQuantities.set(breadTypeId, currentQuantity + sale.quantity);
-        });
-
-        // Update quickRecordItems with quantities from sales_logs
-        setQuickRecordItems(prevItems => 
-          prevItems.map(item => ({
-            ...item,
-            quantity: salesQuantities.get(item.breadType.id) || 0
-          }))
-        );
-      }
-
-      // Load existing remaining bread data from sales_logs
+      // Load existing remaining bread data
       await loadRemainingBreadData();
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load data');
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   }, [currentShift, userId]);
 
@@ -132,21 +175,20 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
   const loadRemainingBreadData = async () => {
     try {
-      // Load all remaining bread records
-      const { data: remainingData } = await supabase
-        .from('remaining_bread')
-        .select('*')
-        .eq('recorded_by', userId);
-
-      if (remainingData && remainingData.length > 0) {
+      // Use new server action
+      const result = await getRemainingBread(userId);
+      
+      if (result.success && result.data && result.data.length > 0) {
         setQuickRemainingItems(prevItems => 
           prevItems.map(item => {
-            const totalRemaining = remainingData
-              .filter(r => (r as unknown as {bread_type_id: string}).bread_type_id === item.breadType.id)
-              .reduce((sum, r) => sum + ((r as unknown as {quantity: number}).quantity || 0), 0);
+            const totalRemaining = result.data
+              .filter(r => r.bread_type_id === item.breadType.id)
+              .reduce((sum, r) => sum + (r.quantity || 0), 0);
             return { ...item, quantity: totalRemaining };
           })
         );
+      } else if (!result.success) {
+        console.error('Error loading remaining bread:', result.error);
       }
     } catch (error) {
       console.error('Error loading remaining bread:', error);
@@ -182,151 +224,110 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
   const handleSubmitWithFeedback = async () => {
     setSubmitting(true);
+    
     try {
-      const salesToRecord = quickRecordItems.filter(item => item.quantity > 0);
-      const remainingToRecord = quickRemainingItems.filter(item => item.quantity > 0);
+      // Show loading toast
+      toast.loading('Ending shift and clearing data...', { id: 'end-shift' });
       
-      // Update or create sales records based on final quantities
-      for (const item of salesToRecord) {
-        const existingRecord = salesLogs.find(log => 
-          log.bread_type_id === item.breadType.id
-        );
+      // END SHIFT: Clear all sales logs for the current user and shift
+      console.log('🧹 END SHIFT: Clearing all sales logs for current user/shift:', { userId, currentShift });
+      
+      const { error: clearError, count } = await supabase
+        .from('sales_logs')
+        .delete({ count: 'exact' })
+        .eq('recorded_by', userId)
+        .eq('shift', currentShift);
+
+      if (clearError) {
+        console.error('❌ Error clearing sales logs:', clearError);
+        toast.error('Failed to clear shift data. Please try again.', { id: 'end-shift' });
+        setSubmitting(false);
+        return;
+      }
+
+      console.log('✅ END SHIFT: Sales logs cleared successfully', { deletedCount: count });
+      
+      // Dismiss loading toast and show success
+      toast.dismiss('end-shift');
+      toast.success(`Shift ended! Cleared ${count || 0} sales records.`);
+
+      // Add a small delay for UI feedback, then navigate with replace for smooth transition
+      setTimeout(() => {
+        // Use replace for smoother transition without history stack
+        router.replace('/dashboard/sales');
         
-        if (existingRecord) {
-          // Update existing record to the new quantity
-          const { error: updateError } = await supabase
-            .from('sales_logs')
-            .update({
-              quantity: item.quantity,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existingRecord.id);
-
-          if (updateError) {
-            console.error('Error updating sale:', updateError);
-            throw updateError;
-          }
-        } else {
-          // Create new record if none exists using server action
-          await createSalesLog({
-            bread_type_id: item.breadType.id,
-            quantity: item.quantity,
-            unit_price: item.breadType.unit_price,
-            shift: currentShift,
-            recorded_by: userId
-          });
-        }
-      }
-
-      // Handle remaining breads - update, insert, or delete based on quantity
-      const allBreadTypes = [...new Set([...remainingToRecord.map(item => item.breadType), ...breadTypes])];
-      
-      for (const breadType of allBreadTypes) {
-        const item = remainingToRecord.find(r => r.breadType.id === breadType.id);
-        const quantity = item ? item.quantity : 0;
-
-        if (quantity === 0) {
-          // Delete any existing record for this bread type
-          await supabase
-            .from('remaining_bread')
-            .delete()
-            .eq('bread_type_id', breadType.id)
-            .eq('recorded_by', userId);
-        } else {
-          // Update or insert record
-          const { data: existingRecords } = await supabase
-            .from('remaining_bread')
-            .select('id')
-            .eq('bread_type_id', breadType.id)
-            .eq('recorded_by', userId)
-            .limit(1);
-
-          const existingRecord = existingRecords && existingRecords.length > 0 ? existingRecords[0] : null;
-
-          if (existingRecord) {
-            // Update existing record
-            await supabase
-              .from('remaining_bread')
-              .update({
-                shift: currentShift,
-                bread_type: breadType.name,
-                bread_type_id: breadType.id,
-                quantity: quantity,
-                unit_price: breadType.unit_price,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', existingRecord.id);
-          } else {
-            // Insert new record
-            await supabase
-              .from('remaining_bread')
-              .insert({
-                shift: currentShift,
-                bread_type: breadType.name,
-                bread_type_id: breadType.id,
-                quantity: quantity,
-                unit_price: breadType.unit_price,
-                recorded_by: userId
-              });
-          }
-        }
-      }
-
-      // Calculate monetary values for remaining bread
-      const totalRemainingMonetaryValue = remainingToRecord.reduce((sum, item) => {
-        return sum + (item.quantity * item.breadType.unit_price);
-      }, 0);
-
-      // Generate report data using only the final quantities from the form
-      const reportData = {
-        salesRecords: salesToRecord.map(item => ({
-          breadType: item.breadType.name,
-          quantity: item.quantity,
-          unitPrice: item.breadType.unit_price,
-          totalAmount: item.quantity * item.breadType.unit_price,
-          timestamp: new Date().toISOString()
-        })),
-        remainingBreads: remainingToRecord.map(item => ({
-          breadType: item.breadType.name,
-          quantity: item.quantity,
-          unitPrice: item.breadType.unit_price,
-          totalAmount: item.quantity * item.breadType.unit_price
-        })),
-        totalRevenue: salesToRecord.reduce((sum, item) => 
-          sum + (item.quantity * item.breadType.unit_price), 0),
-        totalItemsSold: salesToRecord.reduce((sum, item) => 
-          sum + item.quantity, 0),
-        totalRemaining: totalRemainingMonetaryValue,
-        feedback: feedback.trim() || null,
-        shift: currentShift,
-        timeOfSales: new Date().toLocaleTimeString(),
-        userId: userId
-      };
-
-      toast.success('Shift feedback submitted successfully!');
-
-      // Set navigation history so final-report knows to come back here
-      setNavigationHistory('/dashboard/sales/end-shift', 'sales_rep', 'end-shift');
-
-      // Navigate to final report page with data
-      const encodedData = encodeURIComponent(JSON.stringify(reportData));
-      router.push(`/dashboard/sales/final-report?data=${encodedData}`);
+        // Force refresh the page after navigation
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
+      }, 1000);
 
     } catch (error) {
-      console.error('Error submitting report:', error);
-      toast.error('Failed to submit shift feedback. Please try again.');
+      console.error('Error ending shift:', error);
+      toast.error('Failed to end shift. Please try again.', { id: 'end-shift' });
       setSubmitting(false);
     }
   };
 
-  // Check if Submit Report should be enabled
+  // Enable End Shift button if there are any sales logs to clear
   const hasSalesLogs = salesLogs.length > 0;
-  const hasSalesToRecord = quickRecordItems.some(item => item.quantity > 0);
-  const hasRemainingToRecord = quickRemainingItems.some(item => item.quantity > 0);
-  const shouldEnableSubmit = hasSalesLogs || hasSalesToRecord || hasRemainingToRecord;
+  const shouldEnableEndShift = hasSalesLogs;
+
+  // Show initial loading screen on first render
+  if (initialLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-orange-50 to-amber-50">
+        {/* Header Skeleton */}
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+          <div className="px-3 sm:px-4 py-4 sm:py-6">
+            <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
+              <div className="h-10 w-10 bg-white/20 rounded-xl animate-pulse"></div>
+              <div className="bg-white/20 p-2 sm:p-3 rounded-xl">
+                <div className="h-5 w-5 sm:h-6 sm:w-6 bg-white/30 rounded animate-pulse"></div>
+              </div>
+              <div className="flex-1">
+                <div className="h-6 w-32 bg-white/20 rounded animate-pulse mb-2"></div>
+                <div className="h-4 w-48 bg-white/10 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Skeleton */}
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+            <p className="text-lg text-gray-600 animate-pulse">Loading End Shift...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative">
+      {/* End Shift Loading Overlay */}
+      {submitting && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm mx-4 text-center">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-16 h-16 border-4 border-red-200 rounded-full opacity-25"></div>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Ending Shift
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  Clearing all sales data...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile-First Header with Back Button */}
       <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white">
         <div className="px-3 sm:px-4 py-4 sm:py-6">
@@ -334,8 +335,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.back()}
-              className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl touch-manipulation flex-shrink-0"
+              onClick={() => router.push('/dashboard/sales')}
+              disabled={submitting}
+              className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -413,7 +415,8 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                         variant="outline"
                         size="sm"
                         onClick={() => updateQuickRecordQuantity(item.breadType.id, item.quantity - 1)}
-                        className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-red-50 hover:border-red-200 transition-colors touch-manipulation flex-shrink-0"
+                        disabled={submitting}
+                        className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-red-50 hover:border-red-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Minus className="h-4 w-4 sm:h-5 sm:w-5" />
                       </Button>
@@ -422,14 +425,16 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                         min="0"
                         value={item.quantity || ''}
                         onChange={(e) => updateQuickRecordQuantity(item.breadType.id, parseInt(e.target.value) || 0)}
-                        className="w-16 sm:w-20 h-10 sm:h-12 text-center border rounded-lg sm:rounded-xl px-2 sm:px-3 py-2 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm sm:text-base touch-manipulation"
+                        disabled={submitting}
+                        className="w-16 sm:w-20 h-10 sm:h-12 text-center border rounded-lg sm:rounded-xl px-2 sm:px-3 py-2 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm sm:text-base touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="0"
                       />
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => updateQuickRecordQuantity(item.breadType.id, item.quantity + 1)}
-                        className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-green-50 hover:border-green-200 transition-colors touch-manipulation flex-shrink-0"
+                        disabled={submitting}
+                        className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-green-50 hover:border-green-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
                       </Button>
@@ -459,7 +464,8 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                         variant="outline"
                         size="sm"
                         onClick={() => updateQuickRecordQuantity(item.breadType.id, item.quantity - 1, true)}
-                        className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-red-50 hover:border-red-200 transition-colors touch-manipulation flex-shrink-0"
+                        disabled={submitting}
+                        className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-red-50 hover:border-red-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Minus className="h-4 w-4 sm:h-5 sm:w-5" />
                       </Button>
@@ -468,14 +474,16 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                         min="0"
                         value={item.quantity || ''}
                         onChange={(e) => updateQuickRecordQuantity(item.breadType.id, parseInt(e.target.value) || 0, true)}
-                        className="w-16 sm:w-20 h-10 sm:h-12 text-center border rounded-lg sm:rounded-xl px-2 sm:px-3 py-2 font-semibold focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-sm sm:text-base touch-manipulation"
+                        disabled={submitting}
+                        className="w-16 sm:w-20 h-10 sm:h-12 text-center border rounded-lg sm:rounded-xl px-2 sm:px-3 py-2 font-semibold focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-sm sm:text-base touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="0"
                       />
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => updateQuickRecordQuantity(item.breadType.id, item.quantity + 1, true)}
-                        className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-green-50 hover:border-green-200 transition-colors touch-manipulation flex-shrink-0"
+                        disabled={submitting}
+                        className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-green-50 hover:border-green-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
                       </Button>
@@ -531,7 +539,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         <div className="max-w-6xl mx-auto flex gap-3 sm:gap-4">
           <Button
             variant="outline"
-            onClick={() => router.back()}
+            onClick={() => router.push('/dashboard/sales')}
             disabled={submitting}
             className="flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl border-2 hover:border-blue-400 transition-all duration-200 text-sm sm:text-base font-semibold touch-manipulation min-h-[48px] sm:min-h-[56px]"
           >
@@ -539,16 +547,16 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
           </Button>
           <Button
             onClick={handleSubmitReport}
-            disabled={submitting || !shouldEnableSubmit}
-            className="flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl touch-manipulation min-h-[48px] sm:min-h-[56px]"
+            disabled={submitting || !shouldEnableEndShift}
+            className="flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl touch-manipulation min-h-[48px] sm:min-h-[56px]"
           >
             {submitting ? (
               <div className="flex items-center justify-center gap-1 sm:gap-2">
                 <div className="rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-white border-t-transparent animate-spin" />
-                <span className="text-sm sm:text-base font-semibold">Processing...</span>
+                <span className="text-sm sm:text-base font-semibold">Ending Shift...</span>
               </div>
             ) : (
-              <span className="text-sm sm:text-base font-semibold">Submit Report</span>
+              <span className="text-sm sm:text-base font-semibold">End Shift</span>
             )}
           </Button>
         </div>
@@ -575,9 +583,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                     <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600" />
                   </div>
                 </div>
-                <h3 className="text-lg sm:text-xl font-bold text-center mb-2">No Remaining Bread</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-center mb-2">End Current Shift</h3>
                 <p className="text-gray-600 text-center mb-4 sm:mb-6 text-sm sm:text-base leading-relaxed">
-                  You haven't recorded any remaining bread. Do you want to proceed with the report anyway?
+                  This will clear all your sales data for the current shift. Are you sure you want to end the shift?
                 </p>
                 <div className="flex gap-3 sm:gap-4">
                   <Button
@@ -589,9 +597,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                   </Button>
                   <Button
                     onClick={handleConfirmProceed}
-                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-sm sm:text-base font-semibold touch-manipulation min-h-[44px] sm:min-h-[48px] rounded-lg sm:rounded-xl"
+                    className="flex-1 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-sm sm:text-base font-semibold touch-manipulation min-h-[44px] sm:min-h-[48px] rounded-lg sm:rounded-xl"
                   >
-                    Proceed
+                    End Shift
                   </Button>
                 </div>
               </div>
@@ -621,16 +629,10 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                     <Send className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
                   </div>
                 </div>
-                <h3 className="text-lg sm:text-xl font-bold text-center mb-2">Shift Feedback</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-center mb-2">End Shift Confirmation</h3>
                 <p className="text-gray-600 text-center mb-4 sm:mb-6 text-sm sm:text-base leading-relaxed">
-                  Share any feedback about this shift (optional)
+                  This will permanently clear all your sales data for this shift. Continue?
                 </p>
-                <textarea
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  placeholder="If there&apos;s no feedback, you can proceed to report..."
-                  className="w-full h-24 sm:h-32 p-3 border rounded-lg sm:rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base touch-manipulation"
-                />
               </div>
               <div className="p-4 sm:p-6 pt-0 sm:pt-0 flex-shrink-0">
                 <div className="flex gap-3 sm:gap-4">
@@ -644,15 +646,15 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                   <Button
                     onClick={handleSubmitWithFeedback}
                     disabled={submitting}
-                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 touch-manipulation min-h-[44px] sm:min-h-[48px] rounded-lg sm:rounded-xl"
+                    className="flex-1 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 touch-manipulation min-h-[44px] sm:min-h-[48px] rounded-lg sm:rounded-xl"
                   >
                     {submitting ? (
                       <div className="flex items-center justify-center gap-1 sm:gap-2">
                         <div className="rounded-full h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent animate-spin" />
-                        <span className="text-sm sm:text-base font-semibold">Submitting...</span>
+                        <span className="text-sm sm:text-base font-semibold">Ending Shift...</span>
                       </div>
                     ) : (
-                      <span className="text-sm sm:text-base font-semibold">Submit Report</span>
+                      <span className="text-sm sm:text-base font-semibold">End Shift Now</span>
                     )}
                   </Button>
                 </div>

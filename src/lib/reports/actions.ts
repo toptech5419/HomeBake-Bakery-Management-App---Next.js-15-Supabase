@@ -199,6 +199,265 @@ export async function createShiftReport(reportData: any) {
   }
 }
 
+/**
+ * Get shift feedback for a user and shift (Server Action)
+ */
+export async function getShiftFeedback(userId: string, shift: 'morning' | 'night') {
+  try {
+    const supabase = await createServer();
+    
+    const { data, error } = await supabase
+      .from('shift_feedback')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('shift', shift)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching shift feedback:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error in getShiftFeedback:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to fetch shift feedback' 
+    };
+  }
+}
+
+/**
+ * Get remaining bread records for a user (Server Action)
+ */
+export async function getRemainingBread(userId: string) {
+  try {
+    const supabase = await createServer();
+    
+    const { data, error } = await supabase
+      .from('remaining_bread')
+      .select('*')
+      .eq('recorded_by', userId);
+
+    if (error) {
+      console.error('Error fetching remaining bread:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (error) {
+    console.error('Error in getRemainingBread:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to fetch remaining bread' 
+    };
+  }
+}
+
+/**
+ * Update remaining bread record (Server Action)
+ */
+export async function updateRemainingBread(breadTypeId: string, userId: string, shift: 'morning' | 'night', breadTypeName: string, quantity: number, unitPrice: number) {
+  try {
+    const supabase = await createServer();
+    
+    if (quantity === 0) {
+      // Delete any existing record for this bread type
+      const { error } = await supabase
+        .from('remaining_bread')
+        .delete()
+        .eq('bread_type_id', breadTypeId)
+        .eq('recorded_by', userId);
+
+      if (error) {
+        console.error('Error deleting remaining bread:', error);
+        return { success: false, error: error.message };
+      }
+    } else {
+      // Check if record already exists
+      const { data: existingRecords } = await supabase
+        .from('remaining_bread')
+        .select('id')
+        .eq('bread_type_id', breadTypeId)
+        .eq('recorded_by', userId)
+        .limit(1);
+
+      const existingRecord = existingRecords?.[0];
+
+      if (existingRecord) {
+        // Update existing record (total_value is auto-calculated)
+        const { error } = await supabase
+          .from('remaining_bread')
+          .update({
+            shift: shift,
+            bread_type: breadTypeName,
+            quantity: quantity,
+            unit_price: unitPrice,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingRecord.id);
+
+        if (error) {
+          console.error('Error updating remaining bread:', error);
+          return { success: false, error: error.message };
+        }
+      } else {
+        // Insert new record (total_value is auto-calculated)
+        const { error } = await supabase
+          .from('remaining_bread')
+          .insert({
+            shift: shift,
+            bread_type: breadTypeName,
+            bread_type_id: breadTypeId,
+            quantity: quantity,
+            unit_price: unitPrice,
+            recorded_by: userId,
+          });
+
+        if (error) {
+          console.error('Error inserting remaining bread:', error);
+          return { success: false, error: error.message };
+        }
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error in updateRemainingBread:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to update remaining bread' 
+    };
+  }
+}
+
+/**
+ * Get shift reports with user role filtering (Server Action)
+ */
+export async function getShiftReports(userId: string, userRole: 'owner' | 'manager' | 'sales_rep') {
+  try {
+    const supabase = await createServer();
+    
+    let query = supabase
+      .from('shift_reports')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    // Only show reports for the logged-in sales rep
+    if (userRole === 'sales_rep') {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching shift reports:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (error) {
+    console.error('Error in getShiftReports:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to fetch shift reports' 
+    };
+  }
+}
+
+/**
+ * Get available stock data for sales management (Server Action)
+ */
+export async function getAvailableStock() {
+  try {
+    const supabase = await createServer();
+    
+    const { data, error } = await supabase
+      .from('available_stock')
+      .select('*')
+      .order('bread_type_name');
+
+    if (error) {
+      console.error('Error fetching available stock:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (error) {
+    console.error('Error in getAvailableStock:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to fetch available stock' 
+    };
+  }
+}
+
+/**
+ * Get sales management data for a user and shift (Server Action)
+ */
+export async function getSalesManagementData(userId: string, shift: 'morning' | 'night') {
+  try {
+    const supabase = await createServer();
+    
+    // Fetch sales data for current shift and user (NO DATE FILTERING)
+    const { data: salesData, error: salesError } = await supabase
+      .from('sales_logs')
+      .select(`
+        *,
+        bread_types (
+          id,
+          name,
+          unit_price
+        )
+      `)
+      .eq('recorded_by', userId)
+      .eq('shift', shift)
+      .order('created_at', { ascending: false });
+
+    if (salesError) {
+      console.error('Error fetching sales data:', salesError);
+      return { success: false, error: salesError.message };
+    }
+
+    // Get available stock
+    const stockResult = await getAvailableStock();
+    if (!stockResult.success) {
+      return stockResult;
+    }
+
+    // Calculate metrics
+    const todaySales = salesData?.reduce((sum: number, sale: any) => {
+      const amount = (sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0);
+      return sum + amount;
+    }, 0) || 0;
+
+    const transactions = salesData?.length || 0;
+    const itemsSold = salesData?.reduce((sum, sale) => sum + sale.quantity, 0) || 0;
+
+    return {
+      success: true,
+      data: {
+        salesRecords: salesData || [],
+        availableStock: stockResult.data,
+        metrics: {
+          todaySales,
+          transactions,
+          itemsSold
+        }
+      }
+    };
+  } catch (error) {
+    console.error('Error in getSalesManagementData:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to fetch sales management data' 
+    };
+  }
+}
+
 // Helper function to log report activity
 async function logReportActivityHelper(supabase: Awaited<ReturnType<typeof createServer>>, userId: string, shift: 'morning' | 'night', action: 'create' | 'update') {
   try {

@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { useToast } from '@/hooks/use-toast';
 import { createSalesLog } from '@/lib/sales/actions';
+import { getBreadTypesForSalesRep } from '@/lib/dashboard/server-actions';
 import { useShift } from '@/contexts/ShiftContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -76,6 +77,25 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
       setLoading(true);
       console.log('Fetching bread types...');
       
+      // Try server action first
+      try {
+        const data = await getBreadTypesForSalesRep();
+        console.log('Bread types from server action:', { data });
+        
+        if (!data || data.length === 0) {
+          console.log('No bread types found in database');
+          toast.info('No Bread Types Found - Please add bread types first before recording sales.');
+        } else {
+          console.log(`Found ${data.length} bread types:`, data);
+        }
+        
+        setBreadTypes(data || []);
+        return;
+      } catch (serverActionError) {
+        console.error('Server action failed, falling back to direct query:', serverActionError);
+      }
+      
+      // Fallback to direct Supabase query
       const { data, error } = await supabase
         .from('bread_types')
         .select('id, name, unit_price')
@@ -193,17 +213,18 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
 
       toast.success(`Sale recorded: ${formData.breadTypeName} x${formData.quantity} units`);
       
-      // Navigate back to dashboard after successful recording
+      // Add a small delay for better UX and smooth transition
       setTimeout(() => {
+        // Use router.push instead of replace for better navigation history
         router.push('/dashboard/sales');
-      }, 1500);
+      }, 1000); // 1 second delay to show success message
       
     } catch (error) {
       console.error('Error recording sales:', error);
       toast.error('Failed to record sale. Please try again.');
-    } finally {
-      setSubmitting(false);
+      setSubmitting(false); // Only reset submitting on error
     }
+    // Don't reset submitting on success - keep loading state during navigation
   };
 
   return (
@@ -215,7 +236,7 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.back()}
+              onClick={() => router.push('/dashboard/sales')}
               className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl touch-manipulation flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -407,7 +428,7 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
         <div className="max-w-4xl mx-auto flex gap-4">
           <Button
             variant="outline"
-            onClick={() => router.back()}
+            onClick={() => router.push('/dashboard/sales')}
             disabled={submitting}
             className="flex-1 py-4 rounded-2xl border-2 hover:border-orange-400 transition-all duration-200 text-base font-semibold touch-manipulation min-h-[56px]"
             size="lg"
@@ -423,7 +444,7 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
             className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-base font-semibold touch-manipulation min-h-[56px]"
             size="lg"
           >
-            Record Sale
+            {submitting ? 'Saving & Returning...' : 'Record Sale'}
           </LoadingButton>
         </div>
       </div>

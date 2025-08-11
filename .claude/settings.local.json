@@ -37,7 +37,9 @@
       "Bash(timeout 15 npm run dev -- --port 3000)",
       "Bash(timeout 10s npm run dev)",
       "Bash(cmd //c:*)",
-      "Bash(timeout 8 npm run dev)"
+      "Bash(timeout 8 npm run dev)",
+      "Bash(npm run clean:*)",
+      "Bash(timeout 20 npm run build)"
     ],
     "deny": []
   }

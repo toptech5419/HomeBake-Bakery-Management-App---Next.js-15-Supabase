@@ -43,12 +43,8 @@ export function EndShiftProvider({ children }: EndShiftProviderProps) {
   const [finalReportData, setFinalReportData] = useState<ReportData | null>(null);
 
   const onEndShift = useCallback(() => {
-    console.log('🔍 onEndShift called - checking if handler exists');
     if (handler) {
-      console.log('✅ Handler found, executing handleEndShift');
-      handler();
-    } else {
-      console.log('⚠️ No handler registered for onEndShift');
+      return handler();
     }
   }, [handler]);
 

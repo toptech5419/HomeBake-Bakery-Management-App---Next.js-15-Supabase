@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { useShift } from '@/contexts/ShiftContext';
 import { useRouter } from 'next/navigation';
+import { getAllSalesForShift } from '@/lib/dashboard/server-actions';
 
 interface AllSalesClientProps {
   userId: string;
@@ -43,7 +43,7 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
   const [filterType, setFilterType] = useState('all');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
-  // Fetch all sales for the current day and user
+  // Fetch all sales for the user and shift (no date filtering)
   const {
     data: sales = [],
     isLoading,
@@ -52,27 +52,8 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
   } = useQuery({
     queryKey: ['sales', 'all', 'details', currentShift, userId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sales_logs')
-        .select(`
-          *,
-          bread_types (
-            name,
-            unit_price
-          ),
-          recorded_by_user:users!sales_logs_recorded_by_fkey (
-            name
-          )
-        `)
-        .eq('shift', currentShift)
-        .eq('recorded_by', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      return (data as unknown) as SalesLogWithDetails[];
+      const data = await getAllSalesForShift(userId, currentShift);
+      return data as SalesLogWithDetails[];
     },
     staleTime: 30000, // 30 seconds
   });
@@ -82,7 +63,6 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
     return (sales as SalesLogWithDetails[]).filter((sale: SalesLogWithDetails) => {
       const matchesSearch = searchTerm === '' || 
         sale.bread_types.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sale.recorded_by_user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sale.quantity.toString().includes(searchTerm);
 
       const matchesFilter = 
@@ -130,7 +110,7 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.back()}
+              onClick={() => router.push('/dashboard/sales')}
               className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl touch-manipulation flex-shrink-0"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -157,7 +137,7 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 sm:h-5 sm:w-5" />
                 <Input
-                  placeholder="Search by bread type, quantity, or seller..."
+                  placeholder="Search by bread type or quantity..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 sm:pl-12 w-full text-sm sm:text-base py-2 sm:py-3 touch-manipulation min-h-[44px] sm:min-h-[48px]"
@@ -211,22 +191,19 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
               </div>
             </div>
 
-            {/* Stats - Compact Layout */}
-            <div className="flex flex-wrap gap-2 text-sm">
-              <div className="bg-green-50 rounded-lg px-3 py-2 border border-green-200 flex items-center gap-2 min-w-0">
-                <DollarSign className="h-4 w-4 text-green-600 flex-shrink-0" />
-                <span className="font-medium text-green-700 text-xs">Revenue:</span>
-                <span className="font-bold text-green-900 text-sm truncate">{formatCurrencyNGN(totalRevenue)}</span>
+            {/* Stats - Ultra Compact */}
+            <div className="flex gap-1 text-xs">
+              <div className="bg-green-50 rounded px-2 py-1 border border-green-200 flex items-center gap-1 flex-1">
+                <DollarSign className="h-3 w-3 text-green-600" />
+                <span className="font-bold text-green-900 truncate">{formatCurrencyNGN(totalRevenue)}</span>
               </div>
-              <div className="bg-blue-50 rounded-lg px-3 py-2 border border-blue-200 flex items-center gap-2">
-                <Package className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                <span className="font-medium text-blue-700 text-xs">Items:</span>
-                <span className="font-bold text-blue-900 text-sm">{totalItemsSold}</span>
+              <div className="bg-blue-50 rounded px-2 py-1 border border-blue-200 flex items-center gap-1">
+                <Package className="h-3 w-3 text-blue-600" />
+                <span className="font-bold text-blue-900">{totalItemsSold}</span>
               </div>
-              <div className="bg-purple-50 rounded-lg px-3 py-2 border border-purple-200 flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-purple-600 flex-shrink-0" />
-                <span className="font-medium text-purple-700 text-xs">Sales:</span>
-                <span className="font-bold text-purple-900 text-sm">{filteredSales.length}</span>
+              <div className="bg-purple-50 rounded px-2 py-1 border border-purple-200 flex items-center gap-1">
+                <TrendingUp className="h-3 w-3 text-purple-600" />
+                <span className="font-bold text-purple-900">{filteredSales.length}</span>
               </div>
             </div>
 
@@ -237,12 +214,12 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
                 onClick={() => refetch()}
                 disabled={isLoading}
                 size="sm"
-                className="h-12 w-12 p-0 rounded-xl touch-manipulation"
+                className="h-8 w-8 p-0 rounded-lg"
               >
                 {isLoading ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-green-600" />
+                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-green-600" />
                 ) : (
-                  <TrendingUp className="h-4 w-4" />
+                  <TrendingUp className="h-3 w-3" />
                 )}
               </Button>
             </div>
@@ -287,64 +264,50 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
               </p>
             </div>
               
-            {/* Sales List - Mobile-Optimized Cards */}
-            <div className="space-y-3 sm:space-y-4">
+            {/* Sales List - Compact Mobile Cards */}
+            <div className="space-y-2">
               {filteredSales.map((sale: SalesLogWithDetails) => (
-                <div key={sale.id} className="bg-white rounded-xl lg:rounded-2xl border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-all duration-200 touch-manipulation">
-                  {/* Header Row */}
-                  <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                      <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
-                      <h3 className="text-sm sm:text-lg font-semibold text-gray-900 truncate">
+                <div key={sale.id} className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-sm transition-all duration-200">
+                  {/* Header - Flex layout */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <TrendingUp className="h-3 w-3 text-green-500 flex-shrink-0" />
+                      <h3 className="text-sm font-semibold text-gray-900 truncate">
                         {sale.bread_types.name}
                       </h3>
                     </div>
-                    <Badge className={`${getStatusColor(sale.returned)} px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm flex-shrink-0`} variant="outline">
+                    <Badge className={`${getStatusColor(sale.returned)} px-2 py-0.5 text-xs flex-shrink-0`} variant="outline">
                       {getStatusDisplay(sale.returned)}
                     </Badge>
                   </div>
                   
-                  {/* Main Details Grid */}
-                  <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-4">
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Quantity</p>
-                      <p className="text-sm sm:text-base font-semibold text-gray-900">{sale.quantity} units</p>
+                  {/* Main Details - Flex layout */}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-4">
+                      <span className="font-medium text-gray-900">{sale.quantity} units</span>
+                      <span className="text-gray-600">@ {sale.unit_price ? formatCurrencyNGN(sale.unit_price) : 'N/A'}</span>
                     </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Unit Price</p>
-                      <p className="text-sm sm:text-base font-semibold text-gray-900">
-                        {sale.unit_price ? formatCurrencyNGN(sale.unit_price) : 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Total</p>
-                      <p className="text-sm sm:text-base font-semibold text-green-600">
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-green-600">
                         {formatCurrencyNGN((sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0))}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Seller</p>
-                      <p className="text-sm sm:text-base font-semibold text-gray-900 truncate">
-                        {sale.recorded_by_user?.name || 'Unknown'}
-                      </p>
+                      </span>
+                      <span className="text-gray-500">
+                        {new Date(sale.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Footer Row - Time and Extras */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 pt-3 border-t border-gray-100">
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                      <span>{new Date(sale.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                    <div className="flex items-center gap-3 sm:gap-4">
+                  {/* Extras - Only show if present */}
+                  {((sale.discount && sale.discount > 0) || (sale.leftover && sale.leftover > 0)) && (
+                    <div className="flex items-center gap-3 mt-2 pt-2 border-t border-gray-100 text-xs">
                       {(sale.discount && sale.discount > 0) && (
-                        <span className="text-red-600 font-medium">-{formatCurrencyNGN(sale.discount)}</span>
+                        <span className="text-red-600 font-medium">Discount: -{formatCurrencyNGN(sale.discount)}</span>
                       )}
                       {(sale.leftover && sale.leftover > 0) && (
-                        <span className="text-yellow-600 font-medium">{sale.leftover} left</span>
+                        <span className="text-yellow-600 font-medium">{sale.leftover} leftover</span>
                       )}
                     </div>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>

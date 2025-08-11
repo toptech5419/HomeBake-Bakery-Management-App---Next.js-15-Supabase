@@ -4,13 +4,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, MessageSquare, Download, Share2, ChevronUp, ChevronDown } from 'lucide-react';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { useShift } from '@/contexts/ShiftContext';
-import { createShiftReport } from '@/lib/reports/actions';
-import { supabase } from '@/lib/supabase/client';
+import { createShiftReport, getShiftFeedback } from '@/lib/reports/actions';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { getNavigationHistory } from '@/lib/utils/navigation-history';
 
 interface FinalReportClientProps {
   userId: string;
@@ -65,6 +63,7 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
   const [loadingFeedback, setLoadingFeedback] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
+  const [navigating, setNavigating] = useState(false);
 
   // Load report data from URL params
   useEffect(() => {
@@ -91,19 +90,12 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
     
     setLoadingFeedback(true);
     try {
-      const { data, error } = await supabase
-        .from('shift_feedback')
-        .select('*')
-        .eq('user_id', effectiveUserId)
-        .eq('shift', reportData.shift as 'morning' | 'night')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching shift feedback:', error);
-      } else if (data) {
-        setShiftFeedback(data);
+      const result = await getShiftFeedback(effectiveUserId, reportData.shift as 'morning' | 'night');
+      
+      if (result.success && result.data) {
+        setShiftFeedback(result.data);
+      } else if (!result.success) {
+        console.error('Error fetching shift feedback:', result.error);
       }
     } catch (error) {
       console.error('Error fetching shift feedback:', error);
@@ -233,12 +225,16 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
     setShowShareMenu(false);
   }, [reportData, currentShift]);
 
-  // Smart back navigation using history
-  const handleBackNavigation = useCallback(() => {
-    const historyPath = getNavigationHistory(user?.user_metadata?.role || 'sales_rep');
-    console.log('Final Report back navigation:', { historyPath, userRole: user?.user_metadata?.role });
-    router.push(historyPath);
-  }, [router, user]);
+  // Navigate back to sales dashboard
+  const handleBackNavigation = useCallback(async () => {
+    setNavigating(true);
+    try {
+      router.push('/dashboard/sales');
+    } catch (error) {
+      console.error('Navigation error:', error);
+      setNavigating(false);
+    }
+  }, [router]);
 
   if (!reportData) {
     return (
@@ -258,9 +254,14 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
               variant="ghost"
               size="sm"
               onClick={handleBackNavigation}
-              className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl"
+              disabled={navigating}
+              className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl disabled:opacity-50"
             >
-              <ArrowLeft className="h-5 w-5" />
+              {navigating ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              ) : (
+                <ArrowLeft className="h-5 w-5" />
+              )}
             </Button>
             <div className="bg-white/20 p-3 rounded-xl">
               <span className="text-lg">📊</span>
@@ -510,10 +511,17 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
           {/* Close Button */}
           <button
             onClick={handleBackNavigation}
-            disabled={isSaving}
-            className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-bold text-base hover:shadow-lg transition-all duration-200 disabled:opacity-50 touch-manipulation min-h-[56px]"
+            disabled={isSaving || navigating}
+            className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-bold text-base hover:shadow-lg transition-all duration-200 disabled:opacity-50 touch-manipulation min-h-[56px] flex items-center justify-center gap-2"
           >
-            Close Report
+            {navigating ? (
+              <>
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                <span>Navigating...</span>
+              </>
+            ) : (
+              'Close Report'
+            )}
           </button>
         </div>
       </div>

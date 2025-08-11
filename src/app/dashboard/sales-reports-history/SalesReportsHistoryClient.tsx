@@ -21,9 +21,9 @@ import {
 } from 'lucide-react';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { UserRole } from '@/types';
-import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { FinalReportViewModal } from '@/components/modals/FinalReportViewModal';
+import { getShiftReports } from '@/lib/reports/actions';
 
 // Type for sales data items
 interface SalesDataItem {
@@ -162,29 +162,19 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
     setShowFilters(!showFilters);
   };
 
-  // Fetch reports from Supabase with real async query
+  // Fetch reports using server action
   const fetchReports = useCallback(async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from('shift_reports')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const result = await getShiftReports(userId, userRole);
 
-      // Only show reports for the logged-in sales rep
-      if (userRole === 'sales_rep') {
-        query = query.eq('user_id', userId);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching reports:', error);
+      if (!result.success) {
+        console.error('Error fetching reports:', result.error);
         toast.error('Failed to load reports');
         return;
       }
 
-      const reportsData = data as ShiftReport[] || [];
+      const reportsData = result.data as ShiftReport[] || [];
       setReports(reportsData);
       setFilteredReports(reportsData);
     } catch (error) {

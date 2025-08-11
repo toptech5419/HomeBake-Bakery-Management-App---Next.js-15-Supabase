@@ -12,28 +12,28 @@ import { motion } from 'framer-motion';
 interface ShiftToggleProps {
   showLabel?: boolean;
   compact?: boolean;
+  hasDataToClear?: boolean;
 }
 
-export default function ShiftToggle({ showLabel = true, compact = false }: ShiftToggleProps) {
+export default function ShiftToggle({ showLabel = true, compact = false, hasDataToClear = false }: ShiftToggleProps) {
   const { currentShift, toggleShift } = useShift();
   const { onEndShift } = useEndShiftContext();
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  // Handle end shift functionality
+  // Debug the button state
+  console.log('🎯 SHIFT TOGGLE STATE:', { hasDataToClear, currentShift });
+
+  // Production end shift handler
   const handleEndShift = async () => {
-    setIsLoading(true);
+    setShowModal(false);
+    
     try {
-      console.log('🔄 ShiftToggle: End shift button clicked');
       await onEndShift();
-      setShowModal(false);
-      toast.success('Shift ended successfully!');
     } catch (error) {
-      console.error('❌ Error ending shift:', error);
+      console.error('Error ending shift:', error);
       toast.error('Failed to end shift. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -218,16 +218,21 @@ export default function ShiftToggle({ showLabel = true, compact = false }: Shift
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.5 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: hasDataToClear ? 1.05 : 1 }}
+                whileTap={{ scale: hasDataToClear ? 0.95 : 1 }}
                 className="flex-1 sm:flex-none"
               >
                 <Button
                   type="button"
                   size="lg"
-                  className="w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 font-semibold border-0 min-h-[56px]"
-                  onClick={() => setShowModal(true)}
-                  disabled={isLoading}
+                  className={`w-full sm:w-auto flex items-center justify-center gap-3 px-6 py-4 rounded-2xl shadow-lg transition-all duration-300 font-semibold border-0 min-h-[56px] ${
+                    hasDataToClear 
+                      ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white hover:shadow-xl cursor-pointer'
+                      : 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-500 cursor-not-allowed'
+                  }`}
+                  onClick={() => hasDataToClear && setShowModal(true)}
+                  disabled={isLoading || !hasDataToClear}
+                  title={hasDataToClear ? 'End shift and clear sales data' : 'No sales data to clear'}
                 >
                   {isLoading ? (
                     <motion.div
@@ -236,9 +241,14 @@ export default function ShiftToggle({ showLabel = true, compact = false }: Shift
                       className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
                     />
                   ) : (
-                    <Power className="h-5 w-5" />
+                    <Power className={`h-5 w-5 ${hasDataToClear ? '' : 'opacity-50'}`} />
                   )}
-                  <span>End Shift</span>
+                  <div className="flex flex-col items-center">
+                    <span>End Shift</span>
+                    {!hasDataToClear && (
+                      <span className="text-xs opacity-75 -mt-1">No data to clear</span>
+                    )}
+                  </div>
                 </Button>
               </motion.div>
             </div>
