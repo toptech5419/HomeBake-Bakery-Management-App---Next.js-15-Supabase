@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useToast } from '@/components/ui/toast-provider';
+import { toast } from 'sonner';
 
 export type ShiftType = 'morning' | 'night';
 
@@ -27,7 +27,6 @@ function setStoredShift(shift: ShiftType) {
 }
 
 export function ShiftProvider({ children }: { children: ReactNode }) {
-  const { toast } = useToast();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   
   // Always provide a valid shift, default to 'morning' if not found
@@ -53,10 +52,12 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     setCurrentShift(shift);
     // Only show toast if not initial load to prevent showing notification on page load
     if (!isInitialLoad) {
-      toast({
-        title: `Shift switched to ${shift === 'morning' ? 'Morning' : 'Night'}`,
-        variant: 'default',
-      });
+      try {
+        toast.success(`Shift switched to ${shift === 'morning' ? 'Morning' : 'Night'}`);
+      } catch (error) {
+        // Fallback if toast is not available - just log
+        console.log(`Shift switched to ${shift === 'morning' ? 'Morning' : 'Night'}`);
+      }
     }
   };
 
