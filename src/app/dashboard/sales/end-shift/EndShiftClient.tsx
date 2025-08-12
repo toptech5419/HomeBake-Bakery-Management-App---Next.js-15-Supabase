@@ -333,51 +333,46 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       console.log('📊 Shift report result:', shiftReport);
       
       if (shiftReport) {
-        // Keep loading state active during navigation to prevent page flash
-        toast.dismiss('generate-report');
-        toast.loading('Redirecting to report...', { id: 'redirecting' });
+        // Close all modals first to prevent DOM conflicts
+        setShowFeedbackModal(false);
+        setShowConfirmationModal(false);
+        
+        // Clean dismiss of toasts
+        setTimeout(() => {
+          toast.dismiss('generate-report');
+        }, 100);
         
         console.log('📊 Navigating to final report with ID:', shiftReport.id);
         
-        // Prepare final report data
-        const finalReportData = {
-          salesRecords: salesDataItems.map(item => ({
-            breadType: item.breadType,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalAmount: item.totalAmount,
-            timestamp: item.timestamp
-          })),
-          remainingBreads: remainingBreadItems.map(item => ({
-            breadType: item.breadType,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalAmount: item.totalAmount
-          })),
-          totalRevenue: totalRevenue,
-          totalItemsSold: totalItemsSold,
-          totalRemaining: totalRemaining,
-          shift: currentShift,
-          feedback: feedback,
-          userId: userId
-        };
+        // Use a cleaner navigation approach - navigate directly without data in URL
+        // The final report page can fetch the data using the report ID
+        setTimeout(() => {
+          try {
+            router.push(`/dashboard/sales/final-report?reportId=${shiftReport.id}`);
+          } catch (navError) {
+            console.error('Navigation error:', navError);
+            // Fallback navigation
+            window.location.href = `/dashboard/sales/final-report?reportId=${shiftReport.id}`;
+          }
+        }, 200);
         
-        const encodedData = encodeURIComponent(JSON.stringify(finalReportData));
-        
-        // Use replace to avoid back button issues and navigate immediately
-        router.replace(`/dashboard/sales/final-report?data=${encodedData}`);
-        
-        // The loading state will be cleared when the new page loads
       } else {
         console.error('❌ No shift report returned');
+        toast.dismiss('generate-report');
         toast.error('Report created but no data returned');
         setSubmitting(false);
+        setShowFeedbackModal(false);
       }
 
     } catch (error) {
       console.error('Error generating shift report:', error);
-      toast.error('Failed to generate report. Please try again.', { id: 'generate-report' });
+      toast.dismiss('generate-report');
+      toast.error('Failed to generate report. Please try again.');
+      
+      // Clean up modals and state
       setSubmitting(false);
+      setShowFeedbackModal(false);
+      setShowConfirmationModal(false);
     }
   };
 
@@ -729,8 +724,8 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       </div>
 
       {/* Confirmation Modal - Mobile First */}
-      <AnimatePresence>
-        {showConfirmationModal && (
+      <AnimatePresence mode="wait">
+        {showConfirmationModal && !submitting && (
           <motion.div 
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
             initial={{ opacity: 0 }}
@@ -775,8 +770,8 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       </AnimatePresence>
 
       {/* Feedback Modal - Mobile First */}
-      <AnimatePresence>
-        {showFeedbackModal && (
+      <AnimatePresence mode="wait">
+        {showFeedbackModal && !submitting && (
           <motion.div 
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
             initial={{ opacity: 0 }}
@@ -819,7 +814,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                   <Button
                     onClick={handleSubmitWithFeedback}
                     disabled={submitting}
-                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 touch-manipulation min-h-[44px] sm:min-h-[48px] rounded-lg sm:rounded-xl"
+                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 touch-manipulation min-h-[44px] sm:min-h-[48px] rounded-lg sm:rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {submitting ? (
                       <div className="flex items-center justify-center gap-1 sm:gap-2">

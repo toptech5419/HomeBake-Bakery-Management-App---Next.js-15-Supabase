@@ -64,10 +64,55 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
   const [navigating, setNavigating] = useState(false);
+  const [loadingReport, setLoadingReport] = useState(false);
 
-  // Load report data from URL params
+  // Fetch report data from database using reportId
+  const fetchReportData = async (reportId: string) => {
+    setLoadingReport(true);
+    try {
+      const { supabase } = await import('@/lib/supabase/client');
+      
+      // Fetch the shift report data
+      const { data: shiftReport, error } = await supabase
+        .from('shift_reports')
+        .select('*')
+        .eq('id', reportId)
+        .single();
+      
+      if (error || !shiftReport) {
+        console.error('Error fetching report:', error);
+        toast.error('Failed to load report data');
+        router.back();
+        return;
+      }
+      
+      // Convert database format to component format
+      const reportData: ReportData = {
+        salesRecords: shiftReport.sales_data || [],
+        remainingBreads: shiftReport.remaining_breads || [],
+        totalRevenue: shiftReport.total_revenue || 0,
+        totalItemsSold: shiftReport.total_items_sold || 0,
+        totalRemaining: shiftReport.total_remaining || 0,
+        shift: shiftReport.shift,
+        feedback: shiftReport.feedback,
+        userId: shiftReport.user_id
+      };
+      
+      setReportData(reportData);
+    } catch (error) {
+      console.error('Error fetching report data:', error);
+      toast.error('Failed to load report data');
+      router.back();
+    } finally {
+      setLoadingReport(false);
+    }
+  };
+
+  // Load report data from URL params - support both old data param and new reportId
   useEffect(() => {
     const dataParam = searchParams.get('data');
+    const reportId = searchParams.get('reportId');
+    
     if (dataParam) {
       try {
         const decodedData = JSON.parse(decodeURIComponent(dataParam));
@@ -77,6 +122,9 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
         toast.error('Invalid report data');
         router.back();
       }
+    } else if (reportId) {
+      // Fetch report data from database using reportId
+      fetchReportData(reportId);
     } else {
       toast.error('No report data found');
       router.back();
