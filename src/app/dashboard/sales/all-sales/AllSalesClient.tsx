@@ -102,13 +102,34 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
     return returned ? 'Returned' : 'Sold';
   };
 
-  // Enhanced back navigation with visual feedback
+  // Utility function to get cookie value
+  const getCookie = (name: string): string | null => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      const cookieValue = parts.pop()?.split(';').shift();
+      return cookieValue || null;
+    }
+    return null;
+  };
+
+  // Enhanced back navigation with cookie-based previous page detection
   const handleBackNavigation = () => {
     setIsNavigatingBack(true);
     
+    // Get the previous page from cookie
+    const previousPage = getCookie('previousPage');
+    
     // Add a longer delay to ensure smooth transition and loading state visibility
     setTimeout(() => {
-      router.push('/dashboard/sales');
+      if (previousPage && (previousPage === '/dashboard/sales-management' || previousPage.startsWith('/dashboard/'))) {
+        // Clear the cookie after using it
+        document.cookie = `previousPage=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`;
+        router.push(previousPage);
+      } else {
+        // Default fallback to sales dashboard
+        router.push('/dashboard/sales');
+      }
     }, 500);
   };
 
@@ -125,10 +146,10 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
               </div>
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Going Back
+                  Navigating Back
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Returning to dashboard...
+                  loading...
                 </p>
               </div>
             </div>

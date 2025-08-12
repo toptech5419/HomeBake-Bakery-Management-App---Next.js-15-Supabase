@@ -241,6 +241,8 @@ export default function SalesManagementClient({
   const recordNewSale = async () => {
     setIsNavigating(prev => ({ ...prev, recordSale: true }));
     try {
+      // Set cookie to remember where we came from
+      document.cookie = `previousPage=/dashboard/sales-management; path=/; max-age=3600`; // 1 hour expiry
       router.push('/dashboard/sales/record');
     } catch (error) {
       console.error('Navigation error:', error);
@@ -271,6 +273,8 @@ export default function SalesManagementClient({
   const viewAllSales = async () => {
     setIsNavigating(prev => ({ ...prev, viewAllSales: true }));
     try {
+      // Set cookie to remember where we came from
+      document.cookie = `previousPage=/dashboard/sales-management; path=/; max-age=3600`; // 1 hour expiry
       router.push('/dashboard/sales/all-sales');
     } catch (error) {
       console.error('Navigation error:', error);

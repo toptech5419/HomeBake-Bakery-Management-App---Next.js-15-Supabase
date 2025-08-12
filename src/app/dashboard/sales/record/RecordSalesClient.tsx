@@ -216,8 +216,17 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
       
       // Add a small delay for better UX and smooth transition
       setTimeout(() => {
-        // Use router.push instead of replace for better navigation history
-        router.push('/dashboard/sales');
+        // Get the previous page from cookie for navigation after success
+        const previousPage = getCookie('previousPage');
+        
+        if (previousPage && (previousPage === '/dashboard/sales-management' || previousPage.startsWith('/dashboard/'))) {
+          // Clear the cookie after using it
+          document.cookie = `previousPage=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`;
+          router.push(previousPage);
+        } else {
+          // Default fallback to sales dashboard
+          router.push('/dashboard/sales');
+        }
       }, 1000); // 1 second delay to show success message
       
     } catch (error) {
@@ -228,13 +237,34 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
     // Don't reset submitting on success - keep loading state during navigation
   };
 
-  // Enhanced back navigation with visual feedback
+  // Utility function to get cookie value
+  const getCookie = (name: string): string | null => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      const cookieValue = parts.pop()?.split(';').shift();
+      return cookieValue || null;
+    }
+    return null;
+  };
+
+  // Enhanced back navigation with cookie-based previous page detection
   const handleBackNavigation = () => {
     setIsNavigatingBack(true);
     
+    // Get the previous page from cookie
+    const previousPage = getCookie('previousPage');
+    
     // Add a longer delay to ensure smooth transition and loading state visibility
     setTimeout(() => {
-      router.push('/dashboard/sales');
+      if (previousPage && (previousPage === '/dashboard/sales-management' || previousPage.startsWith('/dashboard/'))) {
+        // Clear the cookie after using it
+        document.cookie = `previousPage=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`;
+        router.push(previousPage);
+      } else {
+        // Default fallback to sales dashboard
+        router.push('/dashboard/sales');
+      }
     }, 500);
   };
 
@@ -251,10 +281,10 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
               </div>
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Going Back
+                  Navigating Back
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Returning to dashboard...
+                  loading...
                 </p>
               </div>
             </div>
