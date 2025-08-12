@@ -39,7 +39,11 @@
       "Bash(cmd //c:*)",
       "Bash(timeout 8 npm run dev)",
       "Bash(npm run clean:*)",
-      "Bash(timeout 20 npm run build)"
+      "Bash(timeout 20 npm run build)",
+      "Bash(for pid in 51488 52592 51684 19068 30288 52648 51908)",
+      "Bash(true)",
+      "Bash(done)",
+      "Bash(powershell:*)"
     ],
     "deny": []
   }

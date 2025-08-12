@@ -6,9 +6,9 @@ interface MobileLoadingProps {
   fullScreen?: boolean;
 }
 
-export function MobileLoading({ className, message = 'Loading...', fullScreen = false }: MobileLoadingProps) {
+export function MobileLoading({ className, message = 'Loading...', fullScreen = true }: MobileLoadingProps) {
   const wrapperClass = fullScreen 
-    ? 'fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm'
+    ? 'fixed inset-0 w-screen h-screen z-[100000] flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-50'
     : 'flex items-center justify-center p-8';
 
   return (

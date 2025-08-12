@@ -28,6 +28,8 @@ function setStoredShift(shift: ShiftType) {
 
 export function ShiftProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
   // Always provide a valid shift, default to 'morning' if not found
   const [currentShift, setCurrentShift] = useState<ShiftType>(() => {
     if (typeof window !== 'undefined') {
@@ -38,17 +40,24 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     return 'morning';
   });
 
-  // Keep localStorage in sync if shift changes
+  // Keep localStorage in sync if shift changes and mark initial load as complete
   useEffect(() => {
     setStoredShift(currentShift);
-  }, [currentShift]);
+    // Set initial load to false after first render
+    if (isInitialLoad) {
+      setTimeout(() => setIsInitialLoad(false), 100);
+    }
+  }, [currentShift, isInitialLoad]);
 
   const handleSetCurrentShift = (shift: ShiftType) => {
     setCurrentShift(shift);
-    toast({
-      title: `Shift switched to ${shift === 'morning' ? 'Morning' : 'Night'}`,
-      variant: 'default',
-    });
+    // Only show toast if not initial load to prevent showing notification on page load
+    if (!isInitialLoad) {
+      toast({
+        title: `Shift switched to ${shift === 'morning' ? 'Morning' : 'Night'}`,
+        variant: 'default',
+      });
+    }
   };
 
   const toggleShift = () => {

@@ -74,28 +74,7 @@ interface SalesLog {
   };
 }
 
-interface SalesReportData {
-  salesRecords: Array<{
-    breadType: string;
-    quantity: number;
-    unitPrice: number;
-    totalAmount: number;
-    timestamp: string;
-  }>;
-  remainingBreads: Array<{
-    breadType: string;
-    quantity: number;
-    unitPrice: number;
-    totalAmount: number;
-  }>;
-  totalRevenue: number;
-  totalItemsSold: number;
-  totalRemaining: number;
-  feedback?: string;
-  shift?: string;
-  timeOfSales?: string;
-  userId?: string;
-}
+// Removed unused SalesReportData interface
 
 export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) {
   const { currentShift, setCurrentShift } = useShift();
@@ -112,103 +91,14 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     recentSales: []
   });
   const [loading, setLoading] = useState(true);
-  // Removed modal state - now using page routes
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [isInModalTransition, setIsInModalTransition] = useState(false);
-  const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
+  const [isInitialMount, setIsInitialMount] = useState(true);
+  // Removed all modal and transition states - using direct page navigation
   const [isEndingShift, setIsEndingShift] = useState(false);
   const [hasSalesLogs, setHasSalesLogs] = useState(false);
-  const [navigationTarget, setNavigationTarget] = useState<string | null>(null);
 
-  const checkSalesLogsExist = async () => {
-    try {
-      console.log('🔍 CHECKING SALES LOGS EXIST...');
-      console.log('🔍 User ID:', userId);
-      console.log('🔍 Current Shift:', currentShift);
-      
-      // Check if there are any sales logs for current user and shift
-      const { data: salesLogs, error } = await supabase
-        .from('sales_logs')
-        .select('id')
-        .eq('recorded_by', userId)
-        .eq('shift', currentShift)
-        .limit(1);
+  // Removed unused checkSalesLogsExist function
 
-      console.log('🔍 Query result:', { salesLogs, error });
-
-      if (!error && salesLogs) {
-        const hasLogs = salesLogs.length > 0;
-        console.log('🔍 Has sales logs:', hasLogs);
-        setHasSalesLogs(hasLogs);
-      } else {
-        console.log('🔍 Error or no data, setting to false');
-        setHasSalesLogs(false);
-      }
-    } catch (error) {
-      console.error('❌ Error checking sales logs:', error);
-      setHasSalesLogs(false);
-    }
-  };
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-
-      // Use server action to get metrics
-      const metricsData = await getSalesRepDashboardMetrics(userId, currentShift);
-      
-      // Update hasDataToClear based on metrics (this is the most reliable source)
-      const hasData = metricsData.transactions > 0;
-      setHasSalesLogs(hasData);
-      console.log('📊 MAIN: Found', metricsData.transactions, 'transactions, hasDataToClear:', hasData);
-      
-      // Calculate production total amount from actual production items (batches)
-      let productionTotalAmount = 0;
-
-      // Fetch production items for current shift to calculate total production value
-      try {
-        // Use Nigeria current date for proper clearing - always use current date
-        const nigeriaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
-        const nigeriaDate = nigeriaTime.toISOString().split('T')[0];
-        
-        const productionResponse = await fetch(`/api/sales-rep/production?shift=${currentShift}&date=${nigeriaDate}`);
-        if (productionResponse.ok) {
-          const productionData = await productionResponse.json();
-          
-          // Calculate production total amount: sum of (unit_price * actual_quantity) for each production item
-          productionTotalAmount = productionData.productionItems.reduce((sum: number, item: { unit_price: number; quantity: number }) => {
-            const unitPrice = item.unit_price || 0;
-            const quantity = item.quantity || 0;
-            return sum + (unitPrice * quantity);
-          }, 0);
-        }
-      } catch (error) {
-        console.error('Error fetching production data:', error);
-      }
-      
-      // Sales target equals production monetary value PLUS remaining target amount
-      const salesTarget = productionTotalAmount + metricsData.remainingTarget;
-
-      setMetrics({
-        todaySales: metricsData.todaySales,
-        transactions: metricsData.transactions,
-        itemsSold: metricsData.itemsSold,
-        productionTotalAmount,
-        remainingTarget: metricsData.remainingTarget,
-        salesTarget,
-        topProducts: metricsData.topProducts,
-        recentSales: metricsData.recentSales
-      });
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      // Fallback to direct database queries if server action fails
-      await fetchDashboardDataFallback();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchDashboardDataFallback = async () => {
+  const fetchDashboardDataFallback = useCallback(async () => {
     try {
       // Fetch sales data for current shift and current user only - NO DATE FILTERING
       const { data: salesData, error: salesError } = await supabase
@@ -338,55 +228,85 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     } catch (error) {
       console.error('Error in fallback data fetch:', error);
     }
-  };
+  }, [userId, currentShift]);
+
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      // Use server action to get metrics
+      const metricsData = await getSalesRepDashboardMetrics(userId, currentShift);
+      
+      // Update hasDataToClear based on metrics (this is the most reliable source)
+      const hasData = metricsData.transactions > 0;
+      setHasSalesLogs(hasData);
+      console.log('📊 MAIN: Found', metricsData.transactions, 'transactions, hasDataToClear:', hasData);
+      
+      // Calculate production total amount from actual production items (batches)
+      let productionTotalAmount = 0;
+
+      // Fetch production items for current shift to calculate total production value
+      try {
+        // Use Nigeria current date for proper clearing - always use current date
+        const nigeriaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
+        const nigeriaDate = nigeriaTime.toISOString().split('T')[0];
+        
+        const productionResponse = await fetch(`/api/sales-rep/production?shift=${currentShift}&date=${nigeriaDate}`);
+        if (productionResponse.ok) {
+          const productionData = await productionResponse.json();
+          
+          // Calculate production total amount: sum of (unit_price * actual_quantity) for each production item
+          productionTotalAmount = productionData.productionItems.reduce((sum: number, item: { unit_price: number; quantity: number }) => {
+            const unitPrice = item.unit_price || 0;
+            const quantity = item.quantity || 0;
+            return sum + (unitPrice * quantity);
+          }, 0);
+        }
+      } catch (error) {
+        console.error('Error fetching production data:', error);
+      }
+      
+      // Sales target equals production monetary value PLUS remaining target amount
+      const salesTarget = productionTotalAmount + metricsData.remainingTarget;
+
+      setMetrics({
+        todaySales: metricsData.todaySales,
+        transactions: metricsData.transactions,
+        itemsSold: metricsData.itemsSold,
+        productionTotalAmount,
+        remainingTarget: metricsData.remainingTarget,
+        salesTarget,
+        topProducts: metricsData.topProducts,
+        recentSales: metricsData.recentSales
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      // Fallback to direct database queries if server action fails
+      await fetchDashboardDataFallback();
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, currentShift, fetchDashboardDataFallback]);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [currentShift, userId]);
-
-  // Refresh data when page becomes visible (user returns from record sales)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('📱 Page became visible, refreshing dashboard data...');
-        fetchDashboardData();
+    const initializeData = async () => {
+      await fetchDashboardData();
+      // Set initial mount to false after first data fetch
+      if (isInitialMount) {
+        setTimeout(() => setIsInitialMount(false), 500);
       }
     };
+    initializeData();
+  }, [currentShift, userId, isInitialMount, fetchDashboardData]);
 
-    // Refresh data when window gains focus (desktop/mobile)
-    const handleWindowFocus = () => {
-      console.log('🎯 Window focused, refreshing dashboard data...');
-      fetchDashboardData();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleWindowFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleWindowFocus);
-    };
-  }, []);
+  // Removed visibility change handlers that could cause authentication loops
 
   // Removed modal transition handler - now using page routes
 
-  // Enhanced sales recorded handler with transition awareness
-  const handleSalesRecorded = useCallback(() => {
-    console.log('🔄 handleSalesRecorded called - Refreshing dashboard data');
-    
-    // Don't refresh data during modal transitions to prevent flashing
-    if (!isInModalTransition && !isTransitioning) {
-      // Add a small delay to ensure the database transaction is committed
-      setTimeout(async () => {
-        await fetchDashboardData();
-      }, 500);
-    } else {
-      console.log('⏸️ Skipping refresh due to modal transition');
-    }
-  }, [isInModalTransition, isTransitioning, fetchDashboardData]);
+  // Removed unused handleSalesRecorded function
 
   // PRODUCTION END SHIFT - USING SERVER ACTION
-  const handleEndShift = async () => {
+  const handleEndShift = useCallback(async () => {
     console.log('🔥 END SHIFT: Production version called');
     console.log('🔥 Current Shift:', currentShift);
     
@@ -440,31 +360,20 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     } finally {
       setIsEndingShift(false);
     }
-  };
+  }, [currentShift, fetchDashboardData]);
 
   // Register the end shift handler with the context - SIMPLE VERSION
   useEffect(() => {
     setEndShiftHandler(handleEndShift);
-  }, [setEndShiftHandler]);
+  }, [setEndShiftHandler, handleEndShift]);
 
-  // Enhanced navigation with visual feedback
-  const handleNavigation = async (path: string, label: string) => {
-    setNavigationTarget(path);
-    setIsTransitioning(true);
-    
-    // Add a small delay to show the loading state
-    setTimeout(() => {
-      router.push(path);
-    }, 300);
+  // Direct navigation without modal overlay
+  const handleNavigation = async (path: string) => {
+    // Direct navigation - the loading.tsx files will handle the loading screen
+    router.push(path);
   };
 
-  // Reset transition state when component unmounts
-  useEffect(() => {
-    return () => {
-      setIsTransitioning(false);
-      setNavigationTarget(null);
-    };
-  }, []);
+  // Removed transition state cleanup - no longer needed
 
   const getProgressPercentage = () => {
     if (metrics.salesTarget === 0) return 0;
@@ -501,14 +410,31 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     );
   }
 
-  if (loading && !isInModalTransition) {
+  // Enhanced loading state that prevents flashing
+  if ((loading && !isInModalTransition) || isInitialMount) {
     return (
-      <div className="space-y-8">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="space-y-8 min-h-screen">
+        {/* Header skeleton */}
+        <div className="space-y-4">
+          <div className="h-8 bg-gray-200 animate-pulse rounded-lg w-64" />
+          <div className="h-4 bg-gray-200 animate-pulse rounded w-48" />
+        </div>
+        
+        {/* Cards skeleton matching the actual layout */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="h-32 bg-gray-200 animate-pulse rounded-2xl" />
           ))}
         </div>
+        
+        {/* Progress section skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="h-48 bg-gray-200 animate-pulse rounded-2xl" />
+          <div className="h-48 bg-gray-200 animate-pulse rounded-2xl" />
+        </div>
+        
+        {/* Additional content skeleton */}
+        <div className="h-64 bg-gray-200 animate-pulse rounded-2xl" />
       </div>
     );
   }
@@ -536,36 +462,9 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
       )}
 
       {/* Global Loading Overlay for Transitions */}
-      {isTransitioning && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center">
-          <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Page</h3>
-              <p className="text-sm text-gray-600">
-                {navigationTarget?.includes('end-shift') && 'Loading end shift page...'}
-                {navigationTarget?.includes('record') && 'Loading record sales page...'}
-                {navigationTarget?.includes('all-sales') && 'Loading all sales page...'}
-                {navigationTarget?.includes('reports-history') && 'Loading reports history...'}
-                {!navigationTarget && 'Please wait...'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Removed modal overlay completely - using page-level loading.tsx files instead */}
 
-      {/* Transition Overlay */}
-      {showTransitionOverlay && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Processing Report</h3>
-              <p className="text-sm text-gray-600">Preparing your shift report...</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Removed all transition overlays - using page-level navigation */}
 
       {/* Enhanced Header */}
       <div className="flex items-center justify-between mb-2">
@@ -589,7 +488,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
             <div className="text-2xl font-display font-bold text-gray-900">
               {formatCurrencyNGN(metrics.todaySales)}
             </div>
-            <div className="text-sm text-gray-600 mt-1">Today's Sales</div>
+            <div className="text-sm text-gray-600 mt-1">Today&apos;s Sales</div>
           </ModernCardContent>
         </ModernCard>
 
@@ -794,7 +693,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               variant="secondary"
               size="md"
               leftIcon={<History className="h-4 w-4" />}
-              onClick={() => handleNavigation('/dashboard/sales/all-sales', 'View All Sales')}
+              onClick={() => handleNavigation('/dashboard/sales/all-sales')}
               className="hover-lift"
             >
               View All Sales
@@ -816,7 +715,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               variant="success"
               size="lg"
               leftIcon={<RotateCcw className="h-5 w-5" />}
-              onClick={() => handleNavigation('/dashboard/sales/end-shift', 'Generate Shift Reports')}
+              onClick={() => handleNavigation('/dashboard/sales/end-shift')}
               className="hover-lift"
               fullWidth
             >
@@ -827,7 +726,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               variant="primary"
               size="lg"
               leftIcon={<Plus className="h-5 w-5" />}
-              onClick={() => handleNavigation('/dashboard/sales/record', 'Record Sale')}
+              onClick={() => handleNavigation('/dashboard/sales/record')}
               className="hover-lift"
               fullWidth
             >
@@ -838,7 +737,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               variant="secondary"
               size="lg"
               leftIcon={<History className="h-4 w-5" />}
-              onClick={() => handleNavigation('/dashboard/sales-reports-history', 'View Reports History')}
+              onClick={() => handleNavigation('/dashboard/sales-reports-history')}
               className="hover-lift"
               fullWidth
             >
@@ -853,7 +752,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
         variant="primary"
         size="xl"
         className="fixed bottom-8 right-8 rounded-full shadow-xl z-50 h-16 w-16 hover-lift"
-        onClick={() => handleNavigation('/dashboard/sales/record', 'Record Sale')}
+        onClick={() => handleNavigation('/dashboard/sales/record')}
       >
         <Plus className="h-6 w-6" />
       </ModernButton>
