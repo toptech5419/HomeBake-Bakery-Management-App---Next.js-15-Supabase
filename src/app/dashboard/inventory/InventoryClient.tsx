@@ -37,8 +37,7 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
     dataSourceInfo,
     isFetching,
     isError,
-    refetch,
-    realtimeConnectionState
+    refetch
   } = useInventoryData(user); // Uses automatic 10AM/10PM inventory shift logic
 
   // Handle loading state
@@ -87,21 +86,6 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
         </div>
       )}
       
-      {/* Real-time connection status */}
-      <div className="fixed top-4 left-4 z-40">
-        <div className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${
-          realtimeConnectionState === 'connected' 
-            ? 'bg-green-500 text-white' 
-            : realtimeConnectionState === 'connecting'
-            ? 'bg-yellow-500 text-white'
-            : 'bg-red-500 text-white'
-        }`}>
-          <div className={`w-2 h-2 rounded-full ${
-            realtimeConnectionState === 'connected' ? 'bg-white animate-pulse' : 'bg-white/60'
-          }`}></div>
-          <span className="capitalize">{realtimeConnectionState || 'offline'}</span>
-        </div>
-      </div>
 
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm px-4 py-4 border-b border-orange-100">
