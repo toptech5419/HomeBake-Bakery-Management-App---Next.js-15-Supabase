@@ -1,6 +1,6 @@
 'use server';
 
-import { createServer } from '@/lib/supabase/server';
+import { createServer, createServiceRoleClient } from '@/lib/supabase/server';
 import type { User } from '@/types';
 
 export async function updateUserRoleAction(
@@ -8,16 +8,18 @@ export async function updateUserRoleAction(
   targetId: string, 
   newRole: 'owner' | 'manager' | 'sales_rep'
 ) {
-  const supabase = await createServer();
-
   // Check if user has permission
   if (user.role !== 'owner') {
     return { success: false, error: 'Insufficient permissions' };
   }
 
   try {
-    // Start a transaction by updating both tables
-    const { error: usersError } = await supabase
+    // Use service role client to bypass RLS policies
+    const supabaseAdmin = createServiceRoleClient();
+    const supabase = await createServer();
+
+    // Update users table
+    const { error: usersError } = await supabaseAdmin
       .from('users')
       .update({ role: newRole })
       .eq('id', targetId);
@@ -27,33 +29,19 @@ export async function updateUserRoleAction(
       return { success: false, error: 'Failed to update user role in users table' };
     }
 
-    // Update profiles table using service role to bypass RLS
-    const { error: profilesError } = await supabase
+    // Update profiles table
+    const { error: profilesError } = await supabaseAdmin
       .from('profiles')
       .update({ role: newRole })
       .eq('id', targetId);
 
     if (profilesError) {
       console.error('Error updating profiles table:', profilesError);
-      // Rollback users table change
-      await supabase
-        .from('users')
-        .select('role')
-        .eq('id', targetId)
-        .single()
-        .then(async ({ data: originalUser }) => {
-          if (originalUser) {
-            await supabase
-              .from('users')
-              .update({ role: originalUser.role })
-              .eq('id', targetId);
-          }
-        });
       return { success: false, error: 'Failed to update user role in profiles table' };
     }
 
     // Update auth.users metadata for consistency
-    const { error: authError } = await supabase.auth.admin.updateUserById(
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
       targetId,
       {
         user_metadata: { role: newRole }
@@ -62,7 +50,6 @@ export async function updateUserRoleAction(
 
     if (authError) {
       console.warn('Warning: Could not update auth metadata:', authError);
-      // Don't fail the operation for this, just log warning
     }
 
     return { success: true };
@@ -73,16 +60,17 @@ export async function updateUserRoleAction(
 }
 
 export async function deactivateUserAction(user: User, targetId: string) {
-  const supabase = await createServer();
-
   // Check if user has permission
   if (user.role !== 'owner') {
     return { success: false, error: 'Insufficient permissions' };
   }
 
   try {
+    // Use service role client to bypass RLS policies
+    const supabaseAdmin = createServiceRoleClient();
+
     // Update users table
-    const { error: usersError } = await supabase
+    const { error: usersError } = await supabaseAdmin
       .from('users')
       .update({ is_active: false })
       .eq('id', targetId);
@@ -93,18 +81,13 @@ export async function deactivateUserAction(user: User, targetId: string) {
     }
 
     // Update profiles table
-    const { error: profilesError } = await supabase
+    const { error: profilesError } = await supabaseAdmin
       .from('profiles')
       .update({ is_active: false })
       .eq('id', targetId);
 
     if (profilesError) {
       console.error('Error deactivating user in profiles table:', profilesError);
-      // Rollback users table change
-      await supabase
-        .from('users')
-        .update({ is_active: true })
-        .eq('id', targetId);
       return { success: false, error: 'Failed to deactivate user profile' };
     }
 
@@ -116,16 +99,17 @@ export async function deactivateUserAction(user: User, targetId: string) {
 }
 
 export async function reactivateUserAction(user: User, targetId: string) {
-  const supabase = await createServer();
-
   // Check if user has permission
   if (user.role !== 'owner') {
     return { success: false, error: 'Insufficient permissions' };
   }
 
   try {
+    // Use service role client to bypass RLS policies
+    const supabaseAdmin = createServiceRoleClient();
+
     // Update users table
-    const { error: usersError } = await supabase
+    const { error: usersError } = await supabaseAdmin
       .from('users')
       .update({ is_active: true })
       .eq('id', targetId);
@@ -136,18 +120,13 @@ export async function reactivateUserAction(user: User, targetId: string) {
     }
 
     // Update profiles table
-    const { error: profilesError } = await supabase
+    const { error: profilesError } = await supabaseAdmin
       .from('profiles')
       .update({ is_active: true })
       .eq('id', targetId);
 
     if (profilesError) {
       console.error('Error reactivating user in profiles table:', profilesError);
-      // Rollback users table change
-      await supabase
-        .from('users')
-        .update({ is_active: false })
-        .eq('id', targetId);
       return { success: false, error: 'Failed to reactivate user profile' };
     }
 
@@ -162,16 +141,17 @@ export async function deleteUserAction(
   user: User, 
   targetId: string
 ) {
-  const supabase = await createServer();
-
   // Check if user has permission
   if (user.role !== 'owner') {
     return { success: false, error: 'Insufficient permissions' };
   }
 
   try {
-    // First check if user exists and get their details for rollback if needed
-    const { data: userToDelete } = await supabase
+    // Use service role client to bypass RLS policies
+    const supabaseAdmin = createServiceRoleClient();
+
+    // First check if user exists
+    const { data: userToDelete } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', targetId)
@@ -181,27 +161,51 @@ export async function deleteUserAction(
       return { success: false, error: 'User not found' };
     }
 
+    console.log('Deleting user:', userToDelete.name, 'with ID:', targetId);
+
     // Delete from related tables first (foreign key dependencies)
     // Delete user activities
-    await supabase
+    const { error: activitiesError } = await supabaseAdmin
       .from('activities')
       .delete()
       .eq('user_id', targetId);
 
+    if (activitiesError) {
+      console.warn('Warning: Could not delete user activities:', activitiesError);
+    }
+
     // Delete user sessions
-    await supabase
+    const { error: sessionsError } = await supabaseAdmin
       .from('sessions')
       .delete()
       .eq('user_id', targetId);
 
+    if (sessionsError) {
+      console.warn('Warning: Could not delete user sessions:', sessionsError);
+    }
+
     // Delete push notification preferences
-    await supabase
+    const { error: notifError } = await supabaseAdmin
       .from('push_notification_preferences')
       .delete()
       .eq('user_id', targetId);
 
+    if (notifError) {
+      console.warn('Warning: Could not delete notification preferences:', notifError);
+    }
+
+    // Delete QR invites created by this user
+    const { error: qrError } = await supabaseAdmin
+      .from('qr_invites')
+      .delete()
+      .eq('created_by', targetId);
+
+    if (qrError) {
+      console.warn('Warning: Could not delete QR invites:', qrError);
+    }
+
     // Delete from profiles table
-    const { error: profilesError } = await supabase
+    const { error: profilesError } = await supabaseAdmin
       .from('profiles')
       .delete()
       .eq('id', targetId);
@@ -212,7 +216,7 @@ export async function deleteUserAction(
     }
 
     // Delete from users table
-    const { error: usersError } = await supabase
+    const { error: usersError } = await supabaseAdmin
       .from('users')
       .delete()
       .eq('id', targetId);
@@ -223,13 +227,14 @@ export async function deleteUserAction(
     }
 
     // Finally, delete from auth.users using admin API
-    const { error: authError } = await supabase.auth.admin.deleteUser(targetId);
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(targetId);
 
     if (authError) {
       console.warn('Warning: Could not delete auth user:', authError);
       // Don't fail the operation, just log warning since main tables are cleaned
     }
 
+    console.log('Successfully deleted user:', userToDelete.name);
     return { success: true };
   } catch (err) {
     console.error('Error in deleteUserAction:', err);
@@ -238,17 +243,18 @@ export async function deleteUserAction(
 }
 
 export async function refetchUsersAction(user: User) {
-  const supabase = await createServer();
-
   // Check if user has permission - only owners can view users
   if (user.role !== 'owner') {
     return { success: false, error: 'Insufficient permissions' };
   }
 
   try {
-    const { data: users, error } = await supabase
+    // Use service role client to ensure we can read all users
+    const supabaseAdmin = createServiceRoleClient();
+    
+    const { data: users, error } = await supabaseAdmin
       .from('users')
-      .select('id, name, role, is_active, created_at')
+      .select('id, name, role, is_active, created_at, email')
       .order('created_at', { ascending: false });
 
     if (error) {
