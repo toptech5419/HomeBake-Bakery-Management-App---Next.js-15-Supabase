@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useShift } from '@/contexts/ShiftContext';
 import { toast } from 'sonner';
 import { createSalesLog } from '@/lib/sales/actions';
-import { getBreadTypesForSales, getSalesDataForShift, getRemainingBreadData } from '@/lib/reports/sales-reports-server-actions';
+import { getBreadTypesForSales, getSalesDataForShift, getRemainingBreadData, createShiftReport } from '@/lib/reports/sales-reports-server-actions';
 import { getRemainingBread, updateRemainingBread } from '@/lib/reports/actions';
 import { useRouter } from 'next/navigation';
 import { setNavigationHistory } from '@/lib/utils/navigation-history';
@@ -66,6 +66,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   const [initialLoading, setInitialLoading] = useState(true);
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
 
+  // State to track user interactions for dynamic button behavior
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -95,7 +98,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       // Fetch sales data using server action
       try {
         const salesData = await getSalesDataForShift(userId, currentShift);
-        if (salesData) {
+        if (salesData && salesData.length > 0) {
           setSalesLogs(salesData);
           
           // Auto-fill "Record Additional Sales" with quantities from sales_logs
@@ -161,6 +164,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
       // Load existing remaining bread data
       await loadRemainingBreadData();
+
+      // Check if there's existing data to set interaction state
+      // This will be handled by the useEffect that monitors salesLogs and quickRemainingItems
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load data');
@@ -173,6 +179,18 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Check for existing data whenever salesLogs, quickRemainingItems, or quickRecordItems change
+  useEffect(() => {
+    const hasSalesData = salesLogs.length > 0;
+    const hasRemainingData = quickRemainingItems.some(item => item.quantity > 0);
+    const hasRecordData = quickRecordItems.some(item => item.quantity > 0);
+    const hasExistingData = hasSalesData || hasRemainingData || hasRecordData;
+    
+    if (hasExistingData && !hasUserInteracted) {
+      setHasUserInteracted(true);
+    }
+  }, [salesLogs, quickRemainingItems, quickRecordItems, hasUserInteracted]);
 
   // Enhanced back navigation with visual feedback
   const handleBackNavigation = () => {
@@ -190,14 +208,21 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       const result = await getRemainingBread(userId);
       
       if (result.success && result.data && result.data.length > 0) {
-        setQuickRemainingItems(prevItems => 
-          prevItems.map(item => {
+        setQuickRemainingItems(prevItems => {
+          const updatedItems = prevItems.map(item => {
             const totalRemaining = result.data
               .filter(r => r.bread_type_id === item.breadType.id)
               .reduce((sum, r) => sum + (r.quantity || 0), 0);
             return { ...item, quantity: totalRemaining };
-          })
-        );
+          });
+          
+          // Trigger user interaction if we found remaining bread data
+          if (updatedItems.some(item => item.quantity > 0)) {
+            setHasUserInteracted(true);
+          }
+          
+          return updatedItems;
+        });
       } else if (!result.success) {
         console.error('Error loading remaining bread:', result.error);
       }
@@ -209,6 +234,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   const updateQuickRecordQuantity = (breadTypeId: string, quantity: number, isRemaining: boolean = false) => {
     const items = isRemaining ? quickRemainingItems : quickRecordItems;
     const setItems = isRemaining ? setQuickRemainingItems : setQuickRecordItems;
+    
     
     setItems(items.map(item => 
       item.breadType.id === breadTypeId 
@@ -238,51 +264,134 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
     
     try {
       // Show loading toast
-      toast.loading('Ending shift and clearing data...', { id: 'end-shift' });
+      toast.loading('Generating shift report...', { id: 'generate-report' });
       
-      // END SHIFT: Clear all sales logs for the current user and shift
-      console.log('🧹 END SHIFT: Clearing all sales logs for current user/shift:', { userId, currentShift });
+      // Calculate totals from sales logs and additional inputs
+      let totalRevenue = 0;
+      let totalItemsSold = 0;
       
-      const { error: clearError, count } = await supabase
-        .from('sales_logs')
-        .delete({ count: 'exact' })
-        .eq('recorded_by', userId)
-        .eq('shift', currentShift);
-
-      if (clearError) {
-        console.error('❌ Error clearing sales logs:', clearError);
-        toast.error('Failed to clear shift data. Please try again.', { id: 'end-shift' });
+      // Process existing sales logs
+      const salesDataItems = salesLogs.map(sale => {
+        const revenue = sale.quantity * (sale.unit_price || 0);
+        totalRevenue += revenue;
+        totalItemsSold += sale.quantity;
+        
+        return {
+          breadType: sale.bread_types?.name || 'Unknown',
+          quantity: sale.quantity,
+          unitPrice: sale.unit_price || 0,
+          totalAmount: revenue,
+          timestamp: sale.created_at
+        };
+      });
+      
+      // Process additional sales inputs (if any)
+      const additionalSales = quickRecordItems.filter(item => item.quantity > 0);
+      additionalSales.forEach(item => {
+        const revenue = item.quantity * item.breadType.unit_price;
+        totalRevenue += revenue;
+        totalItemsSold += item.quantity;
+        
+        salesDataItems.push({
+          breadType: item.breadType.name,
+          quantity: item.quantity,
+          unitPrice: item.breadType.unit_price,
+          totalAmount: revenue,
+          timestamp: new Date().toISOString()
+        });
+      });
+      
+      // Process remaining bread data
+      const remainingBreadItems = quickRemainingItems
+        .filter(item => item.quantity > 0)
+        .map(item => ({
+          breadType: item.breadType.name,
+          quantity: item.quantity,
+          unitPrice: item.breadType.unit_price,
+          totalAmount: item.quantity * item.breadType.unit_price
+        }));
+      
+      const totalRemaining = remainingBreadItems.reduce((sum, item) => sum + item.quantity, 0);
+      
+      // Create shift report
+      const reportData = {
+        user_id: userId,
+        shift: currentShift,
+        total_revenue: totalRevenue,
+        total_items_sold: totalItemsSold,
+        total_remaining: totalRemaining,
+        feedback: feedback,
+        sales_data: salesDataItems,
+        remaining_breads: remainingBreadItems
+      };
+      
+      
+      console.log('📊 About to create shift report:', reportData);
+      
+      const shiftReport = await createShiftReport(reportData);
+      
+      console.log('📊 Shift report result:', shiftReport);
+      
+      if (shiftReport) {
+        // Keep loading state active during navigation to prevent page flash
+        toast.dismiss('generate-report');
+        toast.loading('Redirecting to report...', { id: 'redirecting' });
+        
+        console.log('📊 Navigating to final report with ID:', shiftReport.id);
+        
+        // Prepare final report data
+        const finalReportData = {
+          salesRecords: salesDataItems.map(item => ({
+            breadType: item.breadType,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalAmount: item.totalAmount,
+            timestamp: item.timestamp
+          })),
+          remainingBreads: remainingBreadItems.map(item => ({
+            breadType: item.breadType,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalAmount: item.totalAmount
+          })),
+          totalRevenue: totalRevenue,
+          totalItemsSold: totalItemsSold,
+          totalRemaining: totalRemaining,
+          shift: currentShift,
+          feedback: feedback,
+          userId: userId
+        };
+        
+        const encodedData = encodeURIComponent(JSON.stringify(finalReportData));
+        
+        // Use replace to avoid back button issues and navigate immediately
+        router.replace(`/dashboard/sales/final-report?data=${encodedData}`);
+        
+        // The loading state will be cleared when the new page loads
+      } else {
+        console.error('❌ No shift report returned');
+        toast.error('Report created but no data returned');
         setSubmitting(false);
-        return;
       }
 
-      console.log('✅ END SHIFT: Sales logs cleared successfully', { deletedCount: count });
-      
-      // Dismiss loading toast and show success
-      toast.dismiss('end-shift');
-      toast.success(`Shift ended! Cleared ${count || 0} sales records.`);
-
-      // Add a small delay for UI feedback, then navigate with replace for smooth transition
-      setTimeout(() => {
-        // Use replace for smoother transition without history stack
-        router.replace('/dashboard/sales');
-        
-        // Force refresh the page after navigation
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
-      }, 1000);
-
     } catch (error) {
-      console.error('Error ending shift:', error);
-      toast.error('Failed to end shift. Please try again.', { id: 'end-shift' });
+      console.error('Error generating shift report:', error);
+      toast.error('Failed to generate report. Please try again.', { id: 'generate-report' });
       setSubmitting(false);
     }
   };
 
-  // Enable End Shift button if there are any sales logs to clear
+  // Check for existing data in sales_logs or remaining_bread tables
   const hasSalesLogs = salesLogs.length > 0;
-  const shouldEnableEndShift = hasSalesLogs;
+  const hasRemainingBreadData = quickRemainingItems.some(item => item.quantity > 0);
+  const hasSalesInputs = quickRecordItems.some(item => item.quantity > 0);
+  const hasAnyUserInput = hasSalesInputs || hasRemainingBreadData;
+  
+  // Determine if button should be active (green) and show "Record All Sale"
+  const shouldShowRecordAllSale = hasUserInteracted || hasSalesLogs || hasRemainingBreadData || hasAnyUserInput;
+  // FIXED: Button should be enabled for ANY activity, not just sales logs
+  const shouldEnableEndShift = shouldShowRecordAllSale;
+
 
   // Show initial loading screen on first render
   if (initialLoading) {
@@ -350,10 +459,10 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
               </div>
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Ending Shift
+                  Generating Report
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Clearing all sales data...
+                  Creating comprehensive shift report...
                 </p>
               </div>
             </div>
@@ -378,7 +487,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
               <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg sm:text-2xl font-bold truncate">End Shift - Quick Record</h1>
+              <h1 className="text-lg sm:text-2xl font-bold truncate">Generate Shift Report</h1>
               <p className="text-blue-100 text-xs sm:text-sm truncate">
                 {currentShift?.charAt(0).toUpperCase() + currentShift?.slice(1)} Shift • {userName}
               </p>
@@ -447,7 +556,10 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => updateQuickRecordQuantity(item.breadType.id, item.quantity - 1)}
+                        onClick={() => {
+                          updateQuickRecordQuantity(item.breadType.id, item.quantity - 1);
+                          setHasUserInteracted(true);
+                        }}
                         disabled={submitting}
                         className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-red-50 hover:border-red-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -457,7 +569,10 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                         type="number"
                         min="0"
                         value={item.quantity || ''}
-                        onChange={(e) => updateQuickRecordQuantity(item.breadType.id, parseInt(e.target.value) || 0)}
+                        onChange={(e) => {
+                          updateQuickRecordQuantity(item.breadType.id, parseInt(e.target.value) || 0);
+                          setHasUserInteracted(true);
+                        }}
                         disabled={submitting}
                         className="w-16 sm:w-20 h-10 sm:h-12 text-center border rounded-lg sm:rounded-xl px-2 sm:px-3 py-2 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm sm:text-base touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="0"
@@ -465,7 +580,10 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => updateQuickRecordQuantity(item.breadType.id, item.quantity + 1)}
+                        onClick={() => {
+                          updateQuickRecordQuantity(item.breadType.id, item.quantity + 1);
+                          setHasUserInteracted(true);
+                        }}
                         disabled={submitting}
                         className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-green-50 hover:border-green-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -496,7 +614,10 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => updateQuickRecordQuantity(item.breadType.id, item.quantity - 1, true)}
+                        onClick={() => {
+                          updateQuickRecordQuantity(item.breadType.id, item.quantity - 1, true);
+                          setHasUserInteracted(true);
+                        }}
                         disabled={submitting}
                         className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-red-50 hover:border-red-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -506,7 +627,10 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                         type="number"
                         min="0"
                         value={item.quantity || ''}
-                        onChange={(e) => updateQuickRecordQuantity(item.breadType.id, parseInt(e.target.value) || 0, true)}
+                        onChange={(e) => {
+                          updateQuickRecordQuantity(item.breadType.id, parseInt(e.target.value) || 0, true);
+                          setHasUserInteracted(true);
+                        }}
                         disabled={submitting}
                         className="w-16 sm:w-20 h-10 sm:h-12 text-center border rounded-lg sm:rounded-xl px-2 sm:px-3 py-2 font-semibold focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-sm sm:text-base touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
                         placeholder="0"
@@ -514,7 +638,10 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => updateQuickRecordQuantity(item.breadType.id, item.quantity + 1, true)}
+                        onClick={() => {
+                          updateQuickRecordQuantity(item.breadType.id, item.quantity + 1, true);
+                          setHasUserInteracted(true);
+                        }}
                         disabled={submitting}
                         className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-green-50 hover:border-green-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -581,15 +708,21 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
           <Button
             onClick={handleSubmitReport}
             disabled={submitting || !shouldEnableEndShift}
-            className="flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl touch-manipulation min-h-[48px] sm:min-h-[56px]"
+            className={`flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl touch-manipulation min-h-[48px] sm:min-h-[56px] disabled:opacity-50 disabled:cursor-not-allowed ${
+              shouldShowRecordAllSale 
+                ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600' 
+                : 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600'
+            }`}
           >
             {submitting ? (
               <div className="flex items-center justify-center gap-1 sm:gap-2">
                 <div className="rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-white border-t-transparent animate-spin" />
-                <span className="text-sm sm:text-base font-semibold">Ending Shift...</span>
+                <span className="text-xs sm:text-sm md:text-base font-semibold truncate">Generating Report...</span>
               </div>
             ) : (
-              <span className="text-sm sm:text-base font-semibold">End Shift</span>
+              <span className="text-xs sm:text-sm md:text-base font-semibold truncate">
+                Record All Sale
+              </span>
             )}
           </Button>
         </div>
@@ -616,9 +749,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                     <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600" />
                   </div>
                 </div>
-                <h3 className="text-lg sm:text-xl font-bold text-center mb-2">End Current Shift</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-center mb-2">Generate Shift Report</h3>
                 <p className="text-gray-600 text-center mb-4 sm:mb-6 text-sm sm:text-base leading-relaxed">
-                  This will clear all your sales data for the current shift. Are you sure you want to end the shift?
+                  This will generate a comprehensive report of all sales and remaining bread. Continue?
                 </p>
                 <div className="flex gap-3 sm:gap-4">
                   <Button
@@ -630,9 +763,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                   </Button>
                   <Button
                     onClick={handleConfirmProceed}
-                    className="flex-1 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-sm sm:text-base font-semibold touch-manipulation min-h-[44px] sm:min-h-[48px] rounded-lg sm:rounded-xl"
+                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-sm sm:text-base font-semibold touch-manipulation min-h-[44px] sm:min-h-[48px] rounded-lg sm:rounded-xl"
                   >
-                    End Shift
+                    Generate Report
                   </Button>
                 </div>
               </div>
@@ -662,10 +795,17 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                     <Send className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
                   </div>
                 </div>
-                <h3 className="text-lg sm:text-xl font-bold text-center mb-2">End Shift Confirmation</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-center mb-2">Add Feedback (Optional)</h3>
                 <p className="text-gray-600 text-center mb-4 sm:mb-6 text-sm sm:text-base leading-relaxed">
-                  This will permanently clear all your sales data for this shift. Continue?
+                  Add any feedback or notes about this shift before generating the report.
                 </p>
+                <textarea
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  placeholder="Enter feedback about this shift (optional)..."
+                  className="w-full p-3 border rounded-lg resize-none mb-4"
+                  rows={3}
+                />
               </div>
               <div className="p-4 sm:p-6 pt-0 sm:pt-0 flex-shrink-0">
                 <div className="flex gap-3 sm:gap-4">
@@ -679,15 +819,15 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                   <Button
                     onClick={handleSubmitWithFeedback}
                     disabled={submitting}
-                    className="flex-1 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 touch-manipulation min-h-[44px] sm:min-h-[48px] rounded-lg sm:rounded-xl"
+                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 touch-manipulation min-h-[44px] sm:min-h-[48px] rounded-lg sm:rounded-xl"
                   >
                     {submitting ? (
                       <div className="flex items-center justify-center gap-1 sm:gap-2">
                         <div className="rounded-full h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent animate-spin" />
-                        <span className="text-sm sm:text-base font-semibold">Ending Shift...</span>
+                        <span className="text-sm sm:text-base font-semibold">Generating Report...</span>
                       </div>
                     ) : (
-                      <span className="text-sm sm:text-base font-semibold">End Shift Now</span>
+                      <span className="text-sm sm:text-base font-semibold">Generate Report</span>
                     )}
                   </Button>
                 </div>

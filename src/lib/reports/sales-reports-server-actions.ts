@@ -64,10 +64,6 @@ export async function getSalesDataForShift(userId: string, shift: 'morning' | 'n
   const supabase = await createServer()
   
   try {
-    // Get current date in Nigeria timezone
-    const nigeriaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
-    const today = nigeriaTime.toISOString().split('T')[0];
-    
     const { data: salesData, error: salesError } = await supabase
       .from('sales_logs')
       .select(`
@@ -80,8 +76,6 @@ export async function getSalesDataForShift(userId: string, shift: 'morning' | 'n
       `)
       .eq('recorded_by', userId)
       .eq('shift', shift)
-      .gte('created_at', `${today}T00:00:00`)
-      .lte('created_at', `${today}T23:59:59`)
       .order('created_at', { ascending: false })
 
     if (salesError) {
@@ -175,7 +169,7 @@ export async function createShiftReport(reportData: {
     
     const { data, error } = await supabase
       .from('shift_reports')
-      .insert([
+      .upsert([
         {
           user_id: reportData.user_id,
           shift: reportData.shift,
@@ -187,7 +181,9 @@ export async function createShiftReport(reportData: {
           sales_data: reportData.sales_data,
           remaining_breads: reportData.remaining_breads
         }
-      ])
+      ], {
+        onConflict: 'user_id,shift,report_date'
+      })
       .select()
       .single()
 

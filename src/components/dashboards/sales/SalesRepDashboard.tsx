@@ -411,7 +411,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
   }
 
   // Enhanced loading state that prevents flashing
-  if ((loading && !isInModalTransition) || isInitialMount) {
+  if (loading || isInitialMount) {
     return (
       <div className="space-y-8 min-h-screen">
         {/* Header skeleton */}

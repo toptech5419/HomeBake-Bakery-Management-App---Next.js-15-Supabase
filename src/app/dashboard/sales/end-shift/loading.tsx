@@ -27,7 +27,7 @@ export default function EndShiftLoading() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h1 className="text-5xl md:text-6xl font-bold text-gray-800 mb-4">End Shift</h1>
+              <h1 className="text-5xl md:text-6xl font-bold text-gray-800 mb-4">record all</h1>
               <p className="text-2xl text-gray-600 mb-3">Preparing shift summary...</p>
               <p className="text-lg text-gray-500">Generating your shift report</p>
             </div>
