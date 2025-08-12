@@ -146,8 +146,8 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
           handleDelete(breadType);
           setActiveDropdownId(null);
         },
-        variant: 'danger' as const,
-        disabled: isLoading(breadType.id, 'delete')
+        disabled: isLoading(breadType.id, 'delete'),
+        variant: 'danger' as const
       });
     }
 

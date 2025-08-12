@@ -88,7 +88,7 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
       
 
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm px-4 py-4 border-b border-orange-100">
+      <div className="bg-white/80 backdrop-blur-sm px-2 py-2 border-b border-orange-100">
         <div className="flex items-center justify-between">
           <BackButton 
             userRole={
@@ -96,103 +96,80 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
               ((user as any)?.role as string) || 
               'owner'
             }
-            size="md"
+            size="sm"
             showText={false}
             className="flex-shrink-0"
           />
-          <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+          <h1 className="text-lg font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
             Inventory
           </h1>
-          <div className="w-10"></div> {/* Spacer for centering */}
+          <div className="w-8"></div> {/* Spacer for centering */}
         </div>
       </div>
 
-      <div className="p-4 space-y-4 md:space-y-6">
+      <div className="p-1 space-y-1 md:p-2 md:space-y-2">
         {/* Enhanced Shift Info Card */}
         <Card className="border-orange-200 bg-white/90 backdrop-blur-sm">
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-              <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center space-x-2">
-                  <Clock className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
-                  <span className="font-semibold text-gray-900 capitalize text-sm md:text-base">{dataSourceInfo.currentShift} Shift</span>
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">AUTO</span>
-                </div>
-                              <div className="flex items-center gap-1">
+          <CardContent className="p-1.5 md:p-2">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3 text-orange-500" />
+                <span className="font-semibold text-gray-900 capitalize text-xs">{dataSourceInfo.currentShift}</span>
+                <span className="text-[8px] bg-green-100 text-green-700 px-1 py-0.5 rounded">AUTO</span>
                 {dataSourceInfo.source === 'all_batches' && (
-                  <Archive className="w-4 h-4 text-purple-500" />
+                  <Archive className="w-3 h-3 text-purple-500" />
                 )}
               </div>
-              </div>
               <div className="text-right">
-                <span className="text-xs md:text-sm text-gray-600">Next shift in</span>
-                <div className="text-xs md:text-sm font-medium text-orange-600">{dataSourceInfo.timeUntilNextShift}</div>
+                <span className="text-[8px] text-gray-600">Next: </span>
+                <span className="text-[10px] font-medium text-orange-600">{dataSourceInfo.timeUntilNextShift}</span>
               </div>
             </div>
             
             {/* Enhanced shift details - Mobile responsive grid */}
-            <div className="grid grid-cols-3 gap-3 md:gap-4 text-xs md:text-sm">
+            <div className="grid grid-cols-3 gap-1 text-[8px]">
               <div>
-                <span className="text-gray-600">Data Source:</span>
-                <div className="font-medium capitalize">{dataSourceInfo.source}</div>
+                <span className="text-gray-500">{dataSourceInfo.source}</span>
               </div>
               <div>
-                <span className="text-gray-600">Total Batches:</span>
-                <div className="font-medium">{dataSourceInfo.totalBatches}</div>
+                <span className="font-medium">{dataSourceInfo.totalBatches} active</span>
               </div>
               <div>
-                <span className="text-gray-600">Archived:</span>
-                <div className="font-medium">{dataSourceInfo.totalArchivedBatches}</div>
+                <span className="font-medium">{dataSourceInfo.totalArchivedBatches} archived</span>
               </div>
-            </div>
-            
-            <div className="mt-2 text-xs text-gray-500">
-              {dataSourceInfo.recordCount} records • Auto-switching at {dataSourceInfo.nextShiftTime}
-              <div className="mt-1 text-blue-600">{dataSourceInfo.dataWindow}</div>
-              {shiftStatus.shouldShowArchivedData && (
-                <div className="flex items-center space-x-1 mt-1 text-purple-600">
-                  <Archive className="w-3 h-3" />
-                  <span>Showing archived data from previous shift</span>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Production Overview - Enhanced with orange theme */}
+        {/* Production Overview - Compact */}
         <Card className="border-orange-200 bg-gradient-to-br from-orange-100 to-amber-100">
-          <CardHeader className="pb-3">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 md:w-4 md:h-4 bg-orange-500 rounded-full animate-pulse"></div>
-              <h2 className="text-base md:text-lg font-semibold text-gray-900">Production Overview</h2>
+          <CardContent className="p-1.5">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></div>
+                <h2 className="text-xs font-semibold text-gray-900">Production</h2>
+              </div>
               <button
                 onClick={() => dataSourceInfo.refreshData()}
-                className="ml-auto p-1 text-orange-600 hover:text-orange-800"
-                title="Refresh data"
+                className="p-0.5 text-orange-600 hover:text-orange-800"
+                title="Refresh"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className="w-3 h-3" />
               </button>
             </div>
-          </CardHeader>
-          <CardContent>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 animate-count-in">
+              <div className="text-xl font-bold text-gray-900 mb-0.5">
                 {totalUnits.toLocaleString()}
               </div>
-              <div className="text-orange-600 font-medium text-sm md:text-base">Total Units Produced</div>
-              <div className="mt-2 flex items-center justify-center space-x-1">
-                <TrendingUp className="w-4 h-4 text-green-500" />
-                <span className="text-xs md:text-sm text-gray-600">Real-time tracking</span>
-              </div>
-              {/* Enhanced batch information */}
-              <div className="mt-3 grid grid-cols-2 gap-4 text-xs md:text-sm">
+              <div className="text-orange-600 font-medium text-[10px]">Total Units</div>
+              <div className="mt-1 grid grid-cols-2 gap-1 text-[8px]">
                 <div>
-                  <div className="font-semibold text-gray-700">{dataSourceInfo.totalBatches}</div>
-                  <div className="text-gray-500">Active Batches</div>
+                  <span className="font-semibold text-gray-700">{dataSourceInfo.totalBatches}</span>
+                  <span className="text-gray-500"> active</span>
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-700">{dataSourceInfo.totalArchivedBatches}</div>
-                  <div className="text-gray-500">Archived</div>
+                  <span className="font-semibold text-gray-700">{dataSourceInfo.totalArchivedBatches}</span>
+                  <span className="text-gray-500"> archived</span>
                 </div>
               </div>
             </div>
@@ -200,76 +177,73 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
         </Card>
 
         {/* Inventory List - Enhanced with animations */}
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-1">
           {inventory.length === 0 ? (
             <Card className="border-orange-200 bg-white/90 backdrop-blur-sm">
-              <CardContent className="p-6 md:p-8 text-center">
-                <div className="text-orange-400 text-4xl md:text-6xl mb-4 animate-bounce">📦</div>
-                <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-2">No Inventory Items</h3>
-                <p className="text-gray-600 mb-4 text-sm md:text-base">No batches recorded for this shift yet</p>
-                <div className="text-xs md:text-sm text-orange-500 animate-pulse">
-                  Waiting for production data...
+              <CardContent className="p-2 text-center">
+                <div className="text-orange-400 text-lg mb-1 animate-bounce">📦</div>
+                <h3 className="text-xs font-semibold text-gray-900 mb-0.5">No Inventory</h3>
+                <p className="text-gray-600 mb-1 text-[10px]">No batches recorded</p>
+                <div className="text-[8px] text-orange-500 animate-pulse">
+                  Waiting for data...
                 </div>
               </CardContent>
             </Card>
           ) : (
             <>
-              <div className="text-xs md:text-sm font-medium text-gray-700 mb-3">
-                {inventory.length} Bread Type{inventory.length !== 1 ? 's' : ''} in Production
+              <div className="text-[10px] font-medium text-gray-700 mb-1">
+                {inventory.length} Type{inventory.length !== 1 ? 's' : ''}
               </div>
               {inventory.map((item: InventoryItem, index: number) => (
                 <div 
                   key={item.id} 
-                  className="bg-white/95 backdrop-blur-sm p-4 md:p-6 rounded-xl border border-orange-200 
-                           shadow-sm hover:shadow-lg hover:border-orange-300 
-                           transition-all duration-300 ease-out transform hover:-translate-y-1
+                  className="bg-white/95 backdrop-blur-sm p-1.5 rounded-lg border border-orange-200 
+                           shadow-sm hover:shadow-md hover:border-orange-300 
+                           transition-all duration-200 ease-out
                            animate-fade-in-up"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <Package className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
-                        <h3 className="font-semibold text-gray-900 text-base md:text-lg">{item.name}</h3>
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <Package className="w-2.5 h-2.5 text-orange-500" />
+                        <h3 className="font-semibold text-gray-900 text-xs truncate">{item.name}</h3>
                         {item.archivedBatches && item.archivedBatches > 0 && (
-                          <Archive className="w-3 h-3 md:w-4 md:h-4 text-purple-500" />
+                          <Archive className="w-2 h-2 text-purple-500" />
                         )}
                       </div>
-                      {item.size && (
-                        <p className="text-gray-600 text-xs md:text-sm ml-6 md:ml-7">{item.size}</p>
-                      )}
-                      <p className="text-orange-600 font-semibold text-xs md:text-sm ml-6 md:ml-7">
-                        ₦{item.price?.toLocaleString()}
-                      </p>
+                      <div className="flex items-center gap-2 text-[8px]">
+                        {item.size && (
+                          <span className="text-gray-600">{item.size}</span>
+                        )}
+                        <span className="text-orange-600 font-semibold">
+                          ₦{item.price?.toLocaleString()}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-xl md:text-2xl font-bold text-orange-600 mb-1">
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-base font-bold text-orange-600">
                         {item.quantity.toLocaleString()}
                       </div>
-                      <div className="text-xs text-gray-500 uppercase tracking-wide">units</div>
                       {item.batches && item.batches > 0 && (
-                        <div className="text-xs text-gray-400">
-                          {item.batches} batch{item.batches !== 1 ? 'es' : ''}
-                          {item.archivedBatches && item.archivedBatches > 0 && (
-                            <span className="text-purple-500"> • {item.archivedBatches} archived</span>
+                        <div className="text-[8px] text-gray-400">
+                          {item.batches}b{item.archivedBatches && item.archivedBatches > 0 && (
+                            <span className="text-purple-500">•{item.archivedBatches}</span>
                           )}
                         </div>
                       )}
                     </div>
                   </div>
                   
-                  {/* Progress bar for visual representation */}
+                  {/* Progress bar */}
                   {totalUnits > 0 && (
-                    <div className="mt-3">
-                      <div className="w-full bg-orange-100 rounded-full h-2">
+                    <div className="mt-1">
+                      <div className="w-full bg-orange-100 rounded-full h-1">
                         <div 
-                          className="bg-gradient-to-r from-orange-400 to-amber-500 h-2 rounded-full 
-                                   transition-all duration-500 ease-out"
+                          className="bg-gradient-to-r from-orange-400 to-amber-500 h-1 rounded-full 
+                                   transition-all duration-300 ease-out"
                           style={{ width: `${Math.min((item.quantity / totalUnits) * 100, 100)}%` }}
                         ></div>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1 text-right">
-                        {((item.quantity / totalUnits) * 100).toFixed(1)}% of total
                       </div>
                     </div>
                   )}
@@ -282,19 +256,19 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
         {/* Footer Stats */}
         {inventory.length > 0 && (
           <Card className="border-orange-200 bg-white/90 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="grid grid-cols-3 gap-4 text-center">
+            <CardContent className="p-1.5">
+              <div className="grid grid-cols-3 gap-1 text-center">
                 <div>
-                  <div className="text-xl md:text-2xl font-bold text-orange-600">{inventory.length}</div>
-                  <div className="text-xs text-gray-600 uppercase tracking-wide">Types</div>
+                  <div className="text-sm font-bold text-orange-600">{inventory.length}</div>
+                  <div className="text-[8px] text-gray-600">TYPES</div>
                 </div>
                 <div>
-                  <div className="text-xl md:text-2xl font-bold text-orange-600">{totalUnits.toLocaleString()}</div>
-                  <div className="text-xs text-gray-600 uppercase tracking-wide">Total Units</div>
+                  <div className="text-sm font-bold text-orange-600">{totalUnits.toLocaleString()}</div>
+                  <div className="text-[8px] text-gray-600">UNITS</div>
                 </div>
                 <div>
-                  <div className="text-xl md:text-2xl font-bold text-orange-600">{dataSourceInfo.totalBatches}</div>
-                  <div className="text-xs text-gray-600 uppercase tracking-wide">Batches</div>
+                  <div className="text-sm font-bold text-orange-600">{dataSourceInfo.totalBatches}</div>
+                  <div className="text-[8px] text-gray-600">BATCHES</div>
                 </div>
               </div>
             </CardContent>

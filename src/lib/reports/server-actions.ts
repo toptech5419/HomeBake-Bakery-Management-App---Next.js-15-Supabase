@@ -14,20 +14,21 @@ const getCurrentDate = () => {
 
 /**
  * Get manager reports count for today (Server Action)
+ * Counts production batches (all_batches) created today
  */
 export async function getManagerReportsCount(): Promise<number> {
   const supabase = await createServer()
   const today = getCurrentDate()
   
   try {
-    const { data, error } = await supabase
+    const { count, error } = await supabase
       .from('all_batches')
-      .select('id', { count: 'exact', head: true })
+      .select('*', { count: 'exact', head: true })
       .gte('created_at', `${today}T00:00:00.000Z`)
       .lt('created_at', `${today}T23:59:59.999Z`)
 
     if (error) throw error
-    return data?.length || 0
+    return count || 0
   } catch (error) {
     console.error('Error fetching manager reports count:', error)
     return 0
@@ -36,20 +37,21 @@ export async function getManagerReportsCount(): Promise<number> {
 
 /**
  * Get sales reports count for today (Server Action)
+ * Counts shift reports created today
  */
 export async function getSalesReportsCount(): Promise<number> {
   const supabase = await createServer()
   const today = getCurrentDate()
   
   try {
-    const { data, error } = await supabase
+    const { count, error } = await supabase
       .from('shift_reports')
-      .select('id', { count: 'exact', head: true })
+      .select('*', { count: 'exact', head: true })
       .gte('created_at', `${today}T00:00:00.000Z`)
       .lt('created_at', `${today}T23:59:59.999Z`)
 
     if (error) throw error
-    return data?.length || 0
+    return count || 0
   } catch (error) {
     console.error('Error fetching sales reports count:', error)
     return 0
