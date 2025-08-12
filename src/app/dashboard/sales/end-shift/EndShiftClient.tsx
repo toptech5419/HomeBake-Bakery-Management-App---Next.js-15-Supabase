@@ -874,9 +874,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                     <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600" />
                   </div>
                 </div>
-                <h3 className="text-lg sm:text-xl font-bold text-center mb-2">Generate Shift Report</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-center mb-2">No Remaining Bread</h3>
                 <p className="text-gray-600 text-center mb-4 sm:mb-6 text-sm sm:text-base leading-relaxed">
-                  This will generate a comprehensive report of all sales and remaining bread. Continue?
+                  You didn't record remaining bread, do you want to continue?
                 </p>
                 <div className="flex gap-3 sm:gap-4">
                   <Button

@@ -44,7 +44,8 @@
       "Bash(true)",
       "Bash(done)",
       "Bash(powershell:*)",
-      "Bash(timeout 10 npm run dev -- --port 3004)"
+      "Bash(timeout 10 npm run dev -- --port 3004)",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }

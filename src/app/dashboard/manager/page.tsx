@@ -26,7 +26,7 @@ export default async function ManagerDashboardPage() {
 
   // --- Let client handle shift selection ---
   // Server provides fallback data, but client will use user's stored preference
-  let shiftStartTime: string | null = null;
+  const shiftStartTime: string | null = null;
 
   try {
     // --- Active Batches - Get minimal data (client will handle shift filtering) ---
