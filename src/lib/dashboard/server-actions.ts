@@ -24,7 +24,7 @@ export async function getTodayRevenue(): Promise<number> {
       .from('sales_logs')
       .select('quantity, unit_price, discount')
       .gte('created_at', `${lagosDate}T00:00:00`)
-      .lt('created_at', `${lagosDate}T23:59:59`);
+      .lte('created_at', `${lagosDate}T23:59:59.999`);
 
     if (salesError) throw salesError;
 
@@ -68,7 +68,7 @@ export async function getTodayBatchCount(): Promise<number> {
       .from('batches')
       .select('id')
       .gte('created_at', `${lagosDate}T00:00:00`)
-      .lt('created_at', `${lagosDate}T23:59:59`);
+      .lte('created_at', `${lagosDate}T23:59:59.999`);
 
     if (batchesError) throw batchesError;
 
@@ -81,7 +81,7 @@ export async function getTodayBatchCount(): Promise<number> {
       .from('all_batches')
       .select('id')
       .gte('created_at', `${lagosDate}T00:00:00`)
-      .lt('created_at', `${lagosDate}T23:59:59`);
+      .lte('created_at', `${lagosDate}T23:59:59.999`);
 
     if (allBatchesError) throw allBatchesError;
 
@@ -130,20 +130,49 @@ export async function getStaffOnlineCount(): Promise<{ online: number; total: nu
 }
 
 /**
- * Get low stock count from available_stock (Server Action)
- * Matches the logic from sales-management: items with available <= 5 and > 0
+ * Get low stock count from real-time tracking system (Server Action)
+ * Uses the new daily_low_stock_counts table with automatic triggers
+ * Falls back to available_stock table if real-time tracking is unavailable
  */
 export async function getLowStockCount(): Promise<number> {
   const supabase = await createServer();
+  const lagosDate = getLagosDateString();
   
   try {
-    const { data: stockData, error } = await supabase
+    // Primary: Try to get from real-time daily tracking system
+    const { data: dailyCount, error: dailyError } = await supabase.rpc('get_daily_low_stock_count', {
+      p_date: lagosDate
+    });
+
+    // If real-time tracking works and has data, use it
+    if (!dailyError && dailyCount !== null && dailyCount !== undefined) {
+      return dailyCount;
+    }
+
+    // Secondary: Try manual refresh if no data exists for today
+    console.log('No daily data found, attempting auto-refresh...');
+    const { error: refreshError } = await supabase.rpc('auto_update_low_stock_counts');
+    
+    if (!refreshError) {
+      // Try getting the data again after refresh
+      const { data: refreshedCount } = await supabase.rpc('get_daily_low_stock_count', {
+        p_date: lagosDate
+      });
+      
+      if (refreshedCount !== null && refreshedCount !== undefined) {
+        return refreshedCount;
+      }
+    }
+
+    // Fallback: Use available_stock table (original logic)
+    console.warn('Real-time low stock tracking unavailable, using fallback logic');
+    const { data: stockData, error: stockError } = await supabase
       .from('available_stock')
       .select('quantity')
       .gt('quantity', 0)
       .lte('quantity', 5);
 
-    if (error) throw error;
+    if (stockError) throw stockError;
 
     return stockData?.length || 0;
   } catch (error) {

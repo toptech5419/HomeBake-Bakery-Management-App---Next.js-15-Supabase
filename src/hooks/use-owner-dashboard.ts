@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { getOwnerDashboardStats, getTodayRevenue, getTodayBatchCount, getStaffOnlineCount, getLowStockCount } from '@/lib/dashboard/server-actions';
+import { getOwnerDashboardStats, getTodayRevenue, getTodayBatchCount, getStaffOnlineCount } from '@/lib/dashboard/server-actions';
+import { useLowStockTracker } from './use-low-stock-tracker';
 
 interface OwnerDashboardStats {
   todayRevenue: number;
@@ -10,6 +11,9 @@ interface OwnerDashboardStats {
   staffOnline: number;
   staffTotal: number;
   lowStockCount: number;
+  lowStockMorning: number;
+  lowStockNight: number;
+  lowStockRealTime: boolean;
   lastUpdate: string;
 }
 
@@ -27,18 +31,41 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
     staffOnline: 0,
     staffTotal: 0,
     lowStockCount: 0,
+    lowStockMorning: 0,
+    lowStockNight: 0,
+    lowStockRealTime: false,
     lastUpdate: new Date().toISOString()
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Real-time low stock tracking hook
+  const { 
+    lowStockData, 
+    isLoading: lowStockLoading, 
+    error: lowStockError,
+    refetch: refreshLowStock 
+  } = useLowStockTracker();
+
   const fetchStats = useCallback(async () => {
     try {
       setError(null);
       
-      // Use the combined server action for better performance
-      const statsData = await getOwnerDashboardStats();
-      setStats(statsData);
+      // Get basic stats (without low stock count since we have real-time tracking)
+      const [todayRevenue, todayBatches, staffCounts] = await Promise.all([
+        getTodayRevenue(),
+        getTodayBatchCount(),
+        getStaffOnlineCount()
+      ]);
+
+      setStats(prevStats => ({
+        ...prevStats,
+        todayRevenue,
+        todayBatches,
+        staffOnline: staffCounts.online,
+        staffTotal: staffCounts.total,
+        lastUpdate: new Date().toISOString()
+      }));
     } catch (err) {
       console.error('Error fetching owner dashboard stats:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch stats');
@@ -50,22 +77,44 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
   const refetch = useCallback(() => {
     setIsLoading(true);
     fetchStats();
-  }, [fetchStats]);
+    // Also refresh low stock data
+    refreshLowStock();
+  }, [fetchStats, refreshLowStock]);
+
+  // Update stats when real-time low stock data changes
+  useEffect(() => {
+    if (!lowStockLoading && lowStockData) {
+      setStats(prevStats => ({
+        ...prevStats,
+        lowStockCount: lowStockData.total,
+        lowStockMorning: lowStockData.morningCount,
+        lowStockNight: lowStockData.nightCount,
+        lowStockRealTime: lowStockData.total > 0,
+      }));
+    }
+
+    // Combine errors
+    if (lowStockError && !error) {
+      setError(`Low stock tracking: ${lowStockError}`);
+    }
+  }, [lowStockData, lowStockLoading, lowStockError, error]);
 
   // Initial fetch
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
 
-  // Auto-refresh at midnight Lagos time
+  // Auto-refresh at midnight Lagos time (no need to reset counters anymore)
   useEffect(() => {
-    const checkMidnight = () => {
+    const checkMidnight = async () => {
       const now = new Date();
       const lagosTime = new Date(now.toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
       
       // Check if we've crossed midnight
       if (lagosTime.getHours() === 0 && lagosTime.getMinutes() === 0) {
+        // Refetch all dashboard data for new day
         refetch();
+        console.log('Dashboard refreshed at midnight for new day');
       }
     };
 
@@ -121,28 +170,8 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
       )
       .subscribe();
 
-    // Available stock subscription for low stock updates
-    const stockSubscription = supabase
-      .channel('owner_dashboard_stock')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'available_stock'
-        },
-        () => {
-          // Refetch low stock count when inventory changes
-          getLowStockCount().then(count => {
-            setStats(prev => ({
-              ...prev,
-              lowStockCount: count,
-              lastUpdate: new Date().toISOString()
-            }));
-          });
-        }
-      )
-      .subscribe();
+    // Note: Low stock tracking is now handled by useLowStockTracker hook
+    // No need for manual available_stock subscription
 
     // Sessions subscription for staff online count
     const sessionsSubscription = supabase
@@ -171,7 +200,6 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
     return () => {
       salesSubscription.unsubscribe();
       batchesSubscription.unsubscribe();
-      stockSubscription.unsubscribe();
       sessionsSubscription.unsubscribe();
     };
   }, []);

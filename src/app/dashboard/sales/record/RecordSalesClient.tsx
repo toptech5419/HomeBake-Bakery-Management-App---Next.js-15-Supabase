@@ -50,6 +50,7 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
   });
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isNavigatingBack, setIsNavigatingBack] = useState(false);
 
   // Ref for auto-scroll functionality
   const selectedBreadRef = useRef<HTMLDivElement>(null);
@@ -227,8 +228,40 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
     // Don't reset submitting on success - keep loading state during navigation
   };
 
+  // Enhanced back navigation with visual feedback
+  const handleBackNavigation = () => {
+    setIsNavigatingBack(true);
+    
+    // Add a longer delay to ensure smooth transition and loading state visibility
+    setTimeout(() => {
+      router.push('/dashboard/sales');
+    }, 500);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Back Navigation Loading Overlay */}
+      {isNavigatingBack && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm mx-4 text-center">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-16 h-16 border-4 border-orange-200 rounded-full opacity-25"></div>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Going Back
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  Returning to dashboard...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile-First Header with Back Button */}
       <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
         <div className="px-3 sm:px-4 py-4 sm:py-6">
@@ -236,8 +269,9 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push('/dashboard/sales')}
-              className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl touch-manipulation flex-shrink-0"
+              onClick={handleBackNavigation}
+              disabled={submitting || isNavigatingBack}
+              className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -428,8 +462,8 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
         <div className="max-w-4xl mx-auto flex gap-4">
           <Button
             variant="outline"
-            onClick={() => router.push('/dashboard/sales')}
-            disabled={submitting}
+            onClick={handleBackNavigation}
+            disabled={submitting || isNavigatingBack}
             className="flex-1 py-4 rounded-2xl border-2 hover:border-orange-400 transition-all duration-200 text-base font-semibold touch-manipulation min-h-[56px]"
             size="lg"
           >

@@ -110,9 +110,16 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
                   </div>
                   <div className="text-xs text-gray-500 mt-1">Staff Online</div>
                 </div>
-                <div className="bg-white rounded-xl p-4 text-center border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                <div className="bg-white rounded-xl p-4 text-center border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative">
                   <div className="text-lg font-bold text-red-600">{stats.lowStockCount}</div>
-                  <div className="text-xs text-gray-500 mt-1">Low Stock</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Low Stock {stats.lowStockRealTime && <span className="text-green-600">●</span>}
+                  </div>
+                  {stats.lowStockRealTime && (stats.lowStockMorning > 0 || stats.lowStockNight > 0) && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      M: {stats.lowStockMorning} | N: {stats.lowStockNight}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -236,6 +243,7 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
                   </div>
                 </div>
               </div>
+
 
               {/* Refresh Button */}
               <div className="text-center pt-4">

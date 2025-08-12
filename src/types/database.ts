@@ -215,6 +215,19 @@ export interface PushNotificationPreferences {
   updated_at: string
 }
 
+// Daily Low Stock Tracking
+export interface DailyLowStockCount {
+  id: string
+  count_date: string
+  morning_shift_count: number
+  night_shift_count: number
+  total_count: number
+  last_updated_morning?: string
+  last_updated_night?: string
+  created_at: string
+  updated_at: string
+}
+
 // Timezone handling for Nigeria (GMT+1)
 export interface TimestampHelper {
   toNigeriaTime: (utcTimestamp: string) => string

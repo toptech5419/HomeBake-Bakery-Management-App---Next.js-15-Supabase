@@ -96,6 +96,11 @@ export default function NightPerformanceClient({ user, displayName }: NightPerfo
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'available' | 'low'>('all');
 
+  // Calculate current low stock count for display only (DB triggers handle the real tracking)
+  const currentLowStockCount = nightProductionItems?.filter(item => 
+    item.available <= 5 && item.available > 0
+  ).length || 0;
+
   // Memoized pagination calculations
   const paginatedData = useMemo(() => {
     if (!nightProductionItems.length) {
@@ -183,12 +188,22 @@ export default function NightPerformanceClient({ user, displayName }: NightPerfo
       <div className="flex-1 overflow-y-auto bg-gradient-to-b from-purple-50/30 to-indigo-50/30">
         <div className="px-3 sm:px-4 py-4 space-y-4 sm:space-y-6">
 
-          {/* Alert - Compact */}
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-purple-600 flex-shrink-0" />
-            <span className="text-purple-800 text-sm">
-              Night shift performance data loaded successfully.
-            </span>
+          {/* Alert - Compact with Low Stock Tracking Info */}
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-purple-600 flex-shrink-0" />
+              <span className="text-purple-800 text-sm">
+                Night shift performance data loaded successfully.
+              </span>
+            </div>
+            {currentLowStockCount > 0 && (
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                <span className="text-amber-800 text-sm font-medium">
+                  {currentLowStockCount} low stock item{currentLowStockCount !== 1 ? 's' : ''} detected (auto-tracked by system)
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Controls - Mobile First Design */}

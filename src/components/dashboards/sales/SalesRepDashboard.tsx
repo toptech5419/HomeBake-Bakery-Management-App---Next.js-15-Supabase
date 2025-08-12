@@ -118,6 +118,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
   const [showTransitionOverlay, setShowTransitionOverlay] = useState(false);
   const [isEndingShift, setIsEndingShift] = useState(false);
   const [hasSalesLogs, setHasSalesLogs] = useState(false);
+  const [navigationTarget, setNavigationTarget] = useState<string | null>(null);
 
   const checkSalesLogsExist = async () => {
     try {
@@ -446,6 +447,25 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     setEndShiftHandler(handleEndShift);
   }, [setEndShiftHandler]);
 
+  // Enhanced navigation with visual feedback
+  const handleNavigation = async (path: string, label: string) => {
+    setNavigationTarget(path);
+    setIsTransitioning(true);
+    
+    // Add a small delay to show the loading state
+    setTimeout(() => {
+      router.push(path);
+    }, 300);
+  };
+
+  // Reset transition state when component unmounts
+  useEffect(() => {
+    return () => {
+      setIsTransitioning(false);
+      setNavigationTarget(null);
+    };
+  }, []);
+
   const getProgressPercentage = () => {
     if (metrics.salesTarget === 0) return 0;
     // Use actual recorded sales instead of calculated remaining
@@ -519,10 +539,16 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
       {isTransitioning && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center">
           <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Preparing Report</h3>
-              <p className="text-sm text-gray-600">Please wait while we generate your shift report...</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Page</h3>
+              <p className="text-sm text-gray-600">
+                {navigationTarget?.includes('end-shift') && 'Loading end shift page...'}
+                {navigationTarget?.includes('record') && 'Loading record sales page...'}
+                {navigationTarget?.includes('all-sales') && 'Loading all sales page...'}
+                {navigationTarget?.includes('reports-history') && 'Loading reports history...'}
+                {!navigationTarget && 'Please wait...'}
+              </p>
             </div>
           </div>
         </div>
@@ -768,7 +794,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               variant="secondary"
               size="md"
               leftIcon={<History className="h-4 w-4" />}
-              onClick={() => router.push('/dashboard/sales/all-sales')}
+              onClick={() => handleNavigation('/dashboard/sales/all-sales', 'View All Sales')}
               className="hover-lift"
             >
               View All Sales
@@ -790,7 +816,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               variant="success"
               size="lg"
               leftIcon={<RotateCcw className="h-5 w-5" />}
-              onClick={() => router.push('/dashboard/sales/end-shift')}
+              onClick={() => handleNavigation('/dashboard/sales/end-shift', 'Generate Shift Reports')}
               className="hover-lift"
               fullWidth
             >
@@ -801,7 +827,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               variant="primary"
               size="lg"
               leftIcon={<Plus className="h-5 w-5" />}
-              onClick={() => router.push('/dashboard/sales/record')}
+              onClick={() => handleNavigation('/dashboard/sales/record', 'Record Sale')}
               className="hover-lift"
               fullWidth
             >
@@ -812,7 +838,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
               variant="secondary"
               size="lg"
               leftIcon={<History className="h-4 w-5" />}
-              onClick={() => router.push('/dashboard/sales-reports-history')}
+              onClick={() => handleNavigation('/dashboard/sales-reports-history', 'View Reports History')}
               className="hover-lift"
               fullWidth
             >
@@ -827,7 +853,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
         variant="primary"
         size="xl"
         className="fixed bottom-8 right-8 rounded-full shadow-xl z-50 h-16 w-16 hover-lift"
-        onClick={() => router.push('/dashboard/sales/record')}
+        onClick={() => handleNavigation('/dashboard/sales/record', 'Record Sale')}
       >
         <Plus className="h-6 w-6" />
       </ModernButton>

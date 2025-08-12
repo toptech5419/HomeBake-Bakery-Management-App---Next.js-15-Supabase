@@ -64,6 +64,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
   // Initialize loading state to true so page shows loading on first render
   const [initialLoading, setInitialLoading] = useState(true);
+  const [isNavigatingBack, setIsNavigatingBack] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -172,6 +173,16 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Enhanced back navigation with visual feedback
+  const handleBackNavigation = () => {
+    setIsNavigatingBack(true);
+    
+    // Add a longer delay to ensure smooth transition and loading state visibility
+    setTimeout(() => {
+      router.push('/dashboard/sales');
+    }, 500);
+  };
 
   const loadRemainingBreadData = async () => {
     try {
@@ -306,6 +317,28 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
   return (
     <div className="min-h-screen flex flex-col relative">
+      {/* Back Navigation Loading Overlay */}
+      {isNavigatingBack && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm mx-4 text-center">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-16 h-16 border-4 border-orange-200 rounded-full opacity-25"></div>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Going Back
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  Returning to dashboard...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* End Shift Loading Overlay */}
       {submitting && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center">
@@ -335,8 +368,8 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push('/dashboard/sales')}
-              disabled={submitting}
+              onClick={handleBackNavigation}
+              disabled={submitting || isNavigatingBack}
               className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -539,8 +572,8 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         <div className="max-w-6xl mx-auto flex gap-3 sm:gap-4">
           <Button
             variant="outline"
-            onClick={() => router.push('/dashboard/sales')}
-            disabled={submitting}
+            onClick={handleBackNavigation}
+            disabled={submitting || isNavigatingBack}
             className="flex-1 py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl border-2 hover:border-blue-400 transition-all duration-200 text-sm sm:text-base font-semibold touch-manipulation min-h-[48px] sm:min-h-[56px]"
           >
             Cancel
