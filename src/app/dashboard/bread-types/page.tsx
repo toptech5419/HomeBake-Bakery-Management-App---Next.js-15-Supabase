@@ -28,8 +28,8 @@ export default async function BreadTypesPage() {
     }
   }
 
-  if (!user || user.role !== 'owner') {
-    return <div className="p-8 text-center text-destructive">Access denied. Only owners can access this page.</div>;
+  if (!user || (user.role !== 'owner' && user.role !== 'manager')) {
+    return <div className="p-8 text-center text-destructive">Access denied. Only owners and managers can access this page.</div>;
   }
 
   const breadTypes = await getBreadTypes();

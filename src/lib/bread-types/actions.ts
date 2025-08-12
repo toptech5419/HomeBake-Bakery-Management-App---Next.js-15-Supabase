@@ -1,4 +1,4 @@
-import { createServer } from '@/lib/supabase/server';
+import { createServer, createServiceRoleClient } from '@/lib/supabase/server';
 import { breadTypeSchema } from '@/lib/validations/bread-types';
 import { isOwner, isManager, User } from '@/lib/auth/rbac';
 import { BreadType } from '@/types';
@@ -87,11 +87,13 @@ export async function updateBreadType(currentUser: User, id: string, input: Brea
 }
 
 export async function deleteBreadType(currentUser: User, id: string) {
-  if (!isOwner(currentUser) && !isManager(currentUser)) {
-    throw new Error('Unauthorized: Only owners and managers can delete bread types');
+  // Based on your RLS policy bread_types_delete_owner, only owners can delete
+  if (!isOwner(currentUser)) {
+    throw new Error('Unauthorized: Only owners can delete bread types');
   }
   
-  const supabase = await createServer();
+  // Use service role client to bypass RLS policies for admin operations
+  const supabase = createServiceRoleClient();
   
   // First check if the bread type exists
   const { data: existing, error: fetchError } = await supabase

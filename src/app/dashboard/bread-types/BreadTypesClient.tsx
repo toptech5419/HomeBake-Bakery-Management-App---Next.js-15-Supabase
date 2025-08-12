@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { deleteBreadTypeAction, refetchBreadTypesAction } from './actions';
 import { useRouter } from 'next/navigation';
 import { BreadType } from '@/types/database';
-import { RefreshCw, Cookie, MoreVertical, Edit, Trash2, Loader2, Plus, DollarSign, Package, CheckCircle, XCircle, Wifi, WifiOff } from 'lucide-react';
+import { RefreshCw, Cookie, MoreVertical, Edit, Trash2, Loader2, Plus, DollarSign, Package, CheckCircle, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createUserMessages, withRetry } from '@/lib/utils/error-handling';
 
@@ -22,44 +22,12 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const toast = useToast();
   const router = useRouter();
 
-  // Network status monitoring
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      const message = createUserMessages.network.connectionRestored();
-      toast.success(message.message, message.title, message.duration);
-    };
-    
-    const handleOffline = () => {
-      setIsOnline(false);
-      const message = createUserMessages.network.connectionLost();
-      toast.warning(message.message, message.title, message.duration);
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    
-    // Initial check
-    setIsOnline(navigator.onLine);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [toast]);
 
   const refetchBreadTypes = async (showSuccessMessage: boolean = false) => {
-    if (!isOnline) {
-      const message = createUserMessages.network.connectionLost();
-      toast.warning(message.message, message.title, message.duration);
-      return;
-    }
-
     try {
       setIsRefreshing(true);
       setLoadingId('refetch');
@@ -98,12 +66,6 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
     const confirmMessage = `Delete "${breadType.name}"?\n\nThis action cannot be undone. The bread type will be permanently removed from your system.\n\nNote: If this bread type has any production history, sales records, or inventory, deletion will be blocked to preserve your business data.`;
     
     if (!window.confirm(confirmMessage)) return;
-
-    if (!isOnline) {
-      const message = createUserMessages.network.connectionLost();
-      toast.warning(message.message, message.title, message.duration);
-      return;
-    }
     
     setLoadingId(breadType.id);
     setLoadingAction('delete');
@@ -163,7 +125,7 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
   };
 
   const getDropdownItems = (breadType: BreadType) => {
-    return [
+    const items = [
       {
         label: 'Edit Bread Type',
         icon: <Edit className="w-4 h-4" />,
@@ -172,8 +134,12 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
           setActiveDropdownId(null);
         },
         disabled: isLoading(breadType.id, 'edit')
-      },
-      {
+      }
+    ];
+
+    // Only owners can delete bread types (based on RLS policy)
+    if (user.role === 'owner') {
+      items.push({
         label: 'Delete Bread Type',
         icon: <Trash2 className="w-4 h-4" />,
         onClick: () => {
@@ -182,8 +148,10 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
         },
         variant: 'danger' as const,
         disabled: isLoading(breadType.id, 'delete')
-      }
-    ];
+      });
+    }
+
+    return items;
   };
 
   // Custom dropdown component for bread type actions
@@ -330,29 +298,6 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
                     <DollarSign className="w-3 h-3 mr-1" />
                     {formatPrice(totalRevenue)}
                   </Badge>
-                  {/* Connection Status Indicator */}
-                  <Badge className={`px-3 py-1 ${
-                    isOnline 
-                      ? 'bg-gradient-to-r from-green-500 to-green-600 text-white' 
-                      : 'bg-gradient-to-r from-red-500 to-red-600 text-white'
-                  }`}>
-                    {isOnline ? (
-                      <>
-                        <Wifi className="w-3 h-3 mr-1" />
-                        Online
-                      </>
-                    ) : (
-                      <>
-                        <WifiOff className="w-3 h-3 mr-1" />
-                        Offline
-                      </>
-                    )}
-                  </Badge>
-                  {retryCount > 0 && (
-                    <Badge className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-3 py-1">
-                      {retryCount} {retryCount === 1 ? 'Retry' : 'Retries'}
-                    </Badge>
-                  )}
                 </div>
               </div>
             </div>
@@ -365,17 +310,11 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
                 <Button
                   variant="outline"
                   onClick={() => refetchBreadTypes(true)}
-                  disabled={isRefreshing || !isOnline}
-                  className={`bg-white/50 backdrop-blur border-white/30 hover:bg-white/70 transition-all duration-300 shadow-lg ${
-                    !isOnline ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
+                  disabled={isRefreshing}
+                  className="bg-white/50 backdrop-blur border-white/30 hover:bg-white/70 transition-all duration-300 shadow-lg"
                 >
-                  {!isOnline ? (
-                    <WifiOff className="w-4 h-4 mr-2 text-red-500" />
-                  ) : (
-                    <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  )}
-                  {!isOnline ? 'Offline' : isRefreshing ? 'Refreshing...' : 'Refresh'}
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
                 </Button>
               </motion.div>
               
@@ -499,7 +438,7 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
                     </div>
 
                     {/* Actions Dropdown */}
-                    {user.role === 'owner' && (
+                    {(user.role === 'owner' || user.role === 'manager') && (
                       <BreadTypeDropdown breadType={breadType} />
                     )}
                   </div>
