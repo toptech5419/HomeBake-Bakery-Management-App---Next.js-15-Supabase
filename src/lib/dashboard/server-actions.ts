@@ -237,7 +237,7 @@ export async function getSalesRepDashboardMetrics(userId: string, shift: 'mornin
 
     if (salesError) throw salesError;
 
-    // Fetch remaining bread data
+    // Fetch remaining bread data - ALL SALES REPS should see remaining bread
     const { data: remainingBreadData, error: remainingBreadError } = await supabase
       .from('remaining_bread')
       .select(`
@@ -248,7 +248,7 @@ export async function getSalesRepDashboardMetrics(userId: string, shift: 'mornin
           unit_price
         )
       `)
-      .eq('recorded_by', userId);
+      .gt('quantity', 0);
 
     if (remainingBreadError) throw remainingBreadError;
 

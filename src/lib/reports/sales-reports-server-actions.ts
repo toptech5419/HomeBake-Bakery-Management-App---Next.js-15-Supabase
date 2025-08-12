@@ -106,8 +106,11 @@ export async function getRemainingBreadData(userId?: string) {
           unit_price
         )
       `)
+      .gt('quantity', 0)
     
-    if (userId) {
+    // Only filter by userId if explicitly requested (for specific use cases)
+    // By default, all sales reps should see all remaining bread
+    if (userId && false) { // Disabled user filtering for now
       query = query.eq('recorded_by', userId)
     }
     

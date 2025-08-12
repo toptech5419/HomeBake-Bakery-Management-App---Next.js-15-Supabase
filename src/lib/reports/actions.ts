@@ -237,10 +237,11 @@ export async function getRemainingBread(userId: string) {
   try {
     const supabase = await createServer();
     
+    // ALL SALES REPS should see remaining bread - remove user filtering
     const { data, error } = await supabase
       .from('remaining_bread')
       .select('*')
-      .eq('recorded_by', userId);
+      .gt('quantity', 0);
 
     if (error) {
       console.error('Error fetching remaining bread:', error);
@@ -265,24 +266,22 @@ export async function updateRemainingBread(breadTypeId: string, userId: string, 
     const supabase = await createServer();
     
     if (quantity === 0) {
-      // Delete any existing record for this bread type
+      // Delete any existing record for this bread type - ALL SALES REPS can modify
       const { error } = await supabase
         .from('remaining_bread')
         .delete()
-        .eq('bread_type_id', breadTypeId)
-        .eq('recorded_by', userId);
+        .eq('bread_type_id', breadTypeId);
 
       if (error) {
         console.error('Error deleting remaining bread:', error);
         return { success: false, error: error.message };
       }
     } else {
-      // Check if record already exists
+      // Check if record already exists - ALL SALES REPS can modify
       const { data: existingRecords } = await supabase
         .from('remaining_bread')
         .select('id')
         .eq('bread_type_id', breadTypeId)
-        .eq('recorded_by', userId)
         .limit(1);
 
       const existingRecord = existingRecords?.[0];
