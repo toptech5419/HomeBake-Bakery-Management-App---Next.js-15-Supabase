@@ -43,7 +43,8 @@
       "Bash(for pid in 51488 52592 51684 19068 30288 52648 51908)",
       "Bash(true)",
       "Bash(done)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(timeout 10 npm run dev -- --port 3004)"
     ],
     "deny": []
   }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Plus, Minus, TrendingUp, Package, FileText, Clock, AlertTriangle, Send } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, TrendingUp, Package, FileText, Clock, AlertTriangle, Send, ChevronDown, ChevronUp } from 'lucide-react';
 // Removed framer-motion imports to fix DOM removeChild errors
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -77,6 +77,10 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
   // State to track user interactions for dynamic button behavior
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+
+  // State for dropdown toggles - start with dropdowns open for better UX
+  const [isAdditionalSalesOpen, setIsAdditionalSalesOpen] = useState(true);
+  const [isRemainingBreadOpen, setIsRemainingBreadOpen] = useState(true);
 
   const fetchData = useCallback(async () => {
     if (!currentShift) {
@@ -615,119 +619,173 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
               </div>
             )}
 
-            {/* Record Additional Sales Section */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl lg:rounded-2xl p-4 sm:p-6 border border-blue-200/50 shadow-sm">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 text-blue-800">
-                <div className="bg-blue-100 p-2 sm:p-3 rounded-lg sm:rounded-xl flex-shrink-0">
-                  <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
-                </div>
-                <span className="truncate">Record Additional Sales</span>
-              </h2>
-              <div className="space-y-3 sm:space-y-4">
-                {quickRecordItems.map((item) => (
-                  <div key={item.breadType.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg sm:rounded-xl bg-white/80 backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:bg-white touch-manipulation">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm sm:text-base truncate">{item.breadType.name}</p>
-                      <p className="text-xs sm:text-sm text-gray-600">{formatCurrencyNGN(item.breadType.unit_price)} each</p>
-                    </div>
-                    <div className="flex items-center gap-2 sm:gap-3 justify-center sm:justify-end">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          updateQuickRecordQuantity(item.breadType.id, item.quantity - 1);
-                          setHasUserInteracted(true);
-                        }}
-                        disabled={submitting}
-                        className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-red-50 hover:border-red-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Minus className="h-4 w-4 sm:h-5 sm:w-5" />
-                      </Button>
-                      <input
-                        type="number"
-                        min="0"
-                        value={item.quantity || ''}
-                        onChange={(e) => {
-                          updateQuickRecordQuantity(item.breadType.id, parseInt(e.target.value) || 0);
-                          setHasUserInteracted(true);
-                        }}
-                        disabled={submitting}
-                        className="w-16 sm:w-20 h-10 sm:h-12 text-center border rounded-lg sm:rounded-xl px-2 sm:px-3 py-2 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm sm:text-base touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
-                        placeholder="0"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          updateQuickRecordQuantity(item.breadType.id, item.quantity + 1);
-                          setHasUserInteracted(true);
-                        }}
-                        disabled={submitting}
-                        className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-green-50 hover:border-green-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-                      </Button>
-                    </div>
+            {/* Record Additional Sales Section - Collapsible */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl lg:rounded-2xl border border-blue-200/50 shadow-sm overflow-hidden">
+              {/* Header - Always Visible */}
+              <button
+                onClick={() => setIsAdditionalSalesOpen(!isAdditionalSalesOpen)}
+                disabled={submitting}
+                className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-blue-100/30 transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center gap-2 sm:gap-3 text-blue-800">
+                  <div className="bg-blue-100 p-2 sm:p-3 rounded-lg sm:rounded-xl flex-shrink-0">
+                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                   </div>
-                ))}
+                  <div className="text-left">
+                    <h2 className="text-lg sm:text-xl lg:text-2xl font-bold truncate">Record Additional Sales</h2>
+                    <p className="text-xs sm:text-sm text-blue-600 mt-1">
+                      {quickRecordItems.filter(i => i.quantity > 0).length} items • {quickRecordItems.filter(i => i.quantity > 0).reduce((sum, i) => sum + i.quantity, 0)} total units
+                    </p>
+                  </div>
+                </div>
+                <div className="flex-shrink-0 ml-2">
+                  {isAdditionalSalesOpen ? (
+                    <ChevronUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                  )}
+                </div>
+              </button>
+
+              {/* Collapsible Content */}
+              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                isAdditionalSalesOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+              }`}>
+              {isAdditionalSalesOpen && (
+                <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-3 sm:space-y-4 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2">
+                  {quickRecordItems.map((item) => (
+                    <div key={item.breadType.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg sm:rounded-xl bg-white/80 backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:bg-white touch-manipulation">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm sm:text-base truncate">{item.breadType.name}</p>
+                        <p className="text-xs sm:text-sm text-gray-600">{formatCurrencyNGN(item.breadType.unit_price)} each</p>
+                      </div>
+                      <div className="flex items-center gap-2 sm:gap-3 justify-center sm:justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            updateQuickRecordQuantity(item.breadType.id, item.quantity - 1);
+                            setHasUserInteracted(true);
+                          }}
+                          disabled={submitting}
+                          className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-red-50 hover:border-red-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Minus className="h-4 w-4 sm:h-5 sm:w-5" />
+                        </Button>
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.quantity || ''}
+                          onChange={(e) => {
+                            updateQuickRecordQuantity(item.breadType.id, parseInt(e.target.value) || 0);
+                            setHasUserInteracted(true);
+                          }}
+                          disabled={submitting}
+                          className="w-16 sm:w-20 h-10 sm:h-12 text-center border rounded-lg sm:rounded-xl px-2 sm:px-3 py-2 font-semibold focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm sm:text-base touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+                          placeholder="0"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            updateQuickRecordQuantity(item.breadType.id, item.quantity + 1);
+                            setHasUserInteracted(true);
+                          }}
+                          disabled={submitting}
+                          className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-green-50 hover:border-green-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               </div>
             </div>
 
-            {/* Record Remaining Breads Section */}
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl lg:rounded-2xl p-4 sm:p-6 border border-amber-200/50 shadow-sm">
-              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 text-amber-800">
-                <div className="bg-amber-100 p-2 sm:p-3 rounded-lg sm:rounded-xl flex-shrink-0">
-                  <Package className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
-                </div>
-                <span className="truncate">Record Remaining Breads</span>
-              </h2>
-              <div className="space-y-3 sm:space-y-4">
-                {quickRemainingItems.map((item) => (
-                  <div key={item.breadType.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg sm:rounded-xl bg-gradient-to-r from-yellow-50/80 to-amber-50/80 backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:from-yellow-100/80 hover:to-amber-100/80 touch-manipulation">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm sm:text-base truncate">{item.breadType.name}</p>
-                      <p className="text-xs sm:text-sm text-gray-600">Remaining quantity</p>
-                    </div>
-                    <div className="flex items-center gap-2 sm:gap-3 justify-center sm:justify-end">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          updateQuickRecordQuantity(item.breadType.id, item.quantity - 1, true);
-                          setHasUserInteracted(true);
-                        }}
-                        disabled={submitting}
-                        className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-red-50 hover:border-red-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Minus className="h-4 w-4 sm:h-5 sm:w-5" />
-                      </Button>
-                      <input
-                        type="number"
-                        min="0"
-                        value={item.quantity || ''}
-                        onChange={(e) => {
-                          updateQuickRecordQuantity(item.breadType.id, parseInt(e.target.value) || 0, true);
-                          setHasUserInteracted(true);
-                        }}
-                        disabled={submitting}
-                        className="w-16 sm:w-20 h-10 sm:h-12 text-center border rounded-lg sm:rounded-xl px-2 sm:px-3 py-2 font-semibold focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-sm sm:text-base touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
-                        placeholder="0"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          updateQuickRecordQuantity(item.breadType.id, item.quantity + 1, true);
-                          setHasUserInteracted(true);
-                        }}
-                        disabled={submitting}
-                        className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-green-50 hover:border-green-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-                      </Button>
-                    </div>
+            {/* Record Remaining Breads Section - Collapsible */}
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl lg:rounded-2xl border border-amber-200/50 shadow-sm overflow-hidden">
+              {/* Header - Always Visible */}
+              <button
+                onClick={() => setIsRemainingBreadOpen(!isRemainingBreadOpen)}
+                disabled={submitting}
+                className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-amber-100/30 transition-colors touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
+                  <div className="bg-amber-100 p-2 sm:p-3 rounded-lg sm:rounded-xl flex-shrink-0">
+                    <Package className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
                   </div>
-                ))}
+                  <div className="text-left">
+                    <h2 className="text-lg sm:text-xl lg:text-2xl font-bold truncate">Record Remaining Breads</h2>
+                    <p className="text-xs sm:text-sm text-amber-600 mt-1">
+                      {quickRemainingItems.filter(i => i.quantity > 0).length} items • {quickRemainingItems.filter(i => i.quantity > 0).reduce((sum, i) => sum + i.quantity, 0)} total units
+                    </p>
+                  </div>
+                </div>
+                <div className="flex-shrink-0 ml-2">
+                  {isRemainingBreadOpen ? (
+                    <ChevronUp className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
+                  )}
+                </div>
+              </button>
+
+              {/* Collapsible Content */}
+              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                isRemainingBreadOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+              }`}>
+              {isRemainingBreadOpen && (
+                <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-3 sm:space-y-4 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2">
+                  {quickRemainingItems.map((item) => (
+                    <div key={item.breadType.id} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg sm:rounded-xl bg-gradient-to-r from-yellow-50/80 to-amber-50/80 backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:from-yellow-100/80 hover:to-amber-100/80 touch-manipulation">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm sm:text-base truncate">{item.breadType.name}</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Remaining quantity</p>
+                      </div>
+                      <div className="flex items-center gap-2 sm:gap-3 justify-center sm:justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            updateQuickRecordQuantity(item.breadType.id, item.quantity - 1, true);
+                            setHasUserInteracted(true);
+                          }}
+                          disabled={submitting}
+                          className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-red-50 hover:border-red-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Minus className="h-4 w-4 sm:h-5 sm:w-5" />
+                        </Button>
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.quantity || ''}
+                          onChange={(e) => {
+                            updateQuickRecordQuantity(item.breadType.id, parseInt(e.target.value) || 0, true);
+                            setHasUserInteracted(true);
+                          }}
+                          disabled={submitting}
+                          className="w-16 sm:w-20 h-10 sm:h-12 text-center border rounded-lg sm:rounded-xl px-2 sm:px-3 py-2 font-semibold focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all text-sm sm:text-base touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+                          placeholder="0"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            updateQuickRecordQuantity(item.breadType.id, item.quantity + 1, true);
+                            setHasUserInteracted(true);
+                          }}
+                          disabled={submitting}
+                          className="h-10 w-10 sm:h-12 sm:w-12 p-0 rounded-full hover:bg-green-50 hover:border-green-200 transition-colors touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               </div>
             </div>
 
