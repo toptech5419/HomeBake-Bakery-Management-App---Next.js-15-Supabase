@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Plus, Minus, TrendingUp, Package, FileText, Clock, AlertTriangle, Send } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+// Removed framer-motion imports to fix DOM removeChild errors
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
@@ -50,7 +50,16 @@ interface SalesLog {
 }
 
 export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
-  const { currentShift } = useShift();
+  // Add error boundary protection for useShift
+  let currentShift: 'morning' | 'night' | null = null;
+  try {
+    const shiftContext = useShift();
+    currentShift = shiftContext.currentShift;
+  } catch (error) {
+    console.error('Error accessing shift context:', error);
+    currentShift = 'morning'; // fallback
+  }
+  
   const router = useRouter();
   const [breadTypes, setBreadTypes] = useState<BreadType[]>([]);
   const [quickRecordItems, setQuickRecordItems] = useState<QuickRecordItem[]>([]);
@@ -70,6 +79,13 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
 
   const fetchData = useCallback(async () => {
+    if (!currentShift) {
+      console.warn('No current shift available, skipping data fetch');
+      setLoading(false);
+      setInitialLoading(false);
+      return;
+    }
+    
     setLoading(true);
     try {
       // Fetch bread types using server action
@@ -192,13 +208,34 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
     }
   }, [salesLogs, quickRemainingItems, quickRecordItems, hasUserInteracted]);
 
-  // Enhanced back navigation with visual feedback
+  // Utility function to get cookie value
+  const getCookie = (name: string): string | null => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) {
+      const cookieValue = parts.pop()?.split(';').shift();
+      return cookieValue || null;
+    }
+    return null;
+  };
+
+  // Enhanced back navigation with cookie-based previous page detection
   const handleBackNavigation = () => {
     setIsNavigatingBack(true);
     
+    // Get the previous page from cookie
+    const previousPage = getCookie('previousPage');
+    
     // Add a longer delay to ensure smooth transition and loading state visibility
     setTimeout(() => {
-      router.push('/dashboard/sales');
+      if (previousPage && (previousPage === '/dashboard/sales-management' || previousPage.startsWith('/dashboard/'))) {
+        // Clear the cookie after using it
+        document.cookie = `previousPage=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`;
+        router.push(previousPage);
+      } else {
+        // Default fallback to sales dashboard
+        router.push('/dashboard/sales');
+      }
     }, 500);
   };
 
@@ -388,6 +425,52 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   const shouldEnableEndShift = shouldShowRecordAllSale;
 
 
+  // Show error if shift context is not available
+  if (!currentShift) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-orange-50 to-amber-50">
+        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white">
+          <div className="px-3 sm:px-4 py-4 sm:py-6">
+            <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/dashboard/sales')}
+                className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl touch-manipulation flex-shrink-0"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="bg-white/20 p-2 sm:p-3 rounded-xl flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg sm:text-2xl font-bold truncate">Shift Not Available</h1>
+                <p className="text-blue-100 text-xs sm:text-sm truncate">
+                  Unable to load shift data
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center">
+            <AlertTriangle className="h-16 w-16 text-orange-500 mx-auto mb-6" />
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Shift Context Not Available</h2>
+            <p className="text-gray-600 mb-6">
+              Please select a shift in your dashboard before generating a report.
+            </p>
+            <Button
+              onClick={() => router.push('/dashboard/sales')}
+              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
+            >
+              Back to Dashboard
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Show initial loading screen on first render
   if (initialLoading) {
     return (
@@ -412,7 +495,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-            <p className="text-lg text-gray-600 animate-pulse">Loading End Shift...</p>
+            <p className="text-lg text-gray-600 animate-pulse">Loading Record all...</p>
           </div>
         </div>
       </div>
@@ -435,7 +518,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                   Going Back
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Returning to dashboard...
+                  Loading...
                 </p>
               </div>
             </div>
@@ -484,7 +567,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             <div className="flex-1 min-w-0">
               <h1 className="text-lg sm:text-2xl font-bold truncate">Generate Shift Report</h1>
               <p className="text-blue-100 text-xs sm:text-sm truncate">
-                {currentShift?.charAt(0).toUpperCase() + currentShift?.slice(1)} Shift • {userName}
+                {currentShift ? `${currentShift.charAt(0).toUpperCase()}${currentShift.slice(1)} Shift • ` : ''}{userName}
               </p>
             </div>
           </div>
@@ -724,20 +807,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       </div>
 
       {/* Confirmation Modal - Mobile First */}
-      <AnimatePresence mode="wait">
-        {showConfirmationModal && !submitting && (
-          <motion.div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div 
-              className="bg-white w-full max-w-sm sm:max-w-md rounded-xl sm:rounded-2xl shadow-2xl mx-auto"
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            >
+      {showConfirmationModal && !submitting && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-white w-full max-w-sm sm:max-w-md rounded-xl sm:rounded-2xl shadow-2xl mx-auto">
               <div className="p-4 sm:p-6">
                 <div className="flex items-center justify-center mb-3 sm:mb-4">
                   <div className="bg-yellow-100 p-2 sm:p-3 rounded-full">
@@ -764,26 +836,14 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                   </Button>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
 
       {/* Feedback Modal - Mobile First */}
-      <AnimatePresence mode="wait">
-        {showFeedbackModal && !submitting && (
-          <motion.div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div 
-              className="bg-white w-full max-w-sm sm:max-w-md rounded-xl sm:rounded-2xl shadow-2xl mx-auto max-h-[90vh] flex flex-col"
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            >
+      {showFeedbackModal && !submitting && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-white w-full max-w-sm sm:max-w-md rounded-xl sm:rounded-2xl shadow-2xl mx-auto max-h-[90vh] flex flex-col">
               <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
                 <div className="flex items-center justify-center mb-3 sm:mb-4">
                   <div className="bg-blue-100 p-2 sm:p-3 rounded-full">
@@ -827,10 +887,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                   </Button>
                 </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }

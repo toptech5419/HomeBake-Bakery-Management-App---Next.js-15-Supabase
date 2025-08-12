@@ -1,23 +1,18 @@
 // Full-screen page loading for record sales
 export default function RecordSalesLoading() {
   return (
-    <html className="h-full">
-      <head>
-        <title>Loading Record Sales...</title>
-      </head>
-      <body className="h-full overflow-hidden">
-        <div 
-          className="w-screen h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center"
-          style={{
-            width: '100vw',
-            height: '100vh',
-            minHeight: '100vh',
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            zIndex: 999999
-          }}
-        >
+    <div 
+      className="w-screen h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center"
+      style={{
+        width: '100vw',
+        height: '100vh',
+        minHeight: '100vh',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        zIndex: 999999
+      }}
+    >
           <div className="flex flex-col items-center justify-center text-center px-6 py-8 max-w-lg">
             
             {/* Record Sales Branding */}
@@ -62,7 +57,5 @@ export default function RecordSalesLoading() {
             </div>
           </div>
         </div>
-      </body>
-    </html>
   );
 }

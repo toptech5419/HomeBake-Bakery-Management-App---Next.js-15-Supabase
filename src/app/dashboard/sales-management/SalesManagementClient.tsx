@@ -263,6 +263,8 @@ export default function SalesManagementClient({
   const generateShiftReport = async () => {
     setIsNavigating(prev => ({ ...prev, generateReport: true }));
     try {
+      // Set cookie to remember where we came from
+      document.cookie = `previousPage=/dashboard/sales-management; path=/; max-age=3600`; // 1 hour expiry
       router.push('/dashboard/sales/end-shift');
     } catch (error) {
       console.error('Navigation error:', error);

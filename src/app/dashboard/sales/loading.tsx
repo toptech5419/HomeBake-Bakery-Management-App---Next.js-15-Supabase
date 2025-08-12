@@ -1,19 +1,17 @@
 // Bulletproof full-screen loading page for sales dashboard
 export default function SalesLoading() {
   return (
-    <html className="h-full">
-      <body className="h-full overflow-hidden">
-        <div 
-          className="fixed inset-0 w-screen h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center z-[100000]"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            minHeight: '100vh'
-          }}
-        >
+    <div 
+      className="fixed inset-0 w-screen h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center z-[100000]"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        minHeight: '100vh'
+      }}
+    >
           {/* Content perfectly centered */}
           <div className="flex flex-col items-center justify-center text-center px-6 py-8 max-w-lg">
             
@@ -59,7 +57,5 @@ export default function SalesLoading() {
             </div>
           </div>
         </div>
-      </body>
-    </html>
   );
 }

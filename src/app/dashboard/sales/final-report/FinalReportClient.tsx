@@ -51,7 +51,16 @@ interface ShiftFeedback {
 }
 
 export function FinalReportClient({ userName }: FinalReportClientProps) {
-  const { currentShift } = useShift();
+  // Add error boundary protection for useShift
+  let currentShift: 'morning' | 'night' | null = null;
+  try {
+    const shiftContext = useShift();
+    currentShift = shiftContext.currentShift;
+  } catch (error) {
+    console.error('Error accessing shift context:', error);
+    currentShift = 'morning'; // fallback
+  }
+
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,25 +75,24 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
   const [navigating, setNavigating] = useState(false);
   const [loadingReport, setLoadingReport] = useState(false);
 
-  // Fetch report data from database using reportId
+  // Fetch report data from database using reportId via server action
   const fetchReportData = async (reportId: string) => {
     setLoadingReport(true);
     try {
-      const { supabase } = await import('@/lib/supabase/client');
+      // Create a simple server action call via API route
+      const response = await fetch(`/api/reports/get-shift-report?id=${reportId}`);
       
-      // Fetch the shift report data
-      const { data: shiftReport, error } = await supabase
-        .from('shift_reports')
-        .select('*')
-        .eq('id', reportId)
-        .single();
-      
-      if (error || !shiftReport) {
-        console.error('Error fetching report:', error);
-        toast.error('Failed to load report data');
-        router.back();
-        return;
+      if (!response.ok) {
+        throw new Error(`Failed to fetch report: ${response.status}`);
       }
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to load report');
+      }
+      
+      const shiftReport = result.data;
       
       // Convert database format to component format
       const reportData: ReportData = {
@@ -110,24 +118,30 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
 
   // Load report data from URL params - support both old data param and new reportId
   useEffect(() => {
-    const dataParam = searchParams.get('data');
-    const reportId = searchParams.get('reportId');
-    
-    if (dataParam) {
-      try {
-        const decodedData = JSON.parse(decodeURIComponent(dataParam));
-        setReportData(decodedData);
-      } catch (error) {
-        console.error('Error parsing report data:', error);
-        toast.error('Invalid report data');
-        router.back();
+    try {
+      const dataParam = searchParams.get('data');
+      const reportId = searchParams.get('reportId');
+      
+      if (dataParam) {
+        try {
+          const decodedData = JSON.parse(decodeURIComponent(dataParam));
+          setReportData(decodedData);
+        } catch (parseError) {
+          console.error('Error parsing report data:', parseError);
+          toast.error('Invalid report data format');
+          setTimeout(() => router.back(), 2000);
+        }
+      } else if (reportId) {
+        // Fetch report data from database using reportId
+        fetchReportData(reportId);
+      } else {
+        toast.error('No report data found');
+        setTimeout(() => router.back(), 2000);
       }
-    } else if (reportId) {
-      // Fetch report data from database using reportId
-      fetchReportData(reportId);
-    } else {
-      toast.error('No report data found');
-      router.back();
+    } catch (error) {
+      console.error('Error in useEffect:', error);
+      toast.error('Failed to load report');
+      setTimeout(() => router.back(), 2000);
     }
   }, [searchParams, router]);
 
@@ -284,10 +298,16 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
     }
   }, [router]);
 
-  if (!reportData) {
+  // Show loading state
+  if (!reportData || loadingReport) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-amber-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-orange-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">
+            {loadingReport ? 'Loading report data...' : 'Loading...'}
+          </p>
+        </div>
       </div>
     );
   }

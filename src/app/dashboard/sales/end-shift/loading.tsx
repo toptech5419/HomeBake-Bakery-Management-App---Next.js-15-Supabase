@@ -1,23 +1,18 @@
 // Full-screen page loading for end shift
 export default function EndShiftLoading() {
   return (
-    <html className="h-full">
-      <head>
-        <title>Loading End Shift...</title>
-      </head>
-      <body className="h-full overflow-hidden">
-        <div 
-          className="w-screen h-screen bg-gradient-to-br from-red-50 to-pink-50 flex items-center justify-center"
-          style={{
-            width: '100vw',
-            height: '100vh',
-            minHeight: '100vh',
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            zIndex: 999999
-          }}
-        >
+    <div 
+      className="w-screen h-screen bg-gradient-to-br from-red-50 to-pink-50 flex items-center justify-center"
+      style={{
+        width: '100vw',
+        height: '100vh',
+        minHeight: '100vh',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        zIndex: 999999
+      }}
+    >
           <div className="flex flex-col items-center justify-center text-center px-6 py-8 max-w-lg">
             
             {/* End Shift Branding */}
@@ -62,7 +57,5 @@ export default function EndShiftLoading() {
             </div>
           </div>
         </div>
-      </body>
-    </html>
   );
 }
