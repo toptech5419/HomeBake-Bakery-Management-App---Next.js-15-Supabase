@@ -48,9 +48,9 @@ export interface Session {
 export interface BreadType {
   id: string;
   name: string;
-  size?: string; // e.g., "400g", "Large", "Small" - made optional to match database
+  size?: string | null; // e.g., "400g", "Large", "Small" - made optional to match database
   unit_price: number;
-  created_by: string; // FK to users.id (owner)
+  created_by?: string | null; // FK to users.id (owner) - optional to match database
   created_at: string;
 }
 

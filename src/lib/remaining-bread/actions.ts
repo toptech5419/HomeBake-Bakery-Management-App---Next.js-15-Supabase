@@ -71,7 +71,7 @@ export async function upsertRemainingBread(
         if (existing.quantity === remaining.quantity) {
           // Same quantity → skip
           results.push({
-            action: 'skipped',
+            action: 'skipped' as const,
             breadType: remaining.bread_type,
             reason: 'same_quantity',
             data: existing
@@ -93,7 +93,7 @@ export async function upsertRemainingBread(
 
           if (error) throw error;
           results.push({
-            action: 'updated',
+            action: 'updated' as const,
             breadType: remaining.bread_type,
             data: updated
           });
@@ -129,7 +129,7 @@ export async function upsertRemainingBread(
 
         if (error) throw error;
         results.push({
-          action: 'inserted',
+          action: 'inserted' as const,
           breadType: remaining.bread_type,
           data: inserted
         });

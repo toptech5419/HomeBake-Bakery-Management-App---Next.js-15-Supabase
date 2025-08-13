@@ -147,7 +147,7 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
           setActiveDropdownId(null);
         },
         disabled: isLoading(breadType.id, 'delete'),
-        variant: 'danger' as const
+        // removed variant property to fix TypeScript error
       });
     }
 
@@ -227,7 +227,7 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
                     className={`group flex w-full items-center px-4 py-3 text-sm transition-all duration-200 ${
                       item.disabled 
                         ? 'opacity-50 cursor-not-allowed' 
-                        : item.variant === 'danger'
+                        : item.label.includes('Delete')
                           ? 'text-red-600 hover:bg-red-50 hover:text-red-700'
                           : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                     }`}

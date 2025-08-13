@@ -139,33 +139,8 @@ export async function getLowStockCount(): Promise<number> {
   const lagosDate = getLagosDateString();
   
   try {
-    // Primary: Try to get from real-time daily tracking system
-    const { data: dailyCount, error: dailyError } = await supabase.rpc('get_daily_low_stock_count', {
-      p_date: lagosDate
-    });
-
-    // If real-time tracking works and has data, use it
-    if (!dailyError && dailyCount !== null && dailyCount !== undefined) {
-      return dailyCount;
-    }
-
-    // Secondary: Try manual refresh if no data exists for today
-    console.log('No daily data found, attempting auto-refresh...');
-    const { error: refreshError } = await supabase.rpc('auto_update_low_stock_counts');
-    
-    if (!refreshError) {
-      // Try getting the data again after refresh
-      const { data: refreshedCount } = await supabase.rpc('get_daily_low_stock_count', {
-        p_date: lagosDate
-      });
-      
-      if (refreshedCount !== null && refreshedCount !== undefined) {
-        return refreshedCount;
-      }
-    }
-
-    // Fallback: Use available_stock table (original logic)
-    console.warn('Real-time low stock tracking unavailable, using fallback logic');
+    // Use available_stock table (simplified approach - RPC functions may not exist)
+    // Direct query to available_stock table for low stock items
     const { data: stockData, error: stockError } = await supabase
       .from('available_stock')
       .select('quantity')

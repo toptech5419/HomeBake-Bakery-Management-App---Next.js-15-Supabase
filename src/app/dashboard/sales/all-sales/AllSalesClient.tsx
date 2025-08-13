@@ -26,7 +26,7 @@ interface SalesLogWithDetails {
   shift: string;
   recorded_by: string;
   created_at: string;
-  leftover: number | null;
+  leftovers: number; // Changed from leftover to leftovers to match database
   bread_types: {
     name: string;
     unit_price: number;
@@ -353,13 +353,13 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
                   </div>
 
                   {/* Extras - Only show if present */}
-                  {((sale.discount && sale.discount > 0) || (sale.leftover && sale.leftover > 0)) && (
+                  {((sale.discount && sale.discount > 0) || (sale.leftovers && sale.leftovers > 0)) && (
                     <div className="flex items-center gap-3 mt-2 pt-2 border-t border-gray-100 text-xs">
                       {(sale.discount && sale.discount > 0) && (
                         <span className="text-red-600 font-medium">Discount: -{formatCurrencyNGN(sale.discount)}</span>
                       )}
-                      {(sale.leftover && sale.leftover > 0) && (
-                        <span className="text-yellow-600 font-medium">{sale.leftover} leftover</span>
+                      {(sale.leftovers && sale.leftovers > 0) && (
+                        <span className="text-yellow-600 font-medium">{sale.leftovers} leftover</span>
                       )}
                     </div>
                   )}
