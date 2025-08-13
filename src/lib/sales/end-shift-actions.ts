@@ -90,7 +90,6 @@ export async function upsertSalesLogs(salesData: SalesLogUpsertData[]) {
       }
     }
 
-    revalidatePath('/dashboard/sales/end-shift');
     return { success: true, results };
   } catch (error) {
     console.error('Error upserting sales logs:', error);

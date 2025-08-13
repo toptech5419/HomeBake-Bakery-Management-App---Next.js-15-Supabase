@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { createSalesLog } from '@/lib/sales/actions';
 import { getBreadTypesForSales, getSalesDataForShift, getRemainingBreadData, createShiftReport } from '@/lib/reports/sales-reports-server-actions';
 import { getRemainingBread, updateRemainingBread } from '@/lib/reports/actions';
+import { upsertSalesLogs } from '@/lib/sales/end-shift-actions';
 import { useRouter } from 'next/navigation';
 import { setNavigationHistory } from '@/lib/utils/navigation-history';
 
@@ -81,12 +82,21 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   // State for dropdown toggles - start with dropdowns open for better UX
   const [isAdditionalSalesOpen, setIsAdditionalSalesOpen] = useState(true);
   const [isRemainingBreadOpen, setIsRemainingBreadOpen] = useState(true);
+  
+  // Add flag to prevent data fetching during sales processing
+  const [isProcessingSales, setIsProcessingSales] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!currentShift) {
       console.warn('No current shift available, skipping data fetch');
       setLoading(false);
       setInitialLoading(false);
+      return;
+    }
+    
+    // CRITICAL FIX: Don't fetch data during sales processing to prevent loops
+    if (isProcessingSales || submitting) {
+      console.log('⏹️ Skipping data fetch - sales processing in progress');
       return;
     }
     
@@ -194,7 +204,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       setLoading(false);
       setInitialLoading(false);
     }
-  }, [currentShift, userId]);
+  }, [currentShift, userId, isProcessingSales, submitting]);
 
   useEffect(() => {
     fetchData();
@@ -285,15 +295,103 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   };
 
   const handleSubmitReport = async () => {
-    const remainingToRecord = quickRemainingItems.filter(item => item.quantity > 0);
+    if (!currentShift) {
+      toast.error('Current shift not available');
+      return;
+    }
 
-    // Check if there are remaining breads
-    if (remainingToRecord.length === 0) {
-      setShowConfirmationModal(true);
-    } else {
-      setShowFeedbackModal(true);
+    setSubmitting(true);
+    setIsProcessingSales(true); // 🔧 Prevent data fetching during sales processing
+
+    try {
+      // Step 1: Sales Logs Check - Process sales data first if there are any
+      const additionalSales = quickRecordItems.filter(item => item.quantity > 0);
+      
+      if (additionalSales.length > 0) {
+        toast.loading('Checking and saving sales data...', { id: 'save-sales' });
+        
+        const salesData = additionalSales.map(item => ({
+          bread_type_id: item.breadType.id,
+          quantity: item.quantity,
+          unit_price: item.breadType.unit_price,
+          shift: currentShift!,
+          recorded_by: userId
+        }));
+
+        const salesResult = await upsertSalesLogs(salesData);
+        toast.dismiss('save-sales');
+        
+        if (!salesResult.success) {
+          setIsProcessingSales(false); // Reset flag on error
+          throw new Error('Failed to save sales data: ' + salesResult.error);
+        }
+        
+        // Show appropriate message based on what happened
+        const savedCount = salesResult.results?.filter(r => r.action === 'inserted' || r.action === 'updated').length || 0;
+        const skippedCount = salesResult.results?.filter(r => r.action === 'skipped').length || 0;
+        
+        if (savedCount > 0 && skippedCount > 0) {
+          toast.success(`Saved ${savedCount} new sales, skipped ${skippedCount} duplicates`);
+        } else if (savedCount > 0) {
+          toast.success(`Saved ${savedCount} sales records`);
+        } else if (skippedCount > 0) {
+          toast.info(`Skipped ${skippedCount} duplicate sales records`);
+        }
+
+        // Manually refresh the sales data without triggering infinite loop
+        try {
+          const updatedSalesData = await getSalesDataForShift(userId, currentShift!);
+          if (updatedSalesData) {
+            setSalesLogs(updatedSalesData);
+            
+            // Update quickRecordItems with refreshed quantities from sales_logs
+            const salesQuantities = new Map<string, number>();
+            
+            updatedSalesData.forEach((sale: SalesLog) => {
+              const breadTypeId = sale.bread_type_id;
+              const currentQuantity = salesQuantities.get(breadTypeId) || 0;
+              salesQuantities.set(breadTypeId, currentQuantity + sale.quantity);
+            });
+
+            // Update quickRecordItems with quantities from sales_logs
+            setQuickRecordItems(prevItems => 
+              prevItems.map(item => ({
+                ...item,
+                quantity: salesQuantities.get(item.breadType.id) || 0
+              }))
+            );
+          }
+        } catch (error) {
+          console.error('Error refreshing sales data after upsert:', error);
+        }
+      }
+      
+      setIsProcessingSales(false); // 🔧 Reset flag after sales processing
+
+      // Step 2: Check remaining bread and proceed to appropriate modal
+      const remainingToRecord = quickRemainingItems.filter(item => item.quantity > 0);
+      const totalRemainingQuantity = remainingToRecord.reduce((sum, item) => sum + item.quantity, 0);
+
+      setSubmitting(false);
+
+      // Check remaining bread quantity to determine which modal to show
+      if (totalRemainingQuantity === 0) {
+        // No remaining bread recorded → show confirmation modal
+        setShowConfirmationModal(true);
+      } else {
+        // Has remaining bread recorded → proceed directly to feedback modal  
+        setShowFeedbackModal(true);
+      }
+
+    } catch (error) {
+      console.error('Error processing sales data:', error);
+      toast.dismiss('save-sales');
+      toast.error('Failed to process sales data. Please try again.');
+      setIsProcessingSales(false); // Reset flag on error
+      setSubmitting(false);
     }
   };
+
 
   const handleConfirmProceed = () => {
     setShowConfirmationModal(false);
