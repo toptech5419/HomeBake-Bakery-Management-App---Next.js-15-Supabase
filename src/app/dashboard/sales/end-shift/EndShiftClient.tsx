@@ -91,6 +91,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   const [isProcessingSales, setIsProcessingSales] = useState(false);
   const [hasManualRemainingInput, setHasManualRemainingInput] = useState(false);
 
+  // Check if any modal is open
+  const isAnyModalOpen = showConfirmationModal || showFeedbackModal || showRemainingBreadConflictModal;
+
   const fetchData = useCallback(async () => {
     if (!currentShift) {
       console.warn('No current shift available, skipping data fetch');
@@ -236,6 +239,34 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       });
     }
   }, [showFeedbackModal, quickRemainingItems]);
+
+  // Handle escape key to close modals
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (showRemainingBreadConflictModal) {
+          setShowRemainingBreadConflictModal(false);
+        } else if (showFeedbackModal) {
+          setShowFeedbackModal(false);
+        } else if (showConfirmationModal) {
+          setShowConfirmationModal(false);
+        }
+      }
+    };
+
+    if (isAnyModalOpen) {
+      document.addEventListener('keydown', handleEscape);
+      // Prevent scrolling when modal is open
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isAnyModalOpen, showRemainingBreadConflictModal, showFeedbackModal, showConfirmationModal]);
 
   // Check for existing data whenever salesLogs, quickRemainingItems, or quickRecordItems change
   useEffect(() => {
@@ -761,7 +792,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       )}
 
       {/* Mobile-First Header with Back Button */}
-      <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white">
+      <div className={`bg-gradient-to-r from-blue-500 to-cyan-500 text-white ${isAnyModalOpen ? 'pointer-events-none opacity-50' : ''}`}>
         <div className="px-3 sm:px-4 py-4 sm:py-6">
           <div className="flex items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
             <Button
@@ -787,7 +818,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       </div>
 
       {/* Content Area - Full Screen Scrollable */}
-      <div className="flex-1 overflow-y-auto bg-gradient-to-b from-orange-50/30 to-yellow-50/30">
+      <div className={`flex-1 overflow-y-auto bg-gradient-to-b from-orange-50/30 to-yellow-50/30 ${isAnyModalOpen ? 'pointer-events-none opacity-50' : ''}`}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent" />
@@ -1039,7 +1070,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       </div>
 
       {/* Fixed Bottom Action Bar - Mobile First */}
-      <div className="bg-white border-t border-gray-200 px-3 sm:px-4 py-3 sm:py-4 flex-shrink-0 safe-area-bottom">
+      <div className={`bg-white border-t border-gray-200 px-3 sm:px-4 py-3 sm:py-4 flex-shrink-0 safe-area-bottom ${isAnyModalOpen ? 'pointer-events-none opacity-50' : ''}`}>
         <div className="max-w-6xl mx-auto flex gap-3 sm:gap-4">
           <Button
             variant="outline"
@@ -1074,8 +1105,19 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
       {/* Confirmation Modal - Mobile First */}
       {showConfirmationModal && !submitting && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-            <div className="bg-white w-full max-w-sm sm:max-w-md rounded-xl sm:rounded-2xl shadow-2xl mx-auto">
+        <div 
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
+          onClick={(e) => {
+            // Only close if clicking on backdrop, not the modal content
+            if (e.target === e.currentTarget) {
+              setShowConfirmationModal(false);
+            }
+          }}
+        >
+            <div 
+              className="bg-white w-full max-w-sm sm:max-w-md rounded-xl sm:rounded-2xl shadow-2xl mx-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="p-4 sm:p-6">
                 <div className="flex items-center justify-center mb-3 sm:mb-4">
                   <div className="bg-yellow-100 p-2 sm:p-3 rounded-full">
@@ -1108,8 +1150,19 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
       {/* Feedback Modal - Mobile First */}
       {showFeedbackModal && !submitting && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-            <div className="bg-white w-full max-w-sm sm:max-w-md rounded-xl sm:rounded-2xl shadow-2xl mx-auto max-h-[90vh] flex flex-col">
+          <div 
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
+            onClick={(e) => {
+              // Only close if clicking on backdrop, not the modal content
+              if (e.target === e.currentTarget) {
+                setShowFeedbackModal(false);
+              }
+            }}
+          >
+            <div 
+              className="bg-white w-full max-w-sm sm:max-w-md rounded-xl sm:rounded-2xl shadow-2xl mx-auto max-h-[90vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
                 <div className="flex items-center justify-center mb-3 sm:mb-4">
                   <div className="bg-blue-100 p-2 sm:p-3 rounded-full">
@@ -1159,8 +1212,19 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
       {/* Remaining Bread Conflict Modal - Mobile First */}
       {showRemainingBreadConflictModal && !submitting && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white w-full max-w-sm sm:max-w-md rounded-xl sm:rounded-2xl shadow-2xl mx-auto max-h-[90vh] flex flex-col">
+        <div 
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
+          onClick={(e) => {
+            // Only close if clicking on backdrop, not the modal content
+            if (e.target === e.currentTarget) {
+              setShowRemainingBreadConflictModal(false);
+            }
+          }}
+        >
+          <div 
+            className="bg-white w-full max-w-sm sm:max-w-md rounded-xl sm:rounded-2xl shadow-2xl mx-auto max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
               <div className="flex items-center justify-center mb-3 sm:mb-4">
                 <div className="bg-yellow-100 p-2 sm:p-3 rounded-full">

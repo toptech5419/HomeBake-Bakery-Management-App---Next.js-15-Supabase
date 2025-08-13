@@ -29,13 +29,20 @@ function setStoredShift(shift: ShiftType) {
 export function ShiftProvider({ children }: { children: ReactNode }) {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   
-  // Always provide a valid shift, default to 'morning' if not found
+  // Always provide a valid shift, preserve user's choice or default to 'morning'
   const [currentShift, setCurrentShift] = useState<ShiftType>(() => {
     if (typeof window !== 'undefined') {
       const stored = getStoredShift();
-      if (stored) return stored;
+      if (stored) {
+        console.log('✅ Retrieved stored shift:', stored);
+        return stored;
+      }
+      console.log('🔄 No stored shift found, defaulting to morning');
     }
-    setStoredShift('morning');
+    // Only set default in localStorage if we're on client side
+    if (typeof window !== 'undefined') {
+      setStoredShift('morning');
+    }
     return 'morning';
   });
 
@@ -49,7 +56,11 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
   }, [currentShift, isInitialLoad]);
 
   const handleSetCurrentShift = (shift: ShiftType) => {
+    console.log(`🔄 Setting shift from ${currentShift} to ${shift}`);
     setCurrentShift(shift);
+    setStoredShift(shift); // Immediately persist to localStorage
+    console.log(`💾 Saved shift to localStorage: ${shift}`);
+    
     // Only show toast if not initial load to prevent showing notification on page load
     if (!isInitialLoad) {
       try {

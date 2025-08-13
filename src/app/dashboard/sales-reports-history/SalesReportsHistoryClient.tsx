@@ -235,7 +235,8 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
       totalRevenue: report.total_revenue,
       totalItemsSold: report.total_items_sold,
       totalRemaining: report.total_remaining,
-      shift: report.shift
+      shift: report.shift,
+      feedback: report.feedback || undefined
     };
   };
 
