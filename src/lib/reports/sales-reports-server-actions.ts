@@ -170,6 +170,14 @@ export async function createShiftReport(reportData: {
     const nigeriaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
     const reportDate = nigeriaTime.toISOString().split('T')[0];
     
+    console.log('📊 Creating shift report with data:', {
+      user_id: reportData.user_id,
+      shift: reportData.shift,
+      report_date: reportDate,
+      sales_data_count: reportData.sales_data.length,
+      remaining_breads_count: reportData.remaining_breads.length
+    });
+
     const { data, error } = await supabase
       .from('shift_reports')
       .upsert([
@@ -189,6 +197,8 @@ export async function createShiftReport(reportData: {
       })
       .select()
       .single()
+
+    console.log('📊 Shift report upsert result:', { success: !error, data: data?.id, error });
 
     if (error) {
       throw error

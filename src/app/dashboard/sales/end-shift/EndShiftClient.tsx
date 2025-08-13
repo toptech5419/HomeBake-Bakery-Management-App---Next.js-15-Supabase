@@ -13,6 +13,8 @@ import { createSalesLog } from '@/lib/sales/actions';
 import { getBreadTypesForSales, getSalesDataForShift, getRemainingBreadData, createShiftReport } from '@/lib/reports/sales-reports-server-actions';
 import { getRemainingBread, updateRemainingBread } from '@/lib/reports/actions';
 import { upsertSalesLogs } from '@/lib/sales/end-shift-actions';
+import { checkRemainingBreadConflicts } from '@/lib/sales/conflict-checker';
+import { upsertRemainingBread } from '@/lib/remaining-bread/actions';
 import { useRouter } from 'next/navigation';
 import { setNavigationHistory } from '@/lib/utils/navigation-history';
 
@@ -70,6 +72,8 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showRemainingBreadConflictModal, setShowRemainingBreadConflictModal] = useState(false);
+  const [conflictData, setConflictData] = useState<any[]>([]);
   const [feedback, setFeedback] = useState('');
 
   // Initialize loading state to true so page shows loading on first render
@@ -85,6 +89,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   
   // Add flag to prevent data fetching during sales processing
   const [isProcessingSales, setIsProcessingSales] = useState(false);
+  const [hasManualRemainingInput, setHasManualRemainingInput] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!currentShift) {
@@ -108,7 +113,13 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         if (breadTypesData) {
           setBreadTypes(breadTypesData);
           setQuickRecordItems(breadTypesData.map((bt: any) => ({ breadType: bt, quantity: 0 })));
-          setQuickRemainingItems(breadTypesData.map((bt: any) => ({ breadType: bt, quantity: 0 })));
+          
+          // Don't reset remaining items if user has manual input
+          if (!hasManualRemainingInput) {
+            setQuickRemainingItems(breadTypesData.map((bt: any) => ({ breadType: bt, quantity: 0 })));
+          } else {
+            console.log('🔍 Preserving user remaining bread input during fetchData');
+          }
         }
       } catch (serverActionError) {
         console.error('Server action failed, falling back to direct query:', serverActionError);
@@ -121,7 +132,13 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         if (breadTypesData) {
           setBreadTypes(breadTypesData);
           setQuickRecordItems(breadTypesData.map((bt: any) => ({ breadType: bt, quantity: 0 })));
-          setQuickRemainingItems(breadTypesData.map((bt: any) => ({ breadType: bt, quantity: 0 })));
+          
+          // Don't reset remaining items if user has manual input
+          if (!hasManualRemainingInput) {
+            setQuickRemainingItems(breadTypesData.map((bt: any) => ({ breadType: bt, quantity: 0 })));
+          } else {
+            console.log('🔍 Preserving user remaining bread input during fetchData fallback');
+          }
         }
       }
 
@@ -204,11 +221,21 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       setLoading(false);
       setInitialLoading(false);
     }
-  }, [currentShift, userId, isProcessingSales, submitting]);
+  }, [currentShift, userId, isProcessingSales, submitting, hasManualRemainingInput]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Track feedback modal state changes
+  useEffect(() => {
+    if (showFeedbackModal) {
+      console.log('🔍 Feedback modal opened, checking quickRemainingItems:');
+      quickRemainingItems.forEach((item, index) => {
+        console.log(`  ${index}: ${item.breadType.name} = ${item.quantity}`);
+      });
+    }
+  }, [showFeedbackModal, quickRemainingItems]);
 
   // Check for existing data whenever salesLogs, quickRemainingItems, or quickRecordItems change
   useEffect(() => {
@@ -255,6 +282,13 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
   const loadRemainingBreadData = async () => {
     try {
+      console.log('🍞 loadRemainingBreadData called, hasManualRemainingInput:', hasManualRemainingInput);
+      // Don't override manual user input
+      if (hasManualRemainingInput) {
+        console.log('🍞 Skipping auto-load - user has manual input');
+        return;
+      }
+
       // Use new server action
       const result = await getRemainingBread(userId);
       
@@ -286,6 +320,11 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
     const items = isRemaining ? quickRemainingItems : quickRecordItems;
     const setItems = isRemaining ? setQuickRemainingItems : setQuickRecordItems;
     
+    // Mark that user has manual input for remaining bread
+    if (isRemaining) {
+      setHasManualRemainingInput(true);
+      console.log('🔍 User updating remaining bread:', { breadTypeId, quantity });
+    }
     
     setItems(items.map(item => 
       item.breadType.id === breadTypeId 
@@ -373,14 +412,40 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       const totalRemainingQuantity = remainingToRecord.reduce((sum, item) => sum + item.quantity, 0);
 
       setSubmitting(false);
+      console.log('🔍 setSubmitting(false) called, about to check remaining bread modal logic');
 
       // Check remaining bread quantity to determine which modal to show
       if (totalRemainingQuantity === 0) {
         // No remaining bread recorded → show confirmation modal
         setShowConfirmationModal(true);
       } else {
-        // Has remaining bread recorded → proceed directly to feedback modal  
-        setShowFeedbackModal(true);
+        // Step 3: Has remaining bread → check for conflicts
+        const remainingData = remainingToRecord.map(item => ({
+          bread_type_id: item.breadType.id,
+          bread_type: item.breadType.name,
+          quantity: item.quantity,
+          unit_price: item.breadType.unit_price,
+          shift: currentShift!,
+          recorded_by: userId
+        }));
+
+        console.log('🔍 About to check conflicts for remaining data:', remainingData);
+        const conflictResult = await checkRemainingBreadConflicts(remainingData);
+        console.log('🔍 Conflict check result:', conflictResult);
+        
+        if (conflictResult.hasConflicts) {
+          // Conflicts found → show conflict modal
+          setConflictData(conflictResult.conflicts);
+          setShowRemainingBreadConflictModal(true);
+        } else {
+          // No conflicts → proceed directly to feedback modal
+          console.log('🔍 No conflicts, proceeding to feedback modal');
+          console.log('🔍 quickRemainingItems before opening feedback modal:');
+          quickRemainingItems.forEach((item, index) => {
+            console.log(`  ${index}: ${item.breadType.name} = ${item.quantity}`);
+          });
+          setShowFeedbackModal(true);
+        }
       }
 
     } catch (error) {
@@ -398,6 +463,18 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
     setShowFeedbackModal(true);
   };
 
+  const handleConflictProceed = () => {
+    console.log('🔍 User clicked proceed in conflict modal, quickRemainingItems:', quickRemainingItems.filter(i => i.quantity > 0));
+    setShowRemainingBreadConflictModal(false);
+    setShowFeedbackModal(true);
+  };
+
+  const handleConflictCancel = () => {
+    setShowRemainingBreadConflictModal(false);
+    // Navigate back to previous page
+    handleBackNavigation();
+  };
+
   const handleSubmitWithFeedback = async () => {
     setSubmitting(true);
     
@@ -405,11 +482,56 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       // Show loading toast
       toast.loading('Generating shift report...', { id: 'generate-report' });
       
-      // Calculate totals from sales logs and additional inputs
+      // Step 1: Save remaining bread to remaining_bread table first
+      const remainingToSave = quickRemainingItems.filter(item => item.quantity > 0);
+      
+      console.log('🔍 DEBUG: Current quickRemainingItems in feedback modal:', quickRemainingItems);
+      console.log('🔍 DEBUG: Quantities in quickRemainingItems:');
+      quickRemainingItems.forEach((item, index) => {
+        console.log(`  ${index}: ${item.breadType.name} = ${item.quantity}`);
+      });
+      console.log('🔍 DEBUG: Filtered remainingToSave:', remainingToSave);
+      
+      if (remainingToSave.length > 0) {
+        toast.loading('Saving remaining bread data...', { id: 'save-remaining' });
+        
+        const remainingBreadData = remainingToSave.map(item => ({
+          bread_type_id: item.breadType.id,
+          bread_type: item.breadType.name,
+          quantity: item.quantity,
+          unit_price: item.breadType.unit_price,
+          shift: currentShift!,
+          recorded_by: userId
+        }));
+
+        console.log('🍞 About to save remaining bread data:', remainingBreadData);
+        console.log('🍞 Current quickRemainingItems state:', quickRemainingItems.filter(item => item.quantity > 0));
+        const remainingResult = await upsertRemainingBread(remainingBreadData);
+        console.log('🍞 Remaining bread save result:', remainingResult);
+        toast.dismiss('save-remaining');
+        
+        if (!remainingResult.success) {
+          throw new Error('Failed to save remaining bread: ' + remainingResult.error);
+        }
+        
+        // Show appropriate feedback
+        const savedCount = remainingResult.results?.filter(r => r.action === 'inserted' || r.action === 'updated').length || 0;
+        const skippedCount = remainingResult.results?.filter(r => r.action === 'skipped').length || 0;
+        
+        if (savedCount > 0 && skippedCount > 0) {
+          toast.success(`Saved ${savedCount} remaining bread records, skipped ${skippedCount} duplicates`);
+        } else if (savedCount > 0) {
+          toast.success(`Saved ${savedCount} remaining bread records`);
+        } else if (skippedCount > 0) {
+          toast.info(`Skipped ${skippedCount} duplicate remaining bread records`);
+        }
+      }
+      
+      // Step 2: Calculate totals ONLY from existing sales logs (no duplication)
       let totalRevenue = 0;
       let totalItemsSold = 0;
       
-      // Process existing sales logs
+      // Process ONLY existing sales logs (already saved to sales_logs table)
       const salesDataItems = salesLogs.map(sale => {
         const revenue = sale.quantity * (sale.unit_price || 0);
         totalRevenue += revenue;
@@ -424,23 +546,11 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         };
       });
       
-      // Process additional sales inputs (if any)
-      const additionalSales = quickRecordItems.filter(item => item.quantity > 0);
-      additionalSales.forEach(item => {
-        const revenue = item.quantity * item.breadType.unit_price;
-        totalRevenue += revenue;
-        totalItemsSold += item.quantity;
-        
-        salesDataItems.push({
-          breadType: item.breadType.name,
-          quantity: item.quantity,
-          unitPrice: item.breadType.unit_price,
-          totalAmount: revenue,
-          timestamp: new Date().toISOString()
-        });
-      });
+      // NOTE: We don't add quickRecordItems here because they were already 
+      // processed and saved to sales_logs in the "Record All Sale" step
+      // The salesLogs state should already contain all current sales
       
-      // Process remaining bread data
+      // Process remaining bread data for shift report (JSON summary)
       const remainingBreadItems = quickRemainingItems
         .filter(item => item.quantity > 0)
         .map(item => ({
@@ -452,7 +562,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       
       const totalRemaining = remainingBreadItems.reduce((sum, item) => sum + item.quantity, 0);
       
-      // Create shift report
+      // Step 3: Create shift report (summary data for reporting)
       const reportData = {
         user_id: userId,
         shift: currentShift,
@@ -461,7 +571,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         total_remaining: totalRemaining,
         feedback: feedback,
         sales_data: salesDataItems,
-        remaining_breads: remainingBreadItems
+        remaining_breads: remainingBreadItems // JSON summary for reports
       };
       
       
@@ -1046,6 +1156,58 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             </div>
           </div>
         )}
+
+      {/* Remaining Bread Conflict Modal - Mobile First */}
+      {showRemainingBreadConflictModal && !submitting && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white w-full max-w-sm sm:max-w-md rounded-xl sm:rounded-2xl shadow-2xl mx-auto max-h-[90vh] flex flex-col">
+            <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
+              <div className="flex items-center justify-center mb-3 sm:mb-4">
+                <div className="bg-yellow-100 p-2 sm:p-3 rounded-full">
+                  <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600" />
+                </div>
+              </div>
+              <h3 className="text-lg sm:text-xl font-bold text-center mb-2">Remaining Bread Conflict</h3>
+              <p className="text-gray-600 text-center mb-4 sm:mb-6 text-sm sm:text-base leading-relaxed">
+                Same quantity found on different date. Do you want to proceed?
+              </p>
+              
+              {/* Show conflict data */}
+              <div className="space-y-3 mb-4 sm:mb-6">
+                {conflictData.map((conflict, index) => (
+                  <div key={index} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium text-sm">{conflict.breadType}</span>
+                      <span className="text-yellow-700 text-sm font-semibold">{conflict.quantity} units</span>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      Previous entry: {new Date(conflict.existingDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="p-4 sm:p-6 pt-0 sm:pt-0 flex-shrink-0">
+              <div className="flex gap-3 sm:gap-4">
+                <Button
+                  variant="outline"
+                  onClick={handleConflictCancel}
+                  className="flex-1 text-sm sm:text-base font-semibold touch-manipulation min-h-[44px] sm:min-h-[48px] rounded-lg sm:rounded-xl"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConflictProceed}
+                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-sm sm:text-base font-semibold touch-manipulation min-h-[44px] sm:min-h-[48px] rounded-lg sm:rounded-xl"
+                >
+                  Proceed
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

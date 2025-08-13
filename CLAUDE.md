@@ -147,6 +147,7 @@ inventory_logs → Track inventory changes
 production_logs → Track production activities
 activities → Log user activities
 shift_handovers → Manage shift transitions
+daily_low_stock_counts → Track daily low stock counts
 
 Key Tables
 activities - User Activity Logs
@@ -226,6 +227,20 @@ CREATE TABLE public.bread_types (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT bread_types_pkey PRIMARY KEY (id),
   CONSTRAINT bread_types_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+
+daily_low_stock_counts - Daily Low Stock Counts
+CREATE TABLE public.daily_low_stock_counts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  count_date date NOT NULL DEFAULT CURRENT_DATE UNIQUE,
+  morning_shift_count integer NOT NULL DEFAULT 0 CHECK (morning_shift_count >= 0),
+  night_shift_count integer NOT NULL DEFAULT 0 CHECK (night_shift_count >= 0),
+  total_count integer DEFAULT (morning_shift_count + night_shift_count),
+  last_updated_morning timestamp with time zone,
+  last_updated_night timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT daily_low_stock_counts_pkey PRIMARY KEY (id)
 );
 
 inventory - Inventory Status
@@ -309,18 +324,19 @@ CREATE TABLE public.qr_invites (
 remaining_bread - Leftover Inventory
 CREATE TABLE public.remaining_bread (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  shift text NOT NULL,
+  shift text NOT NULL CHECK (shift = ANY (ARRAY['morning'::text, 'night'::text])),
   bread_type text NOT NULL,
-  bread_type_id uuid,
-  quantity integer NOT NULL,
-  recorded_by uuid,
+  bread_type_id uuid NOT NULL,
+  quantity integer NOT NULL CHECK (quantity > 0),
+  recorded_by uuid NOT NULL,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
   unit_price numeric NOT NULL DEFAULT 0,
   total_value numeric DEFAULT ((quantity)::numeric * unit_price),
+  record_date date NOT NULL DEFAULT CURRENT_DATE,
   CONSTRAINT remaining_bread_pkey PRIMARY KEY (id),
-  CONSTRAINT remaining_bread_bread_type_id_fkey FOREIGN KEY (bread_type_id) REFERENCES public.bread_types(id),
-  CONSTRAINT remaining_bread_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES auth.users(id)
+  CONSTRAINT remaining_bread_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES auth.users(id),
+  CONSTRAINT remaining_bread_bread_type_id_fkey FOREIGN KEY (bread_type_id) REFERENCES public.bread_types(id)
 );
 
 sales_logs - Transaction Records
@@ -337,8 +353,8 @@ CREATE TABLE public.sales_logs (
   leftovers integer DEFAULT 0,
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT sales_logs_pkey PRIMARY KEY (id),
-  CONSTRAINT sales_logs_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES public.users(id),
-  CONSTRAINT sales_logs_bread_type_id_fkey FOREIGN KEY (bread_type_id) REFERENCES public.bread_types(id)
+  CONSTRAINT sales_logs_bread_type_id_fkey FOREIGN KEY (bread_type_id) REFERENCES public.bread_types(id),
+  CONSTRAINT sales_logs_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES public.users(id)
 );
 
 sessions - User Sessions
@@ -385,12 +401,12 @@ CREATE TABLE public.shift_reports (
   user_id uuid NOT NULL,
   shift text NOT NULL CHECK (shift = ANY (ARRAY['morning'::text, 'night'::text])),
   report_date date NOT NULL DEFAULT CURRENT_DATE,
-  total_revenue numeric NOT NULL DEFAULT 0,
-  total_items_sold integer NOT NULL DEFAULT 0,
-  total_remaining integer NOT NULL DEFAULT 0,
+  total_revenue numeric NOT NULL DEFAULT 0 CHECK (total_revenue >= 0::numeric),
+  total_items_sold integer NOT NULL DEFAULT 0 CHECK (total_items_sold >= 0),
+  total_remaining integer NOT NULL DEFAULT 0 CHECK (total_remaining >= 0),
   feedback text,
-  sales_data jsonb NOT NULL DEFAULT '[]'::jsonb,
-  remaining_breads jsonb NOT NULL DEFAULT '[]'::jsonb,
+  sales_data jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(sales_data) = 'array'::text),
+  remaining_breads jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(remaining_breads) = 'array'::text),
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT shift_reports_pkey PRIMARY KEY (id),
@@ -543,6 +559,18 @@ export interface BreadType {
   created_at: string;
 }
 
+export interface DailyLowStockCount {
+  id: string;
+  count_date: string;
+  morning_shift_count: number;
+  night_shift_count: number;
+  total_count: number;
+  last_updated_morning?: string;
+  last_updated_night?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Inventory {
   id: string;
   bread_type_id: string;
@@ -605,15 +633,16 @@ export interface QrInvite {
 
 export interface RemainingBread {
   id: string;
-  shift: string;
+  shift: 'morning' | 'night';
   bread_type: string;
-  bread_type_id?: string;
+  bread_type_id: string;
   quantity: number;
-  recorded_by?: string;
+  recorded_by: string;
   created_at: string;
   updated_at: string;
   unit_price: number;
   total_value: number;
+  record_date: string;
 }
 
 export interface SalesLog {
