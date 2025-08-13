@@ -26,63 +26,193 @@ interface NotificationPayload {
   url?: string;
 }
 
+interface BrowserSupport {
+  isSupported: boolean;
+  hasServiceWorker: boolean;
+  hasPushManager: boolean;
+  hasNotifications: boolean;
+  isIOSSafari: boolean;
+  isIOSVersionSupported: boolean;
+  isMobileSafari: boolean;
+  isChrome: boolean;
+  isFirefox: boolean;
+  supportLevel: 'full' | 'partial' | 'none';
+  reason?: string;
+}
+
 class PushNotificationService {
   private _isSupported: boolean = false;
   private _isEnabled: boolean = false;
   private registration: ServiceWorkerRegistration | null = null;
   private subscription: PushSubscriptionData | null = null;
+  private browserSupport: BrowserSupport | null = null;
+  private _initPromise: Promise<boolean> | null = null;
 
   constructor() {
     this.checkSupport();
   }
 
   /**
-   * Check if push notifications are supported in this browser
+   * Comprehensive browser support detection
    */
   private checkSupport(): void {
-    this._isSupported = 
-      'serviceWorker' in navigator &&
-      'PushManager' in window &&
-      'Notification' in window;
+    const userAgent = navigator.userAgent;
+    
+    // Basic feature detection
+    const hasServiceWorker = 'serviceWorker' in navigator;
+    const hasPushManager = 'PushManager' in window;
+    const hasNotifications = 'Notification' in window;
+    
+    // Browser detection
+    const isIOSSafari = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
+    const isMobileSafari = /Safari/.test(userAgent) && /Mobile/.test(userAgent) && !/Chrome/.test(userAgent);
+    const isChrome = /Chrome/.test(userAgent) && !/Edge/.test(userAgent);
+    const isFirefox = /Firefox/.test(userAgent);
+    
+    // iOS version detection for Safari
+    let isIOSVersionSupported = true;
+    if (isIOSSafari) {
+      const match = userAgent.match(/OS (\d+)_(\d+)/);
+      if (match) {
+        const majorVersion = parseInt(match[1]);
+        const minorVersion = parseInt(match[2]);
+        // iOS 16.4+ required for web push
+        isIOSVersionSupported = majorVersion > 16 || (majorVersion === 16 && minorVersion >= 4);
+      } else {
+        // If we can't detect version, assume it's too old
+        isIOSVersionSupported = false;
+      }
+    }
+    
+    // Determine support level
+    let supportLevel: 'full' | 'partial' | 'none' = 'none';
+    let reason: string | undefined;
+    
+    if (!hasServiceWorker || !hasPushManager || !hasNotifications) {
+      supportLevel = 'none';
+      reason = 'Browser lacks essential web push APIs';
+    } else if (isIOSSafari && !isIOSVersionSupported) {
+      supportLevel = 'none';
+      reason = 'iOS Safari requires version 16.4 or later for web push notifications';
+    } else if (isMobileSafari && !isIOSSafari) {
+      supportLevel = 'partial';
+      reason = 'Mobile Safari has limited push notification support';
+    } else if (isChrome || isFirefox || (isIOSSafari && isIOSVersionSupported)) {
+      supportLevel = 'full';
+    } else {
+      supportLevel = 'partial';
+      reason = 'Browser may have limited push notification support';
+    }
+    
+    this.browserSupport = {
+      isSupported: supportLevel !== 'none',
+      hasServiceWorker,
+      hasPushManager,
+      hasNotifications,
+      isIOSSafari,
+      isIOSVersionSupported,
+      isMobileSafari,
+      isChrome,
+      isFirefox,
+      supportLevel,
+      reason
+    };
+    
+    this._isSupported = this.browserSupport.isSupported;
+    
+    console.log('🔍 Browser support analysis:', this.browserSupport);
   }
 
   /**
-   * Initialize push notification service (without auth-dependent operations)
+   * Initialize push notification service with proper timing and error handling
    */
   async initialize(): Promise<boolean> {
+    // Return existing promise if already initializing
+    if (this._initPromise) {
+      return this._initPromise;
+    }
+    
+    this._initPromise = this._doInitialize();
+    return this._initPromise;
+  }
+  
+  private async _doInitialize(): Promise<boolean> {
     if (!this._isSupported) {
-      console.warn('Push notifications are not supported in this browser');
+      const reason = this.browserSupport?.reason || 'Push notifications are not supported in this browser';
+      console.warn('🚫 Push notifications not supported:', reason);
       return false;
     }
 
     try {
-      // Register service worker
+      // Register service worker with retry logic
       await this.registerServiceWorker();
       
-      // Don't load user preferences here - will be done by React hook where auth is available
-      console.log('Push notifications service initialized (preferences will be loaded by hook)');
-
+      // Wait for service worker to be fully ready
+      await this.waitForServiceWorkerReady();
+      
+      console.log('✅ Push notifications service initialized successfully');
       return true;
     } catch (error) {
-      console.error('Failed to initialize push notifications service:', error);
+      console.error('❌ Failed to initialize push notifications service:', error);
+      this._initPromise = null; // Reset so we can retry
       return false;
     }
   }
 
   /**
-   * Register service worker for push notifications
+   * Register service worker with enhanced error handling and timing
    */
   private async registerServiceWorker(): Promise<void> {
     try {
-      this.registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/'
+      console.log('🔄 Registering service worker...');
+      
+      // Check if service worker is already registered
+      const existingRegistration = await navigator.serviceWorker.getRegistration('/');
+      if (existingRegistration) {
+        console.log('♻️ Using existing service worker registration');
+        this.registration = existingRegistration;
+      } else {
+        console.log('📝 Creating new service worker registration');
+        this.registration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/'
+        });
+      }
+      
+      // Listen for registration events
+      this.registration.addEventListener('updatefound', () => {
+        console.log('🔄 Service worker update found');
       });
       
-      
-      // Wait for service worker to be ready
-      await navigator.serviceWorker.ready;
+      console.log('✅ Service worker registered successfully');
     } catch (error) {
-      console.error('Service worker registration failed:', error);
+      console.error('❌ Service worker registration failed:', error);
+      throw new Error(`Service worker registration failed: ${error.message}`);
+    }
+  }
+  
+  /**
+   * Wait for service worker to be fully ready with timeout
+   */
+  private async waitForServiceWorkerReady(): Promise<void> {
+    try {
+      console.log('⏳ Waiting for service worker to be ready...');
+      
+      // Wait for service worker to be ready with timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Service worker ready timeout')), 10000);
+      });
+      
+      await Promise.race([
+        navigator.serviceWorker.ready,
+        timeoutPromise
+      ]);
+      
+      // Additional small delay to ensure everything is fully initialized
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log('✅ Service worker is ready');
+    } catch (error) {
+      console.error('❌ Service worker ready timeout:', error);
       throw error;
     }
   }
@@ -100,8 +230,8 @@ class PushNotificationService {
       console.log('📊 Server action result:', preferences);
 
       if (preferences) {
-        // Handle both string and boolean values from database
-        this._isEnabled = preferences.enabled === true || preferences.enabled === 'true';
+        // Handle boolean values from database
+        this._isEnabled = Boolean(preferences.enabled);
         console.log('✅ Loaded push notification preference from DB:', this._isEnabled, '(raw value:', preferences.enabled, ')');
         
         if (preferences.endpoint && preferences.p256dh_key && preferences.auth_key) {
@@ -147,41 +277,74 @@ class PushNotificationService {
   }
 
   /**
-   * Subscribe to push notifications
+   * Subscribe to push notifications with enhanced error handling
    */
   private async subscribeToPush(): Promise<void> {
     if (!this.registration) {
-      throw new Error('Service worker not registered');
+      throw new Error('Service worker not registered. Please refresh the page and try again.');
     }
 
     try {
-      // Use VAPID public key from environment
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+      console.log('🔄 Creating push subscription...');
       
-      if (!vapidPublicKey) {
-        throw new Error('VAPID public key not configured');
+      // Check for existing subscription first
+      let browserSubscription = await this.registration.pushManager.getSubscription();
+      
+      if (!browserSubscription) {
+        // Create new subscription
+        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+        
+        if (!vapidPublicKey) {
+          throw new Error('Push notifications are not properly configured. Please contact support.');
+        }
+        
+        const applicationServerKey = this.urlBase64ToUint8Array(vapidPublicKey);
+
+        browserSubscription = await this.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey
+        });
+        
+        console.log('✅ New push subscription created');
+      } else {
+        console.log('♻️ Using existing push subscription');
       }
-      const applicationServerKey = this.urlBase64ToUint8Array(vapidPublicKey);
 
-      const browserSubscription = await this.registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: applicationServerKey
-      });
-
+      // Convert to our format
+      const subscriptionJson = browserSubscription.toJSON();
+      if (!subscriptionJson.keys?.p256dh || !subscriptionJson.keys?.auth) {
+        throw new Error('Invalid subscription keys received from browser');
+      }
+      
       this.subscription = {
         endpoint: browserSubscription.endpoint,
         keys: {
-          p256dh: browserSubscription.toJSON().keys!.p256dh!,
-          auth: browserSubscription.toJSON().keys!.auth!
+          p256dh: subscriptionJson.keys.p256dh,
+          auth: subscriptionJson.keys.auth
         }
       };
 
       // Save subscription to database
       await this.saveSubscriptionToDatabase();
+      console.log('✅ Push subscription saved to database');
 
     } catch (error) {
-      console.error('Failed to subscribe to push notifications:', error);
-      throw error;
+      console.error('❌ Failed to subscribe to push notifications:', error);
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('not supported')) {
+          throw new Error('Push notifications are not supported in this browser.');
+        } else if (error.message.includes('permission')) {
+          throw new Error('Notification permission was denied or revoked.');
+        } else if (error.message.includes('VAPID')) {
+          throw new Error('Push notifications are not properly configured.');
+        } else {
+          throw error;
+        }
+      } else {
+        throw new Error('Failed to create push subscription. Please try again.');
+      }
     }
   }
 
@@ -222,48 +385,80 @@ class PushNotificationService {
   }
 
   /**
-   * Toggle push notifications on/off
+   * Toggle push notifications with comprehensive error handling
    */
   async toggleNotifications(userId?: string): Promise<boolean> {
-    const currentState = this._isEnabled; // Move outside try block for scope access
+    const currentState = this._isEnabled;
     
     try {
+      // Check support first
       if (!this._isSupported) {
-        throw new Error('Push notifications not supported');
+        const reason = this.browserSupport?.reason || 'Push notifications are not supported in this browser';
+        throw new Error(reason);
       }
-
-      // Request permission if not already granted
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        throw new Error('Notification permission denied');
+      
+      // Ensure service is initialized
+      const initialized = await this.initialize();
+      if (!initialized) {
+        throw new Error('Failed to initialize push notification service');
       }
 
       const targetState = !currentState;
 
       if (targetState) {
         // Enabling notifications
-        await this.subscribeToPush();
+        console.log('🔔 Enabling push notifications...');
         
-        // Verify we have a subscription before saving
-        if (!this.subscription) {
-          throw new Error('Failed to create push subscription');
+        // Request permission with better error handling
+        let permission: NotificationPermission;
+        try {
+          permission = await Notification.requestPermission();
+        } catch (permError) {
+          throw new Error('Failed to request notification permission. Please enable notifications in your browser settings.');
         }
         
-        // Save with the subscription data
+        if (permission === 'denied') {
+          throw new Error('Notification permission was denied. Please enable notifications in your browser settings and refresh the page.');
+        }
+        
+        if (permission !== 'granted') {
+          throw new Error('Notification permission is required for push notifications.');
+        }
+        
+        // Subscribe to push notifications
+        await this.subscribeToPush();
+        
+        // Verify subscription was created
+        if (!this.subscription) {
+          throw new Error('Failed to create push subscription. Please try again.');
+        }
+        
         this._isEnabled = true;
         await this.savePreferences(userId);
+        console.log('✅ Push notifications enabled successfully');
         
       } else {
         // Disabling notifications
+        console.log('🔕 Disabling push notifications...');
         this._isEnabled = false;
         await this.unsubscribeFromPush();
         await this.savePreferences(userId);
+        console.log('✅ Push notifications disabled successfully');
       }
+      
       return this._isEnabled;
     } catch (error) {
+      console.error('❌ Push notification toggle failed:', error);
+      
       // Restore previous state on error
       this._isEnabled = currentState;
-      throw error;
+      
+      // Re-throw with enhanced error message
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error(`An unexpected error occurred: ${String(error)}`);
+      }
     }
   }
 
@@ -436,12 +631,63 @@ class PushNotificationService {
   isSupported(): boolean {
     return this._isSupported;
   }
+  
+  /**
+   * Get detailed browser support information
+   */
+  getBrowserSupport(): BrowserSupport | null {
+    return this.browserSupport;
+  }
+  
+  /**
+   * Get user-friendly support message
+   */
+  getSupportMessage(): string {
+    if (!this.browserSupport) {
+      return 'Checking browser support...';
+    }
+    
+    const { supportLevel, reason, isIOSSafari, isIOSVersionSupported, isMobileSafari } = this.browserSupport;
+    
+    switch (supportLevel) {
+      case 'full':
+        return 'Push notifications are fully supported in your browser.';
+      case 'partial':
+        if (isMobileSafari) {
+          return 'Push notifications have limited support in Mobile Safari. For best experience, use Chrome or Firefox.';
+        }
+        return reason || 'Push notifications have limited support in your browser.';
+      case 'none':
+      default:
+        if (isIOSSafari && !isIOSVersionSupported) {
+          return 'Push notifications require iOS 16.4 or later. Please update your device or use a supported browser.';
+        }
+        return reason || 'Push notifications are not supported in your browser. Please use Chrome, Firefox, or Safari 16.4+.';
+    }
+  }
+  
+  /**
+   * Get recommended browsers for current platform
+   */
+  getRecommendedBrowsers(): string[] {
+    if (!this.browserSupport) return [];
+    
+    const { isIOSSafari, isMobileSafari } = this.browserSupport;
+    
+    if (isIOSSafari) {
+      return ['Safari 16.4+', 'Chrome for iOS', 'Firefox for iOS'];
+    } else if (isMobileSafari) {
+      return ['Chrome for Android', 'Firefox for Android'];
+    } else {
+      return ['Chrome', 'Firefox', 'Safari'];
+    }
+  }
 
   /**
    * Get notification permission status
    */
   getPermissionStatus(): NotificationPermission {
-    return Notification.permission;
+    return 'Notification' in window ? Notification.permission : 'default';
   }
 }
 

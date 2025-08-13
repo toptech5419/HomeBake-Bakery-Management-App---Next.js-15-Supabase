@@ -11,70 +11,105 @@ export interface PushNotificationHook {
   permission: NotificationPermission;
   isLoading: boolean;
   error: string | null;
+  supportMessage: string;
+  recommendedBrowsers: string[];
+  supportLevel: 'full' | 'partial' | 'none';
+  showUnsupportedMessage: boolean;
   toggleNotifications: (userId?: string) => Promise<boolean>;
   sendTestNotification: () => Promise<void>;
+  retryInitialization: () => Promise<void>;
 }
 
 /**
- * Hook for managing push notifications
+ * Enhanced hook for managing push notifications with better UX
  */
 export function usePushNotifications(userId?: string): PushNotificationHook {
-  const [isEnabled, setIsEnabled] = useState<boolean | null>(null); // null = not loaded yet
+  const [isEnabled, setIsEnabled] = useState<boolean | null>(null);
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [supportMessage, setSupportMessage] = useState<string>('Checking browser support...');
+  const [recommendedBrowsers, setRecommendedBrowsers] = useState<string[]>([]);
+  const [supportLevel, setSupportLevel] = useState<'full' | 'partial' | 'none'>('none');
   const { toast } = useOptimizedToast();
 
   /**
-   * Initialize push notification status
+   * Initialize push notification status with enhanced support detection
    */
   const initializePushNotifications = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
+      
+      console.log('🔄 Initializing push notifications...');
 
-      // Check browser support
+      // Get detailed browser support information
       const supported = pushNotifications.isSupported();
+      const browserSupport = pushNotifications.getBrowserSupport();
+      const message = pushNotifications.getSupportMessage();
+      const browsers = pushNotifications.getRecommendedBrowsers();
+      
       setIsSupported(supported);
+      setSupportMessage(message);
+      setRecommendedBrowsers(browsers);
+      setSupportLevel(browserSupport?.supportLevel || 'none');
 
       if (!supported) {
-        setError('Push notifications are not supported in this browser');
-        return;
-      }
-
-      // Initialize the service (service worker registration only)
-      const initialized = await pushNotifications.initialize();
-      if (!initialized) {
-        console.warn('⚠️ Push notifications service initialization failed - defaulting to disabled');
-        setError('Failed to initialize push notifications service');
+        console.warn('⚠️ Push notifications not supported:', message);
+        setError(message);
         setIsEnabled(false);
         return;
       }
 
-      // Load user preferences from database (pass userId directly if available)
+      // Initialize the service with retry logic
+      const initialized = await pushNotifications.initialize();
+      if (!initialized) {
+        console.warn('⚠️ Push notifications service initialization failed');
+        setError('Failed to initialize push notifications service. Please refresh the page and try again.');
+        setIsEnabled(false);
+        return;
+      }
+
+      // Load user preferences from database
       await pushNotifications.loadUserPreferences(userId);
 
-      // Get user preference from database (now loaded)
+      // Get current state
       const userPreference = pushNotifications.getUserPreference();
       setIsEnabled(userPreference);
       setPermission(pushNotifications.getPermissionStatus());
       
-      console.log('Push notifications initialized:', { 
+      console.log('✅ Push notifications initialized successfully:', { 
         userPreference, 
         fullyEnabled: pushNotifications.isEnabled(), 
-        permission: pushNotifications.getPermissionStatus() 
+        permission: pushNotifications.getPermissionStatus(),
+        supportLevel: browserSupport?.supportLevel
       });
 
     } catch (error: any) {
       console.error('❌ Push notification initialization failed:', error);
-      setError(error.message || 'Failed to initialize push notifications');
-      // On any initialization error, default to disabled for safety
+      const errorMessage = error.message || 'Failed to initialize push notifications';
+      setError(errorMessage);
       setIsEnabled(false);
+      
+      // Show user-friendly error toast
+      toast({
+        title: '⚠️ Notification Setup Issue',
+        description: 'Push notifications could not be initialized. You can still use the app normally.',
+        type: 'warning',
+        duration: 5000
+      });
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [userId, toast]);
+  
+  /**
+   * Retry initialization (useful for temporary failures)
+   */
+  const retryInitialization = useCallback(async () => {
+    await initializePushNotifications();
+  }, [initializePushNotifications]);
 
   /**
    * Toggle push notifications on/off
@@ -123,40 +158,43 @@ export function usePushNotifications(userId?: string): PushNotificationHook {
     } catch (error: any) {
       console.error('❌ Failed to toggle push notifications:', error);
       
-      // Set specific error messages
-      if (error.message.includes('permission denied') || error.message.includes('Notification permission denied')) {
-        setError('Browser notification permission was denied. Please enable notifications in your browser settings and try again.');
-        toast({
-          title: '❌ Permission Denied',
-          description: 'Browser notification permission was denied. Please enable notifications in your browser settings and try again.',
-          type: 'error',
-          duration: 8000
-        });
+      // Enhanced error handling with specific messages
+      let errorTitle = '❌ Notification Error';
+      let errorDescription = error.message;
+      let toastType: 'error' | 'warning' = 'error';
+      let duration = 5000;
+      
+      if (error.message.includes('permission') && error.message.includes('denied')) {
+        errorTitle = '🚫 Permission Denied';
+        errorDescription = 'Please enable notifications in your browser settings and refresh the page.';
+        duration = 8000;
+      } else if (error.message.includes('iOS') && error.message.includes('16.4')) {
+        errorTitle = '📱 iOS Update Required';
+        errorDescription = 'Push notifications require iOS 16.4+. Please update your device.';
+        toastType = 'warning';
+        duration = 8000;
       } else if (error.message.includes('not supported')) {
-        setError('Push notifications are not supported in this browser. Try using Chrome, Firefox, or Safari.');
-        toast({
-          title: '⚠️ Not Supported',
-          description: 'Push notifications are not supported in this browser. Try using Chrome, Firefox, or Safari.',
-          type: 'warning',
-          duration: 6000
-        });
-      } else if (error.message.includes('VAPID key')) {
-        setError('Push notifications are not properly configured. Please contact support.');
-        toast({
-          title: '🔧 Configuration Error',
-          description: 'Push notifications are not properly configured. Please contact support.',
-          type: 'error',
-          duration: 6000
-        });
-      } else {
-        setError('Failed to toggle push notifications. Please try again or refresh the page.');
-        toast({
-          title: '❌ Toggle Failed',
-          description: 'Failed to toggle push notifications. Please try again or refresh the page.',
-          type: 'error',
-          duration: 5000
-        });
+        errorTitle = '🌐 Browser Not Supported';
+        errorDescription = `Try using: ${recommendedBrowsers.join(', ')}`;
+        toastType = 'warning';
+        duration = 6000;
+      } else if (error.message.includes('VAPID') || error.message.includes('configured')) {
+        errorTitle = '🔧 Configuration Issue';
+        errorDescription = 'Push notifications are not properly set up. Please contact support.';
+        duration = 6000;
+      } else if (error.message.includes('Service worker')) {
+        errorTitle = '🔄 Service Issue';
+        errorDescription = 'Please refresh the page and try again.';
+        duration = 5000;
       }
+      
+      setError(errorDescription);
+      toast({
+        title: errorTitle,
+        description: errorDescription,
+        type: toastType,
+        duration
+      });
 
       // Revert state on error
       setIsEnabled(pushNotifications.isEnabled());
@@ -214,13 +252,20 @@ export function usePushNotifications(userId?: string): PushNotificationHook {
     return () => clearInterval(interval);
   }, []);
 
+  const showUnsupportedMessage = !isSupported && !isLoading && (supportLevel === 'none' || supportLevel === 'partial');
+  
   return {
-    isEnabled: isLoading ? false : Boolean(isEnabled), // Show false during loading, then actual user preference
+    isEnabled: isLoading ? false : Boolean(isEnabled),
     isSupported,
     permission,
     isLoading,
     error,
+    supportMessage,
+    recommendedBrowsers,
+    supportLevel,
+    showUnsupportedMessage,
     toggleNotifications,
-    sendTestNotification
+    sendTestNotification,
+    retryInitialization
   };
 }
