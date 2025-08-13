@@ -109,6 +109,11 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
                 <div className="bg-white rounded-xl p-4 text-center border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                   <div className="text-lg font-bold text-blue-600">{stats.todayBatches}</div>
                   <div className="text-xs text-gray-500 mt-1">Today Batches</div>
+                  {(stats.todayBatchesMorning > 0 || stats.todayBatchesNight > 0) && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      M: {stats.todayBatchesMorning} | N: {stats.todayBatchesNight}
+                    </div>
+                  )}
                 </div>
                 <div className="bg-white rounded-xl p-4 text-center border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                   <div className="text-lg font-bold text-gray-900">

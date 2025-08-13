@@ -4,10 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { getOwnerDashboardStats, getTodayRevenue, getTodayBatchCount, getStaffOnlineCount } from '@/lib/dashboard/server-actions';
 import { useLowStockTracker } from './use-low-stock-tracker';
+import { useTodayBatchesTracker } from './use-today-batches-tracker';
 
 interface OwnerDashboardStats {
   todayRevenue: number;
   todayBatches: number;
+  todayBatchesMorning: number;
+  todayBatchesNight: number;
   staffOnline: number;
   staffTotal: number;
   lowStockCount: number;
@@ -28,6 +31,8 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
   const [stats, setStats] = useState<OwnerDashboardStats>({
     todayRevenue: 0,
     todayBatches: 0,
+    todayBatchesMorning: 0,
+    todayBatchesNight: 0,
     staffOnline: 0,
     staffTotal: 0,
     lowStockCount: 0,
@@ -47,21 +52,27 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
     refetch: refreshLowStock 
   } = useLowStockTracker();
 
+  // Real-time today batches tracking hook
+  const { 
+    todayBatchesData, 
+    isLoading: todayBatchesLoading, 
+    error: todayBatchesError,
+    refetch: refreshTodayBatches 
+  } = useTodayBatchesTracker();
+
   const fetchStats = useCallback(async () => {
     try {
       setError(null);
       
-      // Get basic stats (without low stock count since we have real-time tracking)
-      const [todayRevenue, todayBatches, staffCounts] = await Promise.all([
+      // Get basic stats (without low stock count and batch count since we have real-time tracking)
+      const [todayRevenue, staffCounts] = await Promise.all([
         getTodayRevenue(),
-        getTodayBatchCount(),
         getStaffOnlineCount()
       ]);
 
       setStats(prevStats => ({
         ...prevStats,
         todayRevenue,
-        todayBatches,
         staffOnline: staffCounts.online,
         staffTotal: staffCounts.total,
         lastUpdate: new Date().toISOString()
@@ -77,11 +88,12 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
   const refetch = useCallback(() => {
     setIsLoading(true);
     fetchStats();
-    // Also refresh low stock data
+    // Also refresh real-time trackers
     refreshLowStock();
-  }, [fetchStats, refreshLowStock]);
+    refreshTodayBatches();
+  }, [fetchStats, refreshLowStock, refreshTodayBatches]);
 
-  // Update stats when real-time low stock data changes
+  // Update stats when real-time data changes
   useEffect(() => {
     if (!lowStockLoading && lowStockData) {
       setStats(prevStats => ({
@@ -98,6 +110,23 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
       setError(`Low stock tracking: ${lowStockError}`);
     }
   }, [lowStockData, lowStockLoading, lowStockError, error]);
+
+  // Update stats when real-time today batches data changes
+  useEffect(() => {
+    if (!todayBatchesLoading && todayBatchesData) {
+      setStats(prevStats => ({
+        ...prevStats,
+        todayBatches: todayBatchesData.total,
+        todayBatchesMorning: todayBatchesData.morningCount,
+        todayBatchesNight: todayBatchesData.nightCount,
+      }));
+    }
+
+    // Combine errors
+    if (todayBatchesError && !error) {
+      setError(`Today batches tracking: ${todayBatchesError}`);
+    }
+  }, [todayBatchesData, todayBatchesLoading, todayBatchesError, error]);
 
   // Initial fetch
   useEffect(() => {
