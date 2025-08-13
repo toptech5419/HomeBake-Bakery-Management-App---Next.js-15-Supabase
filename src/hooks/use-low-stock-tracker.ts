@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { Logger } from '@/lib/utils/logger';
 
 interface LowStockData {
   total: number;
@@ -94,7 +95,7 @@ export function useLowStockTracker(): UseLowStockTrackerReturn {
         lastUpdated: new Date().toISOString()
       };
 
-      console.log('📊 Low stock tracker result:', {
+      Logger.tracker('Low stock tracker result:', {
         total: result.total,
         morning: result.morningCount,
         night: result.nightCount,
@@ -104,7 +105,7 @@ export function useLowStockTracker(): UseLowStockTrackerReturn {
 
       return result;
     } catch (error) {
-      console.error('❌ Error fetching low stock data:', error);
+      Logger.error('Error fetching low stock data:', error);
       // Return default data on error
       return {
         total: 0,

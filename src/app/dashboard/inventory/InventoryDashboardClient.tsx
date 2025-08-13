@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { UserRole } from '@/types';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { PageDebugger } from '@/components/debug/page-debugger';
+// Removed debug component import for production optimization
 import { 
   Package, 
   TrendingDown, 
@@ -129,7 +129,7 @@ export default function InventoryDashboardClient({
 
   return (
     <div className="space-y-6">
-      <PageDebugger pageName="InventoryDashboard" />
+      {/* Removed PageDebugger for production optimization */}
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">

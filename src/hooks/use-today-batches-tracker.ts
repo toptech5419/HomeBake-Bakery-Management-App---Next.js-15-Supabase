@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { Logger } from '@/lib/utils/logger';
 
 interface TodayBatchesData {
   total: number;
@@ -93,7 +94,7 @@ export function useTodayBatchesTracker(): UseTodayBatchesTrackerReturn {
         lastUpdated: new Date().toISOString()
       };
 
-      console.log('📊 Today batches tracker result:', {
+      Logger.tracker('Today batches tracker result:', {
         total: result.total,
         morning: result.morningCount,
         night: result.nightCount,
@@ -103,7 +104,7 @@ export function useTodayBatchesTracker(): UseTodayBatchesTrackerReturn {
 
       return result;
     } catch (error) {
-      console.error('❌ Error fetching today batches data:', error);
+      Logger.error('Error fetching today batches data:', error);
       // Return default data on error
       return {
         total: 0,
