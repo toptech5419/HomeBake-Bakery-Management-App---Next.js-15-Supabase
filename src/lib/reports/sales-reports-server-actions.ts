@@ -64,16 +64,10 @@ export async function getSalesDataForShift(userId: string, shift: 'morning' | 'n
   const supabase = await createServer()
   
   try {
+    // Get sales logs first
     const { data: salesData, error: salesError } = await supabase
       .from('sales_logs')
-      .select(`
-        *,
-        bread_types (
-          id,
-          name,
-          unit_price
-        )
-      `)
+      .select('*')
       .eq('recorded_by', userId)
       .eq('shift', shift)
       .order('created_at', { ascending: false })
@@ -82,7 +76,29 @@ export async function getSalesDataForShift(userId: string, shift: 'morning' | 'n
       throw salesError
     }
 
-    return salesData || []
+    if (!salesData || salesData.length === 0) {
+      return []
+    }
+
+    // Get bread types separately
+    const { data: breadTypes, error: breadTypesError } = await supabase
+      .from('bread_types')
+      .select('id, name, unit_price')
+
+    if (breadTypesError) {
+      throw breadTypesError
+    }
+
+    // Manual join - attach bread type info to sales data
+    const salesWithBreadTypes = salesData.map(sale => {
+      const breadType = breadTypes?.find(bt => bt.id === sale.bread_type_id)
+      return {
+        ...sale,
+        bread_types: breadType || { id: sale.bread_type_id, name: 'Unknown', unit_price: 0 }
+      }
+    })
+
+    return salesWithBreadTypes
   } catch (error) {
     console.error('Error fetching sales data:', error)
     throw error
@@ -96,16 +112,10 @@ export async function getRemainingBreadData(userId?: string) {
   const supabase = await createServer()
   
   try {
+    // Get remaining bread data first
     let query = supabase
       .from('remaining_bread')
-      .select(`
-        *,
-        bread_types!remaining_bread_bread_type_id_fkey (
-          id,
-          name,
-          unit_price
-        )
-      `)
+      .select('*')
       .gt('quantity', 0)
     
     // Only filter by userId if explicitly requested (for specific use cases)
@@ -114,13 +124,35 @@ export async function getRemainingBreadData(userId?: string) {
       query = query.eq('recorded_by', userId)
     }
     
-    const { data, error } = await query.order('created_at', { ascending: false })
+    const { data: remainingData, error } = await query.order('created_at', { ascending: false })
 
     if (error) {
       throw error
     }
 
-    return data || []
+    if (!remainingData || remainingData.length === 0) {
+      return []
+    }
+
+    // Get bread types separately
+    const { data: breadTypes, error: breadTypesError } = await supabase
+      .from('bread_types')
+      .select('id, name, unit_price')
+
+    if (breadTypesError) {
+      throw breadTypesError
+    }
+
+    // Manual join - attach bread type info to remaining bread data
+    const remainingWithBreadTypes = remainingData.map(remaining => {
+      const breadType = breadTypes?.find(bt => bt.id === remaining.bread_type_id)
+      return {
+        ...remaining,
+        bread_types: breadType || { id: remaining.bread_type_id, name: 'Unknown', unit_price: 0 }
+      }
+    })
+
+    return remainingWithBreadTypes
   } catch (error) {
     console.error('Error fetching remaining bread data:', error)
     throw error
@@ -180,7 +212,7 @@ export async function createShiftReport(reportData: {
 
     const { data, error } = await supabase
       .from('shift_reports')
-      .upsert([
+      .insert([
         {
           user_id: reportData.user_id,
           shift: reportData.shift,
@@ -192,9 +224,7 @@ export async function createShiftReport(reportData: {
           sales_data: reportData.sales_data,
           remaining_breads: reportData.remaining_breads
         }
-      ], {
-        onConflict: 'user_id,shift,report_date'
-      })
+      ])
       .select()
       .single()
 

@@ -241,12 +241,12 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
           whileTap={{ scale: 0.95 }}
           onClick={handleToggle}
           disabled={!!loadingId}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
         >
           {loadingId === user.id ? (
-            <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
+            <Loader2 className="w-5 h-5 sm:w-5 sm:h-5 animate-spin text-gray-500" />
           ) : (
-            <MoreVertical className="w-5 h-5 text-gray-600 hover:text-gray-900" />
+            <MoreVertical className="w-5 h-5 sm:w-5 sm:h-5 text-gray-600 hover:text-gray-900" />
           )}
         </motion.button>
 
@@ -257,7 +257,7 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="absolute right-0 mt-2 w-56 rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 backdrop-blur-xl"
+              className="absolute right-0 mt-2 w-48 sm:w-56 rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 backdrop-blur-xl"
               style={{
                 zIndex: 10000,
                 boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)'
@@ -275,7 +275,7 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
                       setActiveDropdownId(null);
                     }}
                     disabled={item.disabled}
-                    className={`group flex w-full items-center px-4 py-3 text-sm transition-all duration-200 ${
+                    className={`group flex w-full items-center px-3 sm:px-4 py-3 text-sm transition-all duration-200 min-h-[44px] touch-manipulation ${
                       item.disabled 
                         ? 'opacity-50 cursor-not-allowed' 
                         : item.variant === 'danger'
@@ -302,46 +302,48 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 p-4 md:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 px-3 sm:px-4 md:px-6 py-4 sm:py-6">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="max-w-7xl mx-auto space-y-6"
+        className="max-w-7xl mx-auto space-y-4 sm:space-y-6"
       >
-        {/* Modern Header */}
+        {/* Modern Header - Mobile Optimized */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-white/20"
+          className="bg-white/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl border border-white/20"
           style={{
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.2)'
           }}
         >
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-4">
+            {/* Header Section */}
+            <div className="flex items-start sm:items-center gap-3 sm:gap-4">
               <motion.div 
                 whileHover={{ scale: 1.1, rotate: 5 }}
                 whileTap={{ scale: 0.95 }}
-                className="p-4 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl shadow-lg"
+                className="p-3 sm:p-4 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl sm:rounded-2xl shadow-lg flex-shrink-0"
               >
-                <Users className="w-8 h-8 text-white" />
+                <Users className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </motion.div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent leading-tight">
                   User Management
                 </h1>
-                <div className="flex flex-wrap items-center gap-2 mt-2">
-                  <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1">
+                {/* Mobile-friendly badges */}
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
+                  <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-2 py-1 text-xs">
                     <UserPlus className="w-3 h-3 mr-1" />
                     {users.length} Total
                   </Badge>
-                  <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-1">
+                  <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white px-2 py-1 text-xs">
                     <CheckCircle className="w-3 h-3 mr-1" />
                     {activeUsers} Active
                   </Badge>
-                  <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1">
+                  <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-1 text-xs">
                     <XCircle className="w-3 h-3 mr-1" />
                     {inactiveUsers} Inactive
                   </Badge>
@@ -349,27 +351,29 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
               </div>
             </div>
             
+            {/* Refresh Button - Full Width on Mobile */}
             <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="sm:self-end"
             >
               <Button
                 variant="outline"
                 onClick={refetchUsers}
                 disabled={isRefreshing}
-                className="bg-white/50 backdrop-blur border-white/30 hover:bg-white/70 transition-all duration-300 shadow-lg"
+                className="w-full sm:w-auto bg-white/50 backdrop-blur border-white/30 hover:bg-white/70 transition-all duration-300 shadow-lg min-h-[44px] px-4 py-2 text-sm font-medium"
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                <span className="truncate">{isRefreshing ? 'Refreshing...' : 'Refresh Users'}</span>
               </Button>
             </motion.div>
           </div>
         </motion.div>
 
-        {/* Modern User Cards */}
+        {/* Modern User Cards - Mobile Optimized */}
         <AnimatePresence>
           <motion.div 
-            className="grid gap-4"
+            className="space-y-2 sm:space-y-3"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.6 }}
@@ -378,84 +382,83 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
               <motion.div 
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-white/80 backdrop-blur-xl rounded-3xl p-12 text-center shadow-2xl border border-white/20"
+                className="bg-white/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center shadow-2xl border border-white/20"
               >
-                <div className="p-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
-                  <Users className="w-10 h-10 text-gray-400" />
+                <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 flex items-center justify-center">
+                  <Users className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">No Users Found</h3>
-                <p className="text-gray-500">There are currently no users in the system.</p>
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-2">No Users Found</h3>
+                <p className="text-sm sm:text-base text-gray-500">There are currently no users in the system.</p>
               </motion.div>
             ) : (
               users.map((user, index) => (
                 <motion.div
                   key={user.id}
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ delay: 0.1 * index, duration: 0.5, ease: "easeOut" }}
-                  whileHover={{ y: -2, scale: 1.01 }}
-                  className={`bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-2xl border border-white/20 hover:shadow-3xl transition-all duration-300 ${
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 * index, duration: 0.3 }}
+                  whileHover={{ y: -1 }}
+                  className={`bg-white/90 backdrop-blur-sm rounded-lg sm:rounded-xl p-3 sm:p-4 shadow-md hover:shadow-lg border border-white/30 transition-all duration-200 ${
                     activeDropdownId === user.id ? 'z-50 relative' : ''
                   }`}
                   style={{
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.2)',
                     zIndex: activeDropdownId === user.id ? 1000 : 'auto'
                   }}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      {/* 3D Avatar */}
-                      <motion.div 
-                        whileHover={{ scale: 1.1, rotateY: 10 }}
-                        className="relative flex-shrink-0"
-                      >
-                        <div 
-                          className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-xl transform rotate-3 hover:rotate-6 transition-transform duration-300"
-                          style={{
-                            boxShadow: '0 10px 25px rgba(249, 115, 22, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                          }}
-                        >
-                          <span className="text-xl font-bold text-white">
-                            {(user.name || user.email)?.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="absolute -inset-1 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl blur opacity-20 -z-10"></div>
-                      </motion.div>
+                  {/* Compact Horizontal Flex Layout */}
+                  <div className="flex items-center gap-3">
+                    {/* Compact Avatar */}
+                    <motion.div 
+                      whileHover={{ scale: 1.05 }}
+                      className="flex-shrink-0"
+                    >
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-sm">
+                        <span className="text-sm sm:text-base font-bold text-white">
+                          {(user.name || user.email)?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    </motion.div>
 
-                      {/* User Info */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-bold text-gray-900 truncate mb-1">
+                    {/* User Info - Flexible */}
+                    <div className="flex-1 min-w-0">
+                      {/* Name and Email Stacked */}
+                      <div className="mb-1.5">
+                        <h3 className="text-sm sm:text-base font-semibold text-gray-900 truncate leading-none">
                           {user.name || 'No name'}
                         </h3>
-                        <p className="text-sm text-gray-600 truncate mb-3">
+                        <p className="text-xs text-gray-500 truncate leading-none mt-0.5">
                           {user.email}
                         </p>
-                        
-                        {/* Compact Badges */}
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge className={`text-xs font-semibold px-3 py-1 ${getRoleColor(user.role)} shadow-md`}>
-                            {user.role.replace('_', ' ').toUpperCase()}
-                          </Badge>
-                          <Badge className={`text-xs font-semibold px-3 py-1 ${getStatusColor(user.is_active !== false)} shadow-md`}>
-                            {user.is_active === false ? (
-                              <>
-                                <XCircle className="w-3 h-3 mr-1" />
-                                INACTIVE
-                              </>
-                            ) : (
-                              <>
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                ACTIVE
-                              </>
-                            )}
-                          </Badge>
-                        </div>
+                      </div>
+                      
+                      {/* Inline Badges */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Badge className={`text-xs px-1.5 py-0.5 ${getRoleColor(user.role)} shadow-sm`}>
+                          {user.role.replace('_', ' ').toUpperCase()}
+                        </Badge>
+                        <Badge className={`text-xs px-1.5 py-0.5 ${getStatusColor(user.is_active !== false)} shadow-sm flex items-center gap-1`}>
+                          {user.is_active === false ? (
+                            <>
+                              <XCircle className="w-2.5 h-2.5" />
+                              <span className="hidden sm:inline">INACTIVE</span>
+                              <span className="sm:hidden">OFF</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-2.5 h-2.5" />
+                              <span className="hidden sm:inline">ACTIVE</span>
+                              <span className="sm:hidden">ON</span>
+                            </>
+                          )}
+                        </Badge>
                       </div>
                     </div>
 
-                    {/* Actions Dropdown */}
-                    {user.role === 'owner' ? null : (
-                      <UserDropdown user={user} />
+                    {/* Actions - Right Aligned */}
+                    {user.role !== 'owner' && (
+                      <div className="flex-shrink-0">
+                        <UserDropdown user={user} />
+                      </div>
                     )}
                   </div>
                 </motion.div>

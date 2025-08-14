@@ -97,23 +97,34 @@ export async function fetchTodaySalesLogs(user_id: string) {
   const today = new Date();
   today.setHours(0,0,0,0);
   
-  const { data, error } = await supabase
-    .from('sales_logs')
-    .select(`
-      id, 
-      bread_type_id, 
-      quantity_sold, 
-      discount_percentage, 
-      shift, 
-      created_at, 
-      bread_types(name, unit_price)
-    `)
-    .eq('user_id', user_id)
-    .gte('created_at', today.toISOString())
-    .order('created_at', { ascending: false });
+  // Fetch sales logs and bread types separately to avoid relationship issues
+  const [salesResult, breadTypesResult] = await Promise.all([
+    supabase
+      .from('sales_logs')
+      .select(`
+        id, 
+        bread_type_id, 
+        quantity_sold, 
+        discount_percentage, 
+        shift, 
+        created_at
+      `)
+      .eq('user_id', user_id)
+      .gte('created_at', today.toISOString())
+      .order('created_at', { ascending: false }),
+    supabase.from('bread_types').select('id, name, unit_price')
+  ]);
+  
+  if (salesResult.error || breadTypesResult.error) return [];
+  
+  // Join data manually
+  const breadTypeMap = new Map(breadTypesResult.data?.map(bt => [bt.id, bt]) || []);
+  const data = salesResult.data?.map(sale => ({
+    ...sale,
+    bread_types: breadTypeMap.get(sale.bread_type_id) || { name: 'Unknown', unit_price: 0 }
+  })) || [];
     
-  if (error) return [];
-  return data || [];
+  return data;
 }
 
 export async function fetchShiftSalesLogs(user_id: string, shift: 'morning' | 'night') {
@@ -121,24 +132,35 @@ export async function fetchShiftSalesLogs(user_id: string, shift: 'morning' | 'n
   const today = new Date();
   today.setHours(0,0,0,0);
   
-  const { data, error } = await supabase
-    .from('sales_logs')
-    .select(`
-      id, 
-      bread_type_id, 
-      quantity_sold, 
-      discount_percentage, 
-      shift, 
-      created_at, 
-      bread_types(name, unit_price)
-    `)
-    .eq('user_id', user_id)
-    .eq('shift', shift)
-    .gte('created_at', today.toISOString())
-    .order('created_at', { ascending: false });
+  // Fetch sales logs and bread types separately to avoid relationship issues
+  const [salesResult, breadTypesResult] = await Promise.all([
+    supabase
+      .from('sales_logs')
+      .select(`
+        id, 
+        bread_type_id, 
+        quantity_sold, 
+        discount_percentage, 
+        shift, 
+        created_at
+      `)
+      .eq('user_id', user_id)
+      .eq('shift', shift)
+      .gte('created_at', today.toISOString())
+      .order('created_at', { ascending: false }),
+    supabase.from('bread_types').select('id, name, unit_price')
+  ]);
+  
+  if (salesResult.error || breadTypesResult.error) return [];
+  
+  // Join data manually
+  const breadTypeMap = new Map(breadTypesResult.data?.map(bt => [bt.id, bt]) || []);
+  const data = salesResult.data?.map(sale => ({
+    ...sale,
+    bread_types: breadTypeMap.get(sale.bread_type_id) || { name: 'Unknown', unit_price: 0 }
+  })) || [];
     
-  if (error) return [];
-  return data || [];
+  return data;
 }
 
 export async function getSalesRepRole(user_id: string) {

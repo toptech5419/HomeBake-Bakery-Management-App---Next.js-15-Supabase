@@ -1,61 +1,10 @@
-// Bulletproof full-screen loading page for sales dashboard
+import { PageLoading } from '@/components/ui/page-loading';
+
 export default function SalesLoading() {
   return (
-    <div 
-      className="fixed inset-0 w-screen h-screen bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center z-[100000]"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        minHeight: '100vh'
-      }}
-    >
-          {/* Content perfectly centered */}
-          <div className="flex flex-col items-center justify-center text-center px-6 py-8 max-w-lg">
-            
-            {/* Sales Rep Branding */}
-            <div className="mb-12">
-              <div className="w-32 h-32 bg-gradient-to-r from-green-500 to-green-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl">
-                <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
-              </div>
-              <h1 className="text-5xl md:text-6xl font-bold text-gray-800 mb-4">Sales Dashboard</h1>
-              <p className="text-2xl text-gray-600 mb-3">Preparing your workspace...</p>
-              <p className="text-lg text-gray-500">Loading sales tools and analytics</p>
-            </div>
-
-            {/* Triple-ring loading animation */}
-            <div className="relative mb-12">
-              <div className="w-28 h-28 border-4 border-green-200 border-t-green-500 rounded-full animate-spin"></div>
-              <div className="absolute inset-0 w-28 h-28 border-4 border-transparent border-r-green-300 rounded-full animate-spin" style={{animationDirection: 'reverse', animationDuration: '1.5s'}}></div>
-              <div className="absolute inset-3 w-22 h-22 border-2 border-green-100 border-b-green-400 rounded-full animate-spin" style={{animationDuration: '2s'}}></div>
-            </div>
-
-            {/* Enhanced Progress Bar */}
-            <div className="w-full max-w-md bg-gray-200 rounded-full h-4 mb-8 shadow-inner">
-              <div 
-                className="bg-gradient-to-r from-green-400 via-green-500 to-green-600 h-4 rounded-full shadow-sm" 
-                style={{
-                  width: '82%',
-                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-                }}
-              />
-            </div>
-            
-            {/* Status Messages */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-center gap-3 text-green-600">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
-                <span className="text-lg font-medium">Initializing sales workspace...</span>
-              </div>
-              <div className="text-base text-gray-500">
-                Fresh content loading • No cached data
-              </div>
-            </div>
-          </div>
-        </div>
+    <PageLoading 
+      title="Sales Dashboard"
+      description="Loading your workspace..."
+    />
   );
 }

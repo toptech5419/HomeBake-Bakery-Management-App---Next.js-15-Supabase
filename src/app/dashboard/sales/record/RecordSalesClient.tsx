@@ -13,6 +13,8 @@ import { getBreadTypesForSalesRep } from '@/lib/dashboard/server-actions';
 import { useShift } from '@/contexts/ShiftContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { usePerformanceMonitor } from '@/lib/monitoring/performance';
+import { useScreenReader } from '@/lib/accessibility/screen-reader';
 
 interface RecordSalesClientProps {
   userId: string;
@@ -39,6 +41,8 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
   const [selectedBreadType, setSelectedBreadType] = useState<BreadType | null>(null);
   const router = useRouter();
   const { currentShift } = useShift();
+  const { startTimer, endTimer, trackUserAction } = usePerformanceMonitor();
+  const { announceLoading, announceDataLoaded, announceSuccess, announceValidationError } = useScreenReader();
   
   const [formData, setFormData] = useState<SaleForm>({
     breadTypeId: '',
@@ -50,7 +54,6 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
   });
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [isNavigatingBack, setIsNavigatingBack] = useState(false);
 
   // Ref for auto-scroll functionality
   const selectedBreadRef = useRef<HTMLDivElement>(null);
@@ -76,56 +79,31 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
   const fetchBreadTypes = async () => {
     try {
       setLoading(true);
-      console.log('Fetching bread types...');
+      announceLoading('bread types');
+      startTimer('fetch_bread_types');
+      const data = await getBreadTypesForSalesRep();
       
-      // Try server action first
-      try {
-        const data = await getBreadTypesForSalesRep();
-        console.log('Bread types from server action:', { data });
-        
-        if (!data || data.length === 0) {
-          console.log('No bread types found in database');
-          toast.info('No Bread Types Found - Please add bread types first before recording sales.');
-        } else {
-          console.log(`Found ${data.length} bread types:`, data);
-        }
-        
-        setBreadTypes(data || []);
-        return;
-      } catch (serverActionError) {
-        console.error('Server action failed, falling back to direct query:', serverActionError);
-      }
-      
-      // Fallback to direct Supabase query
-      const { data, error } = await supabase
-        .from('bread_types')
-        .select('id, name, unit_price')
-        .order('name');
-
-      console.log('Bread types response:', { data, error });
-
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
-
       if (!data || data.length === 0) {
-        console.log('No bread types found in database');
         toast.info('No Bread Types Found - Please add bread types first before recording sales.');
+        announceDataLoaded('No bread types found');
       } else {
-        console.log(`Found ${data.length} bread types:`, data);
+        announceDataLoaded(`${data.length} bread types available for selection`);
       }
-
+      
       setBreadTypes(data || []);
+      const duration = endTimer('fetch_bread_types');
+      trackUserAction({
+        action: 'fetch_bread_types',
+        component: 'RecordSalesClient',
+        timestamp: Date.now(),
+        duration,
+        metadata: { breadTypesCount: data?.length || 0 }
+      });
     } catch (error) {
       console.error('Error fetching bread types:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      toast.error(`Failed to Load Bread Types - ${errorMessage}`);
-      
-      if (error instanceof Error && (error.message?.includes('permission') || error.message?.includes('policy'))) {
-        console.error('RLS Policy Issue Detected:', error);
-        toast.error('Permission Denied - Please check database policies.');
-      }
+      toast.error('Failed to load bread types');
+      announceDataLoaded('Failed to load bread types');
+      endTimer('fetch_bread_types', { error: true });
     } finally {
       setLoading(false);
     }
@@ -140,6 +118,13 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
       quantity: 0,
       discount: 0,
       totalAmount: 0
+    });
+
+    trackUserAction({
+      action: 'select_bread_type',
+      component: 'RecordSalesClient',
+      timestamp: Date.now(),
+      metadata: { breadTypeName: breadType.name, unitPrice: breadType.unit_price }
     });
 
     // Auto-scroll to the selected bread type summary
@@ -183,16 +168,19 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
   const handleSubmit = async () => {
     if (!formData.breadTypeId) {
       toast.error('Please select a bread type');
+      announceValidationError('Bread type', 'Please select a bread type');
       return;
     }
 
     if (formData.quantity <= 0) {
       toast.error('Please enter a valid quantity');
+      announceValidationError('Quantity', 'Please enter a valid quantity greater than 0');
       return;
     }
 
     try {
       setSubmitting(true);
+      startTimer('record_sale');
 
       console.log('Recording sale using server action:', {
         bread_type_id: formData.breadTypeId,
@@ -212,7 +200,22 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
         recorded_by: userId
       });
 
-      toast.success(`Sale recorded: ${formData.breadTypeName} x${formData.quantity} units`);
+      const duration = endTimer('record_sale');
+      const successMessage = `Sale recorded: ${formData.breadTypeName} x${formData.quantity} units`;
+      toast.success(successMessage);
+      announceSuccess(successMessage);
+      
+      trackUserAction({
+        action: 'record_sale_success',
+        component: 'RecordSalesClient',
+        timestamp: Date.now(),
+        duration,
+        metadata: { 
+          breadType: formData.breadTypeName, 
+          quantity: formData.quantity,
+          totalAmount: formData.totalAmount
+        }
+      });
       
       // Add a small delay for better UX and smooth transition
       setTimeout(() => {
@@ -232,6 +235,13 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
     } catch (error) {
       console.error('Error recording sales:', error);
       toast.error('Failed to record sale. Please try again.');
+      endTimer('record_sale', { error: true });
+      trackUserAction({
+        action: 'record_sale_error',
+        component: 'RecordSalesClient',
+        timestamp: Date.now(),
+        metadata: { error: (error as Error).message }
+      });
       setSubmitting(false); // Only reset submitting on error
     }
     // Don't reset submitting on success - keep loading state during navigation
@@ -302,6 +312,8 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
               onClick={handleBackNavigation}
               disabled={submitting || isNavigatingBack}
               className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Go back to previous page"
+              title="Go back"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -355,6 +367,9 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
                           ? 'border-orange-500 bg-orange-50 shadow-lg ring-2 ring-orange-200'
                           : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50/50 hover:shadow-md'
                       }`}
+                      aria-label={`Select ${breadType.name} priced at ${formatCurrencyNGN(breadType.unit_price)}`}
+                      aria-pressed={selectedBreadType?.id === breadType.id}
+                      role="button"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -414,6 +429,8 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
                       onClick={() => handleQuantityChange(formData.quantity - 1)}
                       disabled={formData.quantity === 0}
                       className="h-16 w-16 rounded-2xl border-2 hover:border-orange-400 disabled:opacity-50 touch-manipulation"
+                      aria-label="Decrease quantity by 1"
+                      title="Decrease quantity"
                     >
                       <Minus className="h-8 w-8" />
                     </Button>
@@ -433,6 +450,8 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
                       size="lg"
                       onClick={() => handleQuantityChange(formData.quantity + 1)}
                       className="h-16 w-16 rounded-2xl border-2 hover:border-orange-400 touch-manipulation"
+                      aria-label="Increase quantity by 1"
+                      title="Increase quantity"
                     >
                       <Plus className="h-8 w-8" />
                     </Button>

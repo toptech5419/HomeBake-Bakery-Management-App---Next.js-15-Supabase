@@ -91,8 +91,6 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     recentSales: []
   });
   const [loading, setLoading] = useState(true);
-  const [isInitialMount, setIsInitialMount] = useState(true);
-  // Removed all modal and transition states - using direct page navigation
   const [isEndingShift, setIsEndingShift] = useState(false);
   const [hasSalesLogs, setHasSalesLogs] = useState(false);
 
@@ -233,40 +231,28 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-
-      // Use server action to get metrics
       const metricsData = await getSalesRepDashboardMetrics(userId, currentShift);
       
-      // Update hasDataToClear based on metrics (this is the most reliable source)
       const hasData = metricsData.transactions > 0;
       setHasSalesLogs(hasData);
-      console.log('📊 MAIN: Found', metricsData.transactions, 'transactions, hasDataToClear:', hasData);
       
-      // Calculate production total amount from actual production items (batches)
+      // Fetch production data
       let productionTotalAmount = 0;
-
-      // Fetch production items for current shift to calculate total production value
       try {
-        // Use Nigeria current date for proper clearing - always use current date
         const nigeriaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
         const nigeriaDate = nigeriaTime.toISOString().split('T')[0];
         
         const productionResponse = await fetch(`/api/sales-rep/production?shift=${currentShift}&date=${nigeriaDate}`);
         if (productionResponse.ok) {
           const productionData = await productionResponse.json();
-          
-          // Calculate production total amount: sum of (unit_price * actual_quantity) for each production item
           productionTotalAmount = productionData.productionItems.reduce((sum: number, item: { unit_price: number; quantity: number }) => {
-            const unitPrice = item.unit_price || 0;
-            const quantity = item.quantity || 0;
-            return sum + (unitPrice * quantity);
+            return sum + ((item.unit_price || 0) * (item.quantity || 0));
           }, 0);
         }
       } catch (error) {
         console.error('Error fetching production data:', error);
       }
       
-      // Sales target equals production monetary value PLUS remaining target amount
       const salesTarget = productionTotalAmount + metricsData.remainingTarget;
 
       setMetrics({
@@ -281,7 +267,6 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      // Fallback to direct database queries if server action fails
       await fetchDashboardDataFallback();
     } finally {
       setLoading(false);
@@ -289,15 +274,8 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
   }, [userId, currentShift, fetchDashboardDataFallback]);
 
   useEffect(() => {
-    const initializeData = async () => {
-      await fetchDashboardData();
-      // Set initial mount to false after first data fetch
-      if (isInitialMount) {
-        setTimeout(() => setIsInitialMount(false), 500);
-      }
-    };
-    initializeData();
-  }, [currentShift, userId, isInitialMount, fetchDashboardData]);
+    fetchDashboardData();
+  }, [currentShift, userId, fetchDashboardData]);
 
   // Removed visibility change handlers that could cause authentication loops
 
@@ -367,13 +345,10 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     setEndShiftHandler(handleEndShift);
   }, [setEndShiftHandler, handleEndShift]);
 
-  // Direct navigation without modal overlay
-  const handleNavigation = async (path: string) => {
-    // Direct navigation - the loading.tsx files will handle the loading screen
+  const handleNavigation = (path: string) => {
     router.push(path);
   };
 
-  // Removed transition state cleanup - no longer needed
 
   const getProgressPercentage = () => {
     if (metrics.salesTarget === 0) return 0;
@@ -410,30 +385,22 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     );
   }
 
-  // Enhanced loading state that prevents flashing
-  if (loading || isInitialMount) {
+  if (loading) {
     return (
-      <div className="space-y-8 min-h-screen">
-        {/* Header skeleton */}
+      <div className="space-y-8">
         <div className="space-y-4">
           <div className="h-8 bg-gray-200 animate-pulse rounded-lg w-64" />
           <div className="h-4 bg-gray-200 animate-pulse rounded w-48" />
         </div>
-        
-        {/* Cards skeleton matching the actual layout */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="h-32 bg-gray-200 animate-pulse rounded-2xl" />
           ))}
         </div>
-        
-        {/* Progress section skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="h-48 bg-gray-200 animate-pulse rounded-2xl" />
           <div className="h-48 bg-gray-200 animate-pulse rounded-2xl" />
         </div>
-        
-        {/* Additional content skeleton */}
         <div className="h-64 bg-gray-200 animate-pulse rounded-2xl" />
       </div>
     );

@@ -46,8 +46,11 @@
       "Bash(powershell:*)",
       "Bash(timeout 10 npm run dev -- --port 3004)",
       "Bash(git checkout:*)",
-      "WebFetch(domain:home-bake-bakery-management-app-nex.vercel.app)"
+      "WebFetch(domain:home-bake-bakery-management-app-nex.vercel.app)",
+      "Bash(chmod:*)",
+      "Bash(timeout 10 npm run build:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

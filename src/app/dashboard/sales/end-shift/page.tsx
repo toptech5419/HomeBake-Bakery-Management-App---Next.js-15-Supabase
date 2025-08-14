@@ -22,11 +22,9 @@ export default async function EndShiftPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
-      <EndShiftClient 
-        userId={user.id}
-        userName={profile.name}
-      />
-    </div>
+    <EndShiftClient 
+      userId={user.id}
+      userName={profile.name}
+    />
   );
 }

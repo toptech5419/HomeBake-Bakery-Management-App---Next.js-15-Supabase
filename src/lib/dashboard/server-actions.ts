@@ -198,14 +198,7 @@ export async function getSalesRepDashboardMetrics(userId: string, shift: 'mornin
     // Fetch sales data for current shift and user (NO DATE FILTERING)
     const { data: salesData, error: salesError } = await supabase
       .from('sales_logs')
-      .select(`
-        *,
-        bread_types (
-          id,
-          name,
-          unit_price
-        )
-      `)
+      .select('*')
       .eq('recorded_by', userId)
       .eq('shift', shift)
       .order('created_at', { ascending: false });
@@ -215,17 +208,34 @@ export async function getSalesRepDashboardMetrics(userId: string, shift: 'mornin
     // Fetch remaining bread data - ALL SALES REPS should see remaining bread
     const { data: remainingBreadData, error: remainingBreadError } = await supabase
       .from('remaining_bread')
-      .select(`
-        *,
-        bread_types!remaining_bread_bread_type_id_fkey (
-          id,
-          name,
-          unit_price
-        )
-      `)
+      .select('*')
       .gt('quantity', 0);
 
     if (remainingBreadError) throw remainingBreadError;
+
+    // Get bread types separately for manual join
+    const { data: breadTypes, error: breadTypesError } = await supabase
+      .from('bread_types')
+      .select('id, name, unit_price');
+    
+    if (breadTypesError) throw breadTypesError;
+
+    // Manual join - attach bread type info to sales and remaining bread data
+    const salesWithBreadTypes = salesData?.map(sale => {
+      const breadType = breadTypes?.find(bt => bt.id === sale.bread_type_id);
+      return {
+        ...sale,
+        bread_types: breadType || { id: sale.bread_type_id, name: 'Unknown', unit_price: 0 }
+      };
+    });
+
+    const remainingWithBreadTypes = remainingBreadData?.map(remaining => {
+      const breadType = breadTypes?.find(bt => bt.id === remaining.bread_type_id);
+      return {
+        ...remaining,
+        bread_types: breadType || { id: remaining.bread_type_id, name: 'Unknown', unit_price: 0 }
+      };
+    });
 
     // Calculate metrics
     const todaySales = salesData?.reduce((sum, sale) => {
@@ -236,15 +246,15 @@ export async function getSalesRepDashboardMetrics(userId: string, shift: 'mornin
     const transactions = salesData?.length || 0;
     const totalUnitsSold = salesData?.reduce((sum, sale) => sum + sale.quantity, 0) || 0;
 
-    // Calculate total monetary value of remaining bread
-    const totalRemainingMonetaryValue = remainingBreadData?.reduce((sum, item) => {
+    // Calculate total monetary value of remaining bread using manually joined data
+    const totalRemainingMonetaryValue = remainingWithBreadTypes?.reduce((sum, item) => {
       const unitPrice = item.unit_price || item.bread_types?.unit_price || 0;
       return sum + (item.quantity * unitPrice);
     }, 0) || 0;
 
-    // Calculate top products
+    // Calculate top products using manually joined sales data
     const productSales = new Map();
-    salesData?.forEach((sale) => {
+    salesWithBreadTypes?.forEach((sale) => {
       const key = sale.bread_type_id;
       const existing = productSales.get(key) || { 
         breadTypeId: key, 
@@ -262,8 +272,8 @@ export async function getSalesRepDashboardMetrics(userId: string, shift: 'mornin
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 3);
 
-    // Format recent sales
-    const recentSales = salesData?.slice(0, 3).map((sale) => ({
+    // Format recent sales using manually joined data
+    const recentSales = salesWithBreadTypes?.slice(0, 3).map((sale) => ({
       id: sale.id,
       breadType: sale.bread_types?.name || 'Unknown',
       quantity: sale.quantity,

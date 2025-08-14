@@ -405,12 +405,17 @@ export async function getSalesManagementData(userId: string, shift: 'morning' | 
     const { data: salesData, error: salesError } = await supabase
       .from('sales_logs')
       .select(`
-        *,
-        bread_types (
-          id,
-          name,
-          unit_price
-        )
+        id,
+        bread_type_id,
+        quantity,
+        unit_price,
+        discount,
+        returned,
+        shift,
+        recorded_by,
+        leftovers,
+        created_at,
+        updated_at
       `)
       .eq('recorded_by', userId)
       .eq('shift', shift)
@@ -421,6 +426,29 @@ export async function getSalesManagementData(userId: string, shift: 'morning' | 
       return { success: false, error: salesError.message };
     }
 
+    // Get bread types to join with sales data
+    const { data: breadTypes, error: breadTypesError } = await supabase
+      .from('bread_types')
+      .select('id, name, unit_price');
+
+    if (breadTypesError) {
+      console.error('Error fetching bread types:', breadTypesError);
+      return { success: false, error: breadTypesError.message };
+    }
+
+    // Create a map for quick lookup
+    const breadTypeMap = new Map(breadTypes?.map(bt => [bt.id, bt]) || []);
+
+    // Join sales data with bread types manually
+    const salesRecords = salesData?.map(sale => ({
+      ...sale,
+      bread_types: breadTypeMap.get(sale.bread_type_id) || {
+        id: sale.bread_type_id,
+        name: 'Unknown Bread Type',
+        unit_price: 0
+      }
+    })) || [];
+
     // Get available stock
     const stockResult = await getAvailableStock();
     if (!stockResult.success) {
@@ -428,18 +456,18 @@ export async function getSalesManagementData(userId: string, shift: 'morning' | 
     }
 
     // Calculate metrics
-    const todaySales = salesData?.reduce((sum: number, sale: any) => {
+    const todaySales = salesRecords.reduce((sum: number, sale: any) => {
       const amount = (sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0);
       return sum + amount;
-    }, 0) || 0;
+    }, 0);
 
-    const transactions = salesData?.length || 0;
-    const itemsSold = salesData?.reduce((sum, sale) => sum + sale.quantity, 0) || 0;
+    const transactions = salesRecords.length;
+    const itemsSold = salesRecords.reduce((sum, sale) => sum + sale.quantity, 0);
 
     return {
       success: true,
       data: {
-        salesRecords: salesData || [],
+        salesRecords,
         availableStock: stockResult.data,
         metrics: {
           todaySales,
