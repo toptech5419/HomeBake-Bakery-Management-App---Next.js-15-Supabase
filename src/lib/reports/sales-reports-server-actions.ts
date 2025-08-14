@@ -210,31 +210,73 @@ export async function createShiftReport(reportData: {
       remaining_breads_count: reportData.remaining_breads.length
     });
 
-    const { data, error } = await supabase
+    // UPSERT logic: Check if report exists for user + shift + date
+    const { data: existingReport, error: checkError } = await supabase
       .from('shift_reports')
-      .insert([
-        {
-          user_id: reportData.user_id,
-          shift: reportData.shift,
-          report_date: reportDate,
+      .select('id')
+      .eq('user_id', reportData.user_id)
+      .eq('shift', reportData.shift)
+      .eq('report_date', reportDate)
+      .maybeSingle();
+
+    if (checkError) {
+      throw checkError;
+    }
+
+    let data, error;
+    
+    if (existingReport) {
+      // Update existing report
+      const updateResult = await supabase
+        .from('shift_reports')
+        .update({
           total_revenue: reportData.total_revenue,
           total_items_sold: reportData.total_items_sold,
           total_remaining: reportData.total_remaining,
           feedback: reportData.feedback,
           sales_data: reportData.sales_data,
-          remaining_breads: reportData.remaining_breads
-        }
-      ])
-      .select()
-      .single()
-
-    console.log('📊 Shift report upsert result:', { success: !error, data: data?.id, error });
-
-    if (error) {
-      throw error
+          remaining_breads: reportData.remaining_breads,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingReport.id)
+        .select()
+        .single();
+      
+      data = updateResult.data;
+      error = updateResult.error;
+      
+      console.log('📊 Shift report UPDATED:', { reportId: existingReport.id, success: !error });
+    } else {
+      // Insert new report
+      const insertResult = await supabase
+        .from('shift_reports')
+        .insert([
+          {
+            user_id: reportData.user_id,
+            shift: reportData.shift,
+            report_date: reportDate,
+            total_revenue: reportData.total_revenue,
+            total_items_sold: reportData.total_items_sold,
+            total_remaining: reportData.total_remaining,
+            feedback: reportData.feedback,
+            sales_data: reportData.sales_data,
+            remaining_breads: reportData.remaining_breads
+          }
+        ])
+        .select()
+        .single();
+      
+      data = insertResult.data;
+      error = insertResult.error;
+      
+      console.log('📊 Shift report INSERTED:', { reportId: data?.id, success: !error });
     }
 
-    return data
+    if (error) {
+      throw error;
+    }
+
+    return data;
   } catch (error) {
     console.error('Error creating shift report:', error)
     throw error

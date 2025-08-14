@@ -135,21 +135,30 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         if (salesData && salesData.length > 0) {
           setSalesLogs(salesData);
           
-          // Auto-fill "Record Additional Sales" with quantities from sales_logs
-          const salesQuantities = new Map<string, number>();
+          // Auto-fill "Record Additional Sales" with LATEST quantities from sales_logs
+          // Show the most recent quantity for each bread type (no summing)
+          const salesQuantities = new Map<string, SalesLog>();
           
+          // Keep only the latest record for each bread type
           salesData.forEach((sale: SalesLog) => {
             const breadTypeId = sale.bread_type_id;
-            const currentQuantity = salesQuantities.get(breadTypeId) || 0;
-            salesQuantities.set(breadTypeId, currentQuantity + sale.quantity);
+            const existingRecord = salesQuantities.get(breadTypeId);
+            
+            // If no existing record OR this record is newer, use it
+            if (!existingRecord || new Date(sale.created_at) > new Date(existingRecord.created_at)) {
+              salesQuantities.set(breadTypeId, sale);
+            }
           });
 
-          // Update quickRecordItems with quantities from sales_logs
+          // Update quickRecordItems with LATEST quantities (not summed)
           setQuickRecordItems(prevItems => 
-            prevItems.map(item => ({
-              ...item,
-              quantity: salesQuantities.get(item.breadType.id) || 0
-            }))
+            prevItems.map(item => {
+              const latestSale = salesQuantities.get(item.breadType.id);
+              return {
+                ...item,
+                quantity: latestSale ? latestSale.quantity : 0
+              };
+            })
           );
         }
       } catch (serverActionError) {
@@ -177,21 +186,30 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         if (salesData) {
           setSalesLogs(salesData);
           
-          // Auto-fill "Record Additional Sales" with quantities from sales_logs
-          const salesQuantities = new Map<string, number>();
+          // Auto-fill "Record Additional Sales" with LATEST quantities from sales_logs
+          // Show the most recent quantity for each bread type (no summing)
+          const salesQuantities = new Map<string, SalesLog>();
           
+          // Keep only the latest record for each bread type
           salesData.forEach((sale: SalesLog) => {
             const breadTypeId = sale.bread_type_id;
-            const currentQuantity = salesQuantities.get(breadTypeId) || 0;
-            salesQuantities.set(breadTypeId, currentQuantity + sale.quantity);
+            const existingRecord = salesQuantities.get(breadTypeId);
+            
+            // If no existing record OR this record is newer, use it
+            if (!existingRecord || new Date(sale.created_at) > new Date(existingRecord.created_at)) {
+              salesQuantities.set(breadTypeId, sale);
+            }
           });
 
-          // Update quickRecordItems with quantities from sales_logs
+          // Update quickRecordItems with LATEST quantities (not summed)
           setQuickRecordItems(prevItems => 
-            prevItems.map(item => ({
-              ...item,
-              quantity: salesQuantities.get(item.breadType.id) || 0
-            }))
+            prevItems.map(item => {
+              const latestSale = salesQuantities.get(item.breadType.id);
+              return {
+                ...item,
+                quantity: latestSale ? latestSale.quantity : 0
+              };
+            })
           );
         }
       }
@@ -291,10 +309,16 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       if (result.success && result.data && result.data.length > 0) {
         setQuickRemainingItems(prevItems => {
           const updatedItems = prevItems.map(item => {
-            const totalRemaining = result.data
-              .filter(r => r.bread_type_id === item.breadType.id)
-              .reduce((sum, r) => sum + (r.quantity || 0), 0);
-            return { ...item, quantity: totalRemaining };
+            // Get all records for this bread type
+            const breadRecords = result.data.filter(r => r.bread_type_id === item.breadType.id);
+            
+            // Find the LATEST record (most recent created_at) instead of summing all
+            const latestRecord = breadRecords.reduce((latest: any, current: any) => {
+              if (!latest) return current;
+              return new Date(current.created_at) > new Date(latest.created_at) ? current : latest;
+            }, null);
+            
+            return { ...item, quantity: latestRecord ? latestRecord.quantity || 0 : 0 };
           });
           
           return updatedItems;
@@ -339,7 +363,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
     setIsProcessingSales(true); // 🔧 Prevent data fetching during sales processing
 
     try {
-      // Step 1: Sales Logs Check - Process sales data first if there are any
+      // Step 1: Process Sales Data (if any)
       const additionalSales = quickRecordItems.filter(item => item.quantity > 0);
       
       if (additionalSales.length > 0) {
@@ -362,15 +386,15 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         }
         
         // Show appropriate message based on what happened
-        const savedCount = salesResult.results?.filter(r => r.action === 'inserted' || r.action === 'updated').length || 0;
-        const skippedCount = salesResult.results?.filter(r => r.action === 'skipped').length || 0;
+        const insertedCount = salesResult.results?.filter(r => r.action === 'inserted').length || 0;
+        const updatedCount = salesResult.results?.filter(r => r.action === 'updated').length || 0;
         
-        if (savedCount > 0 && skippedCount > 0) {
-          toast.success(`Saved ${savedCount} new sales, skipped ${skippedCount} duplicates`);
-        } else if (savedCount > 0) {
-          toast.success(`Saved ${savedCount} sales records`);
-        } else if (skippedCount > 0) {
-          toast.info(`Skipped ${skippedCount} duplicate sales records`);
+        if (insertedCount > 0 && updatedCount > 0) {
+          toast.success(`Added ${insertedCount} new sales, updated ${updatedCount} existing records`);
+        } else if (insertedCount > 0) {
+          toast.success(`Added ${insertedCount} sales records`);
+        } else if (updatedCount > 0) {
+          toast.success(`Updated ${updatedCount} existing sales records`);
         }
 
         // Manually refresh the sales data without triggering infinite loop
@@ -379,47 +403,93 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
           if (updatedSalesData) {
             setSalesLogs(updatedSalesData);
             
-            // Update quickRecordItems with refreshed quantities from sales_logs
-            const salesQuantities = new Map<string, number>();
+            // Update quickRecordItems with LATEST refreshed quantities from sales_logs
+            const salesQuantities = new Map<string, SalesLog>();
             
+            // Keep only the latest record for each bread type
             updatedSalesData.forEach((sale: SalesLog) => {
               const breadTypeId = sale.bread_type_id;
-              const currentQuantity = salesQuantities.get(breadTypeId) || 0;
-              salesQuantities.set(breadTypeId, currentQuantity + sale.quantity);
+              const existingRecord = salesQuantities.get(breadTypeId);
+              
+              // If no existing record OR this record is newer, use it
+              if (!existingRecord || new Date(sale.created_at) > new Date(existingRecord.created_at)) {
+                salesQuantities.set(breadTypeId, sale);
+              }
             });
 
-            // Update quickRecordItems with quantities from sales_logs
+            // Update quickRecordItems with LATEST quantities (not summed)
             setQuickRecordItems(prevItems => 
-              prevItems.map(item => ({
-                ...item,
-                quantity: salesQuantities.get(item.breadType.id) || 0
-              }))
+              prevItems.map(item => {
+                const latestSale = salesQuantities.get(item.breadType.id);
+                return {
+                  ...item,
+                  quantity: latestSale ? latestSale.quantity : 0
+                };
+              })
             );
           }
         } catch (error) {
           console.error('Error refreshing sales data after upsert:', error);
         }
       }
-      
-      setIsProcessingSales(false); // 🔧 Reset flag after sales processing
 
-      // Step 2: Check remaining bread and proceed to appropriate modal
-      const remainingToRecord = quickRemainingItems.filter(item => item.quantity > 0);
-      const totalRemainingQuantity = remainingToRecord.reduce((sum, item) => sum + item.quantity, 0);
+      // Step 2: Process Remaining Bread Data (if any)
+      const remainingToSave = quickRemainingItems.filter(item => item.quantity > 0);
+      
+      if (remainingToSave.length > 0) {
+        toast.loading('Saving remaining bread data...', { id: 'save-remaining' });
+        
+        const remainingBreadData = remainingToSave.map(item => ({
+          bread_type_id: item.breadType.id,
+          bread_type: item.breadType.name,
+          quantity: item.quantity,
+          unit_price: item.breadType.unit_price,
+          shift: currentShift!,
+          recorded_by: userId
+        }));
+
+        const remainingResult = await upsertRemainingBread(remainingBreadData);
+        toast.dismiss('save-remaining');
+        
+        if (!remainingResult.success) {
+          setIsProcessingSales(false); // Reset flag on error
+          throw new Error('Failed to save remaining bread: ' + remainingResult.error);
+        }
+        
+        // Show appropriate message based on what happened
+        const remainingInserted = remainingResult.results?.filter(r => r.action === 'inserted').length || 0;
+        const remainingUpdated = remainingResult.results?.filter(r => r.action === 'updated').length || 0;
+        
+        if (remainingInserted > 0 && remainingUpdated > 0) {
+          toast.success(`Added ${remainingInserted} new remaining bread records, updated ${remainingUpdated} existing records`);
+        } else if (remainingInserted > 0) {
+          toast.success(`Added ${remainingInserted} remaining bread records`);
+        } else if (remainingUpdated > 0) {
+          toast.success(`Updated ${remainingUpdated} existing remaining bread records`);
+        }
+      }
+      
+      setIsProcessingSales(false); // 🔧 Reset flag after all processing
+
+      // Step 3: Determine Modal Route
+      const totalRemainingQuantity = remainingToSave.length;
+      const hasSalesData = additionalSales.length > 0;
+      const hasRemainingData = remainingToSave.length > 0;
 
       setSubmitting(false);
 
-      // Simple logic - show confirmation if no remaining bread, otherwise go to feedback
-      if (totalRemainingQuantity === 0) {
-        setShowConfirmationModal(true);
-      } else {
+      // Show feedback modal if any data was processed, otherwise show confirmation
+      if (hasSalesData || hasRemainingData) {
         setShowFeedbackModal(true);
+      } else {
+        setShowConfirmationModal(true);
       }
 
     } catch (error) {
-      console.error('Error processing sales data:', error);
+      console.error('Error processing data:', error);
       toast.dismiss('save-sales');
-      toast.error('Failed to process sales data. Please try again.');
+      toast.dismiss('save-remaining');
+      toast.error('Failed to process data. Please try again.');
       setIsProcessingSales(false); // Reset flag on error
       setSubmitting(false);
     }
@@ -439,55 +509,24 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       // Show loading toast
       toast.loading('Generating shift report...', { id: 'generate-report' });
       
-      // Step 1: Save remaining bread to remaining_bread table first
-      const remainingToSave = quickRemainingItems.filter(item => item.quantity > 0);
+      // Step 1: Fetch FRESH data from database (sales and remaining bread already saved)
+      toast.loading('Fetching latest sales and remaining bread data...', { id: 'fetch-fresh' });
       
-      // Production-ready: Log only essential information
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Remaining bread items to save:', remainingToSave.length);
-      }
+      // Fetch FRESH sales_logs data (already saved in handleSubmitReport)
+      const freshSalesData = await getSalesDataForShift(userId, currentShift!);
       
-      if (remainingToSave.length > 0) {
-        toast.loading('Saving remaining bread data...', { id: 'save-remaining' });
-        
-        const remainingBreadData = remainingToSave.map(item => ({
-          bread_type_id: item.breadType.id,
-          bread_type: item.breadType.name,
-          quantity: item.quantity,
-          unit_price: item.breadType.unit_price,
-          shift: currentShift!,
-          recorded_by: userId
-        }));
-
-        console.log('🍞 About to save remaining bread data:', remainingBreadData);
-        console.log('🍞 Current quickRemainingItems state:', quickRemainingItems.filter(item => item.quantity > 0));
-        const remainingResult = await upsertRemainingBread(remainingBreadData);
-        console.log('🍞 Remaining bread save result:', remainingResult);
-        toast.dismiss('save-remaining');
-        
-        if (!remainingResult.success) {
-          throw new Error('Failed to save remaining bread: ' + remainingResult.error);
-        }
-        
-        // Show appropriate feedback
-        const savedCount = remainingResult.results?.filter(r => r.action === 'inserted' || r.action === 'updated').length || 0;
-        const skippedCount = remainingResult.results?.filter(r => r.action === 'skipped').length || 0;
-        
-        if (savedCount > 0 && skippedCount > 0) {
-          toast.success(`Saved ${savedCount} remaining bread records, skipped ${skippedCount} duplicates`);
-        } else if (savedCount > 0) {
-          toast.success(`Saved ${savedCount} remaining bread records`);
-        } else if (skippedCount > 0) {
-          toast.info(`Skipped ${skippedCount} duplicate remaining bread records`);
-        }
-      }
+      // Fetch FRESH remaining_bread data (already saved in handleSubmitReport)
+      const freshRemainingResult = await getRemainingBread(userId);
+      const freshRemainingData = freshRemainingResult.success ? freshRemainingResult.data || [] : [];
       
-      // Step 2: Calculate totals ONLY from existing sales logs (no duplication)
+      toast.dismiss('fetch-fresh');
+      
+      // Step 2: Calculate totals from FRESH database data
       let totalRevenue = 0;
       let totalItemsSold = 0;
       
-      // Process ONLY existing sales logs (already saved to sales_logs table)
-      const salesDataItems = salesLogs.map(sale => {
+      // Process FRESH sales data for shift report
+      const salesDataItems = (freshSalesData || []).map(sale => {
         const revenue = sale.quantity * (sale.unit_price || 0);
         totalRevenue += revenue;
         totalItemsSold += sale.quantity;
@@ -501,40 +540,56 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         };
       });
       
-      // NOTE: We don't add quickRecordItems here because they were already 
-      // processed and saved to sales_logs in the "Record All Sale" step
-      // The salesLogs state should already contain all current sales
+      // Process FRESH remaining bread data for shift report (JSON summary)
+      // Group by bread_type_id and get latest record for each
+      const remainingBreadMap = new Map();
+      freshRemainingData.forEach(item => {
+        const existing = remainingBreadMap.get(item.bread_type_id);
+        if (!existing || new Date(item.created_at) > new Date(existing.created_at)) {
+          remainingBreadMap.set(item.bread_type_id, item);
+        }
+      });
       
-      // Process remaining bread data for shift report (JSON summary)
-      const remainingBreadItems = quickRemainingItems
+      const remainingBreadItems = Array.from(remainingBreadMap.values())
         .filter(item => item.quantity > 0)
         .map(item => ({
-          breadType: item.breadType.name,
+          breadType: item.bread_type,
           quantity: item.quantity,
-          unitPrice: item.breadType.unit_price,
-          totalAmount: item.quantity * item.breadType.unit_price
+          unitPrice: item.unit_price,
+          totalAmount: item.quantity * item.unit_price
         }));
       
       const totalRemaining = remainingBreadItems.reduce((sum, item) => sum + item.quantity, 0);
       
-      // Step 3: Create shift report (summary data for reporting)
+      // Step 3: Create/Update shift report with FRESH data (UPSERT logic)
+      toast.loading('Creating shift report...', { id: 'create-report' });
+      
       const reportData = {
         user_id: userId,
         shift: currentShift,
         total_revenue: totalRevenue,
         total_items_sold: totalItemsSold,
         total_remaining: totalRemaining,
-        feedback: feedback,
-        sales_data: salesDataItems,
-        remaining_breads: remainingBreadItems // JSON summary for reports
+        feedback: feedback, // Include feedback note from modal
+        sales_data: salesDataItems, // FRESH sales data from database
+        remaining_breads: remainingBreadItems // FRESH remaining bread data from database
       };
       
-      
-      console.log('📊 About to create shift report:', reportData);
+      console.log('📊 Creating shift report with FRESH data:', {
+        user_id: reportData.user_id,
+        shift: reportData.shift,
+        feedback: reportData.feedback,
+        sales_count: salesDataItems.length,
+        remaining_count: remainingBreadItems.length,
+        total_revenue: totalRevenue,
+        total_items_sold: totalItemsSold,
+        total_remaining: totalRemaining
+      });
       
       const shiftReport = await createShiftReport(reportData);
+      toast.dismiss('create-report');
       
-      console.log('📊 Shift report result:', shiftReport);
+      console.log('📊 Shift report UPSERT result:', shiftReport);
       
       if (shiftReport) {
         // Close all modals first to prevent DOM conflicts
@@ -621,44 +676,97 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
   return (
     <div className="space-y-6 max-w-full overflow-hidden">
-      {/* Back Navigation Loading Overlay */}
+      {/* Back Navigation Loading Overlay - True Full Screen */}
       {isNavigatingBack && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center">
-          <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm mx-4 text-center">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="relative">
-                <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                <div className="absolute inset-0 w-16 h-16 border-4 border-orange-200 rounded-full opacity-25"></div>
+        <div 
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-[9999] pointer-events-auto"
+          style={{ 
+            touchAction: 'none',
+            width: '100vw',
+            height: '100vh',
+            margin: 0,
+            padding: 0
+          }}
+        >
+          <div 
+            className="bg-white flex flex-col"
+            style={{
+              width: '100vw',
+              height: '100vh',
+              minHeight: '100vh',
+              maxHeight: '100vh'
+            }}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 sm:px-6 py-6 sm:py-8">
+              <div className="flex items-center justify-center mb-4 sm:mb-6">
+                <div className="bg-white/20 p-3 sm:p-4 rounded-full">
+                  <ArrowLeft className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Going Back
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  Loading...
-                </p>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center">Going Back</h1>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-6">
+              <div className="relative mb-6 sm:mb-8">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-16 h-16 sm:w-20 sm:h-20 border-4 border-orange-200 rounded-full opacity-25"></div>
               </div>
+              <p className="text-gray-600 text-lg sm:text-xl text-center">
+                Loading previous page...
+              </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* End Shift Loading Overlay */}
+      {/* End Shift Loading Overlay - True Full Screen */}
       {submitting && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center">
-          <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm mx-4 text-center">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="relative">
-                <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                <div className="absolute inset-0 w-16 h-16 border-4 border-red-200 rounded-full opacity-25"></div>
+        <div 
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-[9999] pointer-events-auto"
+          style={{ 
+            touchAction: 'none',
+            width: '100vw',
+            height: '100vh',
+            margin: 0,
+            padding: 0
+          }}
+        >
+          <div 
+            className="bg-white flex flex-col"
+            style={{
+              width: '100vw',
+              height: '100vh',
+              minHeight: '100vh',
+              maxHeight: '100vh'
+            }}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 sm:px-6 py-6 sm:py-8">
+              <div className="flex items-center justify-center mb-4 sm:mb-6">
+                <div className="bg-white/20 p-3 sm:p-4 rounded-full">
+                  <FileText className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Generating Report
-                </h3>
-                <p className="text-gray-600 text-sm">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center">Generating Report</h1>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-6">
+              <div className="relative mb-6 sm:mb-8">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-16 h-16 sm:w-20 sm:h-20 border-4 border-green-200 rounded-full opacity-25"></div>
+              </div>
+              <div className="text-center space-y-3 sm:space-y-4 max-w-lg">
+                <p className="text-gray-700 text-lg sm:text-xl font-medium">
                   Creating comprehensive shift report...
                 </p>
+                <div className="bg-green-50 border border-green-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                  <p className="text-green-800 text-sm sm:text-base">
+                    This may take a few moments while we process your sales data and remaining inventory.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -907,11 +1015,12 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                 onClick={handleSubmitReport}
                 disabled={submitting || !shouldEnableEndShift}
                 className="flex-1 py-4 px-6 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl touch-manipulation min-h-[56px] disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                aria-label="Record all sales and proceed to shift report generation"
               >
                 {submitting ? (
                   <div className="flex items-center justify-center gap-2">
                     <div className="rounded-full h-5 w-5 border-2 border-white border-t-transparent animate-spin" />
-                    <span className="text-base font-semibold truncate">Generating Report...</span>
+                    <span className="text-base font-semibold truncate">Processing...</span>
                   </div>
                 ) : (
                   <span className="text-base font-semibold truncate">
@@ -924,112 +1033,174 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         )}
       </div>
 
-      {/* Confirmation Modal - Mobile First */}
+      {/* Confirmation Modal - True Full Screen */}
       {showConfirmationModal && !submitting && (
         <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={(e) => {
-            // Only close if clicking on backdrop, not the modal content
-            if (e.target === e.currentTarget) {
-              setShowConfirmationModal(false);
-            }
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-[9999] pointer-events-auto"
+          style={{ 
+            touchAction: 'none',
+            width: '100vw',
+            height: '100vh',
+            margin: 0,
+            padding: 0
           }}
         >
-            <div 
-              className="bg-white w-full max-w-md rounded-2xl shadow-2xl mx-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="bg-yellow-100 p-4 rounded-full">
-                    <AlertTriangle className="h-8 w-8 text-yellow-600" />
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-center mb-3">No Remaining Bread</h3>
-                <p className="text-gray-600 text-center mb-6 text-base leading-relaxed">
-                  You didn't record remaining bread, do you want to continue?
-                </p>
-                <div className="flex gap-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowConfirmationModal(false)}
-                    className="flex-1 text-base font-semibold touch-manipulation min-h-[52px] rounded-xl"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleConfirmProceed}
-                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-base font-semibold touch-manipulation min-h-[52px] rounded-xl"
-                  >
-                    Generate Report
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-      {/* Feedback Modal - Mobile First */}
-      {showFeedbackModal && !submitting && (
           <div 
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={(e) => {
-              // Only close if clicking on backdrop, not the modal content
-              if (e.target === e.currentTarget) {
-                setShowFeedbackModal(false);
-              }
+            className="bg-white flex flex-col"
+            style={{
+              width: '100vw',
+              height: '100vh',
+              minHeight: '100vh',
+              maxHeight: '100vh'
             }}
           >
-            <div 
-              className="bg-white w-full max-w-md rounded-2xl shadow-2xl mx-auto max-h-[90vh] flex flex-col"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6 flex-1 overflow-y-auto">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="bg-blue-100 p-4 rounded-full">
-                    <Send className="h-8 w-8 text-blue-600" />
-                  </div>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 sm:px-6 py-6 sm:py-8">
+              <div className="flex items-center justify-center mb-4 sm:mb-6">
+                <div className="bg-white/20 p-3 sm:p-4 rounded-full">
+                  <AlertTriangle className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-center mb-3">Add Feedback (Optional)</h3>
-                <p className="text-gray-600 text-center mb-6 text-base leading-relaxed">
-                  Add any feedback or notes about this shift before generating the report.
-                </p>
-                <textarea
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  placeholder="Enter feedback about this shift (optional)..."
-                  className="w-full p-4 border rounded-xl resize-none mb-4 text-base min-h-[120px]"
-                  rows={4}
-                />
               </div>
-              <div className="p-6 pt-0 flex-shrink-0">
-                <div className="flex gap-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowFeedbackModal(false)}
-                    className="flex-1 text-base font-semibold touch-manipulation min-h-[52px] rounded-xl"
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    onClick={handleSubmitWithFeedback}
-                    disabled={submitting}
-                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 touch-manipulation min-h-[52px] rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {submitting ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="rounded-full h-4 w-4 border-2 border-white border-t-transparent animate-spin" />
-                        <span className="text-base font-semibold">Generating Report...</span>
-                      </div>
-                    ) : (
-                      <span className="text-base font-semibold">Generate Report</span>
-                    )}
-                  </Button>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center">No Remaining Bread</h1>
+            </div>
+
+            {/* Content - Takes remaining space */}
+            <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 py-8 sm:py-12 overflow-y-auto">
+              <div className="max-w-md mx-auto text-center space-y-6 sm:space-y-8 w-full">
+                <p className="text-gray-700 text-base sm:text-lg md:text-xl leading-relaxed">
+                  You didn't record any remaining bread. Do you want to continue generating the shift report?
+                </p>
+                
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                  <div className="flex items-center justify-center mb-3 sm:mb-4">
+                    <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600" />
+                  </div>
+                  <p className="text-yellow-800 font-medium text-sm sm:text-base">
+                    This will generate a shift report with no remaining inventory recorded.
+                  </p>
                 </div>
               </div>
             </div>
+
+            {/* Footer with Buttons - Fixed at bottom */}
+            <div className="px-4 sm:px-6 pb-6 sm:pb-8">
+              <div className="flex gap-3 sm:gap-4 max-w-md mx-auto w-full">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfirmationModal(false)}
+                  className="flex-1 py-4 sm:py-6 px-4 sm:px-6 rounded-xl sm:rounded-2xl border-2 border-gray-300 hover:border-gray-400 transition-colors text-base sm:text-lg font-semibold touch-manipulation min-h-[56px] sm:min-h-[60px]"
+                  aria-label="Cancel and go back to main page"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmProceed}
+                  className="flex-1 py-4 sm:py-6 px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-base sm:text-lg font-semibold touch-manipulation min-h-[56px] sm:min-h-[60px] shadow-lg hover:shadow-xl transition-all text-white"
+                  aria-label="Proceed to feedback modal"
+                >
+                  Proceed
+                </Button>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Feedback Modal - True Full Screen */}
+      {showFeedbackModal && !submitting && (
+        <div 
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-[9999] pointer-events-auto"
+          style={{ 
+            touchAction: 'none',
+            width: '100vw',
+            height: '100vh',
+            margin: 0,
+            padding: 0
+          }}
+        >
+          <div 
+            className="bg-white flex flex-col"
+            style={{
+              width: '100vw',
+              height: '100vh',
+              minHeight: '100vh',
+              maxHeight: '100vh'
+            }}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 sm:px-6 py-6 sm:py-8">
+              <div className="flex items-center justify-center mb-4 sm:mb-6">
+                <div className="bg-white/20 p-3 sm:p-4 rounded-full">
+                  <Send className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
+                </div>
+              </div>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center">Add Feedback</h1>
+              <p className="text-blue-100 text-center mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">Optional feedback for this shift</p>
+            </div>
+
+            {/* Content - Takes remaining space */}
+            <div className="flex-1 flex flex-col px-4 sm:px-6 py-6 sm:py-8 overflow-y-auto">
+              <div className="max-w-2xl mx-auto w-full space-y-4 sm:space-y-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                  <p className="text-blue-800 text-center font-medium text-sm sm:text-base">
+                    Add any feedback or notes about this shift before generating the report.
+                  </p>
+                </div>
+                
+                <div className="space-y-3 sm:space-y-4">
+                  <label className="block text-base sm:text-lg font-semibold text-gray-900">
+                    Shift Feedback
+                  </label>
+                  <textarea
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder="Enter feedback about this shift (optional)..."
+                    className="w-full p-4 sm:p-6 border-2 border-gray-300 rounded-xl sm:rounded-2xl resize-none text-base sm:text-lg leading-relaxed focus:border-blue-500 focus:ring-0 transition-colors"
+                    style={{
+                      minHeight: '180px',
+                      height: 'calc(100vh - 400px)',
+                      maxHeight: '300px'
+                    }}
+                    aria-label="Shift feedback textarea"
+                  />
+                  <p className="text-gray-500 text-xs sm:text-sm">
+                    This feedback will be included in the shift report for management review.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer with Buttons - Fixed at bottom */}
+            <div className="px-4 sm:px-6 pb-6 sm:pb-8">
+              <div className="flex gap-3 sm:gap-4 max-w-md mx-auto w-full">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFeedbackModal(false)}
+                  className="flex-1 py-4 sm:py-6 px-4 sm:px-6 rounded-xl sm:rounded-2xl border-2 border-gray-300 hover:border-gray-400 transition-colors text-base sm:text-lg font-semibold touch-manipulation min-h-[56px] sm:min-h-[60px]"
+                  aria-label="Go back to previous step"
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={handleSubmitWithFeedback}
+                  disabled={submitting}
+                  className="flex-1 py-4 sm:py-6 px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 touch-manipulation min-h-[56px] sm:min-h-[60px] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all text-white"
+                  aria-label="Generate shift report with feedback"
+                >
+                  {submitting ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-white border-t-transparent animate-spin" />
+                      <span className="text-base sm:text-lg font-semibold">Generating Report...</span>
+                    </div>
+                  ) : (
+                    <span className="text-base sm:text-lg font-semibold">Generate Report</span>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
