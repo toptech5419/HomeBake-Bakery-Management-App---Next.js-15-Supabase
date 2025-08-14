@@ -132,11 +132,11 @@ export async function upsertSalesLogs(salesData: SalesLogUpsertData[]) {
 }
 
 /**
- * UPSERT remaining bread with GLOBAL constraint: bread_type ONLY
+ * DATABASE CONSTRAINT-BASED UPSERT for remaining bread
+ * Uses PostgreSQL UPSERT with ON CONFLICT to leverage database constraint
  * Remaining bread is GLOBAL - any sales rep can edit any remaining bread record
- * Enforces one record per bread_type_id (latest wins, regardless of user/shift/date)
+ * Database constraint ensures only one record per bread_type_id
  * REPLACES quantity (never adds to existing)
- * Always fetches from database (no state trust)
  */
 export async function upsertRemainingBread(
   remainingData: RemainingBreadUpsertData[]
@@ -148,86 +148,57 @@ export async function upsertRemainingBread(
     for (const remaining of remainingData) {
       if (remaining.quantity <= 0) continue; // Skip zero quantities
 
-      // GLOBAL CONSTRAINT: Find existing record for bread_type ONLY (ignore user/shift/date)
-      // Any sales rep can edit remaining bread for any bread type
-      const { data: existingRecords, error: checkError } = await supabase
+      // DATABASE CONSTRAINT APPROACH: Use PostgreSQL UPSERT with ON CONFLICT
+      // This leverages the unique constraint on bread_type_id to prevent duplicates
+      
+      const { data: upserted, error: upsertError } = await supabase
         .from('remaining_bread')
-        .select('id, quantity, created_at, recorded_by, shift')
-        .eq('bread_type_id', remaining.bread_type_id)
-        .order('created_at', { ascending: false }); // Get most recent first
+        .upsert({
+          bread_type_id: remaining.bread_type_id,
+          bread_type: remaining.bread_type,
+          quantity: remaining.quantity,
+          unit_price: remaining.unit_price,
+          total_value: remaining.quantity * remaining.unit_price,
+          shift: remaining.shift,
+          recorded_by: remaining.recorded_by,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'bread_type_id', // Use the unique constraint
+          ignoreDuplicates: false // Update on conflict instead of ignoring
+        })
+        .select()
+        .single();
 
-      if (checkError) throw checkError;
+      if (upsertError) {
+        console.error(`Failed to upsert remaining bread for ${remaining.bread_type}:`, upsertError);
+        throw upsertError;
+      }
+      
+      results.push({ 
+        action: 'upserted', 
+        breadType: remaining.bread_type,
+        data: upserted,
+        quantity: remaining.quantity,
+        constraint: `bread:${remaining.bread_type_id} (database constraint enforced)`
+      });
 
-      // GLOBAL ACCESS: Use most recent record regardless of who created it
-      const existingRecord = existingRecords && existingRecords.length > 0 ? existingRecords[0] : null;
-
-      if (existingRecord) {
-        // GLOBAL UPDATE: Update existing record (any user can edit any remaining bread)
-        const { data: updated, error: updateError } = await supabase
-          .from('remaining_bread')
-          .update({
-            quantity: remaining.quantity, // DIRECT REPLACEMENT - no addition
-            unit_price: remaining.unit_price,
-            total_value: remaining.quantity * remaining.unit_price,
-            recorded_by: remaining.recorded_by, // Update to current user
-            shift: remaining.shift, // Update to current shift
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingRecord.id)
-          .select()
-          .single();
-
-        if (updateError) throw updateError;
-        
-        results.push({ 
-          action: 'updated', 
-          breadType: remaining.bread_type,
-          data: updated,
-          previousQuantity: existingRecord.quantity,
-          newQuantity: remaining.quantity,
-          previousUser: existingRecord.recorded_by,
-          newUser: remaining.recorded_by,
-          constraint: `bread:${remaining.bread_type_id} (global access)`
-        });
-      } else {
-        // GLOBAL INSERT: No existing record for this bread type
-        const { data: inserted, error: insertError } = await supabase
-          .from('remaining_bread')
-          .insert({
-            bread_type_id: remaining.bread_type_id,
-            bread_type: remaining.bread_type,
-            quantity: remaining.quantity,
-            unit_price: remaining.unit_price,
-            total_value: remaining.quantity * remaining.unit_price,
-            shift: remaining.shift,
-            recorded_by: remaining.recorded_by
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        
-        results.push({ 
-          action: 'inserted', 
-          breadType: remaining.bread_type,
-          data: inserted,
-          constraint: `bread:${remaining.bread_type_id} (global access)`
-        });
+      // Log individual operations for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🍞 DATABASE UPSERT ${remaining.bread_type}: quantity=${remaining.quantity}, user=${remaining.recorded_by}`);
       }
     }
 
-    // Log global access summary
-    const insertedCount = results.filter(r => r.action === 'inserted').length;
-    const updatedCount = results.filter(r => r.action === 'updated').length;
+    // Log constraint-based upsert summary
+    const upsertedCount = results.length;
     
     if (process.env.NODE_ENV === 'development') {
-      console.log(`🍞 Remaining bread GLOBAL UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated (global access)`);
+      console.log(`🍞 Database constraint UPSERT completed: ${upsertedCount} records processed (constraint prevents duplicates)`);
     }
 
     revalidatePath('/dashboard/sales/end-shift');
     return { success: true, results, needsUserConfirmation: false };
   } catch (error) {
-    console.error('Error upserting remaining bread with global access:', error);
+    console.error('Error in database constraint UPSERT:', error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error'

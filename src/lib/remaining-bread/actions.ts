@@ -43,7 +43,9 @@ async function getCurrentAuthUserId(): Promise<string | null> {
 }
 
 /**
- * Simple insert remaining bread records - no constraint validation needed
+ * PRODUCTION-READY UPSERT with database constraint handling
+ * Uses PostgreSQL UPSERT with ON CONFLICT to handle unique constraint
+ * Prevents duplicate remaining bread records per bread_type_id
  */
 export async function upsertRemainingBread(
   remainingData: RemainingBreadData[]
@@ -59,7 +61,7 @@ export async function upsertRemainingBread(
       throw new Error('User not authenticated');
     }
 
-    console.log('🍞 Simple insert starting:', {
+    console.log('🍞 Database constraint UPSERT starting:', {
       count: remainingData.length,
       today,
       currentUser: currentAuthUserId.slice(-8)
@@ -76,39 +78,63 @@ export async function upsertRemainingBread(
         continue;
       }
 
-      // Direct insert - no constraints to worry about
-      const { data: inserted, error } = await supabase
+      // Check if record exists to determine action for toast message
+      const { data: existingRecord } = await supabase
         .from('remaining_bread')
-        .insert({
+        .select('id, quantity')
+        .eq('bread_type_id', remaining.bread_type_id)
+        .single();
+
+      const isUpdate = !!existingRecord;
+      const previousQuantity = existingRecord?.quantity || 0;
+
+      // PRODUCTION UPSERT: Use existing UNIQUE constraint on bread_type_id
+      // Note: total_value is a generated column (quantity * unit_price), don't set manually
+      const { data: upserted, error } = await supabase
+        .from('remaining_bread')
+        .upsert({
           bread_type_id: remaining.bread_type_id,
           bread_type: remaining.bread_type,
           quantity: remaining.quantity,
           unit_price: remaining.unit_price,
+          // total_value: NOT SET - it's auto-generated as (quantity * unit_price)
           shift: remaining.shift,
           recorded_by: currentAuthUserId,
-          record_date: today
+          record_date: today,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'bread_type_id', // Use existing UNIQUE constraint
+          ignoreDuplicates: false // Update on conflict instead of ignoring
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error(`🍞 UPSERT failed for ${remaining.bread_type}:`, error);
+        throw error;
+      }
       
       results.push({
-        action: 'inserted' as const,
+        action: isUpdate ? 'updated' as const : 'inserted' as const,
         breadType: remaining.bread_type,
-        data: inserted
+        data: upserted,
+        previousQuantity: isUpdate ? previousQuantity : undefined,
+        newQuantity: remaining.quantity
       });
+
+      console.log(`🍞 ${isUpdate ? 'UPDATED' : 'INSERTED'}: ${remaining.bread_type} = ${remaining.quantity}${isUpdate ? ` (was ${previousQuantity})` : ''}`);
     }
 
-    console.log('🍞 Simple insert completed:', {
+    console.log('🍞 Database constraint UPSERT completed:', {
       total: results.length,
       inserted: results.filter(r => r.action === 'inserted').length,
+      updated: results.filter(r => r.action === 'updated').length,
       skipped: results.filter(r => r.action === 'skipped').length
     });
 
     return { success: true, results };
   } catch (error) {
-    console.error('🍞 Simple insert failed:', error);
+    console.error('🍞 Database constraint UPSERT failed:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
