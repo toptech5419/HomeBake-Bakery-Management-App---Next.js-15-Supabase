@@ -54,6 +54,7 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
   });
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isNavigatingBack, setIsNavigatingBack] = useState(false);
 
   // Ref for auto-scroll functionality
   const selectedBreadRef = useRef<HTMLDivElement>(null);
