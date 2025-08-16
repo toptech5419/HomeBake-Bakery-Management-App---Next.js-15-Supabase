@@ -716,7 +716,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
 
   return (
-    <div className="space-y-6 max-w-full overflow-hidden">
+    <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6 overflow-x-hidden overflow-y-auto px-3 sm:px-4 md:px-6">
       {/* Back Navigation Loading Overlay - True Full Screen */}
       {isNavigatingBack && (
         <div 
@@ -814,8 +814,8 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         </div>
       )}
 
-      {/* Page Header */}
-      <div className={`bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl p-6 ${isAnyModalOpen ? 'pointer-events-none opacity-50' : ''}`}>
+      {/* Page Header - Mobile-First Responsive */}
+      <div className={`bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg sm:rounded-xl p-4 sm:p-6 ${isAnyModalOpen ? 'pointer-events-none opacity-50' : ''}`}>
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -832,34 +832,34 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             <FileText className="h-7 w-7" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold truncate">Generate Shift Report</h1>
-            <p className="text-blue-100 text-sm sm:text-base truncate">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold truncate">Generate Shift Report</h1>
+            <p className="text-blue-100 text-xs sm:text-sm md:text-base truncate">
               {currentShift ? `${currentShift.charAt(0).toUpperCase()}${currentShift.slice(1)} Shift • ` : ''}{userName}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Content Area */}
-      <div className={`${isAnyModalOpen ? 'pointer-events-none opacity-50' : ''}`}>
+      {/* Content Area - Constrained Container */}
+      <div className={`w-full max-w-full min-w-0 ${isAnyModalOpen ? 'pointer-events-none opacity-50' : ''}`}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent" />
             <p className="mt-6 text-gray-600 text-xl">Loading...</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6">
             
             {/* Sales Log Display */}
             {salesLogs.length > 0 && (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200/50 shadow-sm">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-green-200/50 shadow-sm">
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-3 text-green-800">
                   <div className="bg-green-100 p-3 rounded-xl flex-shrink-0">
                     <TrendingUp className="h-6 w-6 text-green-600" />
                   </div>
                   <span className="truncate">Recorded Sales</span>
                 </h2>
-                <div className="space-y-3 max-h-80 overflow-y-auto border rounded-xl p-4 bg-white/80 backdrop-blur-sm">
+                <div className="space-y-3 max-h-80 overflow-y-auto border rounded-lg sm:rounded-xl p-3 sm:p-4 bg-white/80 backdrop-blur-sm">
                   {salesLogs.map((log) => (
                     <div key={log.id} className="flex justify-between items-center gap-4 p-4 bg-white rounded-xl shadow-sm border border-green-100/50 hover:shadow-md transition-all duration-200 touch-manipulation min-h-[60px]">
                       <div className="flex-1 min-w-0">
@@ -882,11 +882,11 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             )}
 
             {/* Record Additional Sales Section - Collapsible */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200/50 shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl sm:rounded-2xl border border-blue-200/50 shadow-sm overflow-hidden">
               {/* Header - Always Visible */}
               <div
                 onClick={() => setIsAdditionalSalesOpen(!isAdditionalSalesOpen)}
-                className="w-full p-6 flex items-center justify-between hover:bg-blue-100/30 transition-colors cursor-pointer select-none touch-manipulation min-h-[72px]"
+                className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-blue-100/30 transition-colors cursor-pointer select-none touch-manipulation min-h-[64px] sm:min-h-[72px]"
                 role="button"
                 aria-expanded={isAdditionalSalesOpen}
                 aria-label={`${isAdditionalSalesOpen ? 'Collapse' : 'Expand'} additional sales section`}
@@ -898,14 +898,15 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                   }
                 }}
               >
-                <div className="flex items-center gap-3 text-blue-800">
+                <div className="flex items-center gap-3 text-blue-800 min-w-0">
                   <div className="bg-blue-100 p-3 rounded-xl flex-shrink-0">
                     <TrendingUp className="h-6 w-6 text-blue-600" />
                   </div>
-                  <div className="text-left">
-                    <h2 className="text-xl font-bold truncate">Record Additional Sales</h2>
-                    <p className="text-sm text-blue-600 mt-1">
-                      {quickRecordItems.filter(i => i.quantity > 0).length} items • {quickRecordItems.filter(i => i.quantity > 0).reduce((sum, i) => sum + i.quantity, 0)} total units
+                  <div className="flex-1 min-w-0 text-left">
+                    <h2 className="text-lg sm:text-xl font-bold truncate">Record Additional Sales</h2>
+                    <p className="text-xs sm:text-sm text-blue-600 mt-1 truncate">
+                      <span className="inline-block">{quickRecordItems.filter(i => i.quantity > 0).length} items</span>
+                      <span className="hidden sm:inline"> • {quickRecordItems.filter(i => i.quantity > 0).reduce((sum, i) => sum + i.quantity, 0)} total units</span>
                     </p>
                   </div>
                 </div>
@@ -923,7 +924,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                 isAdditionalSalesOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
               }`}>
               {isAdditionalSalesOpen && (
-                <div className="px-6 pb-6 space-y-4 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2">
+                <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-3 sm:space-y-4 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2">
                   {quickRecordItems.map((item) => (
                     <div key={item.breadType.id} className="flex items-center gap-4 p-4 border rounded-xl bg-white/80 backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:bg-white min-h-[68px]">
                       <div className="flex-1 min-w-0">
@@ -944,11 +945,11 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             </div>
 
             {/* Record Remaining Breads Section - Collapsible */}
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/50 shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl sm:rounded-2xl border border-amber-200/50 shadow-sm overflow-hidden">
               {/* Header - Always Visible */}
               <div
                 onClick={() => setIsRemainingBreadOpen(!isRemainingBreadOpen)}
-                className="w-full p-6 flex items-center justify-between hover:bg-amber-100/30 transition-colors cursor-pointer select-none touch-manipulation min-h-[72px]"
+                className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-amber-100/30 transition-colors cursor-pointer select-none touch-manipulation min-h-[64px] sm:min-h-[72px]"
                 role="button"
                 aria-expanded={isRemainingBreadOpen}
                 aria-label={`${isRemainingBreadOpen ? 'Collapse' : 'Expand'} remaining bread section`}
@@ -960,14 +961,15 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                   }
                 }}
               >
-                <div className="flex items-center gap-3 text-amber-800">
+                <div className="flex items-center gap-3 text-amber-800 min-w-0">
                   <div className="bg-amber-100 p-3 rounded-xl flex-shrink-0">
                     <Package className="h-6 w-6 text-amber-600" />
                   </div>
-                  <div className="text-left">
-                    <h2 className="text-xl font-bold truncate">Record Remaining Breads</h2>
-                    <p className="text-sm text-amber-600 mt-1">
-                      {quickRemainingItems.filter(i => i.quantity > 0).length} items • {quickRemainingItems.filter(i => i.quantity > 0).reduce((sum, i) => sum + i.quantity, 0)} total units
+                  <div className="flex-1 min-w-0 text-left">
+                    <h2 className="text-lg sm:text-xl font-bold truncate">Record Remaining Breads</h2>
+                    <p className="text-xs sm:text-sm text-amber-600 mt-1 truncate">
+                      <span className="inline-block">{quickRemainingItems.filter(i => i.quantity > 0).length} items</span>
+                      <span className="hidden sm:inline"> • {quickRemainingItems.filter(i => i.quantity > 0).reduce((sum, i) => sum + i.quantity, 0)} total units</span>
                     </p>
                   </div>
                 </div>
@@ -985,7 +987,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                 isRemainingBreadOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
               }`}>
               {isRemainingBreadOpen && (
-                <div className="px-6 pb-6 space-y-4 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2">
+                <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-3 sm:space-y-4 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2">
                   {quickRemainingItems.map((item) => (
                     <div key={item.breadType.id} className="flex items-center gap-4 p-4 border rounded-xl bg-gradient-to-r from-yellow-50/80 to-amber-50/80 backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:from-yellow-100/80 hover:to-amber-100/80 min-h-[68px]">
                       <div className="flex-1 min-w-0">
@@ -1006,66 +1008,70 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             </div>
 
             {/* Summary */}
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-200/50 shadow-sm">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-purple-200/50 shadow-sm">
               <h3 className="font-semibold mb-4 text-xl text-purple-800 flex items-center gap-3">
                 <div className="w-4 h-4 bg-purple-500 rounded-full flex-shrink-0" />
                 <span className="truncate">Summary</span>
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 truncate">Sales to record:</span>
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 flex-shrink-0 text-sm px-3 py-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+                <div className="space-y-3 min-w-0">
+                  <div className="flex justify-between items-center min-w-0">
+                    <span className="text-xs sm:text-sm text-gray-600 truncate flex-shrink-0">Sales to record:</span>
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 py-1 ml-2">
                       {quickRecordItems.filter(i => i.quantity > 0).length}
                     </Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 truncate">Total units:</span>
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 flex-shrink-0 text-sm px-3 py-1">
+                    <span className="text-xs sm:text-sm text-gray-600 truncate flex-shrink-0">Total units:</span>
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 py-1 ml-2">
                       {quickRecordItems.filter(i => i.quantity > 0).reduce((sum, i) => sum + i.quantity, 0)}
                     </Badge>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 truncate">Remaining to record:</span>
-                    <Badge variant="secondary" className="bg-amber-100 text-amber-800 flex-shrink-0 text-sm px-3 py-1">
+                <div className="space-y-3 min-w-0">
+                  <div className="flex justify-between items-center min-w-0">
+                    <span className="text-xs sm:text-sm text-gray-600 truncate flex-shrink-0">Remaining to record:</span>
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-800 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 py-1 ml-2">
                       {quickRemainingItems.filter(i => i.quantity > 0).length}
                     </Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 truncate">Total units:</span>
-                    <Badge variant="secondary" className="bg-amber-100 text-amber-800 flex-shrink-0 text-sm px-3 py-1">
+                    <span className="text-xs sm:text-sm text-gray-600 truncate flex-shrink-0">Total units:</span>
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-800 flex-shrink-0 text-xs sm:text-sm px-2 sm:px-3 py-1 ml-2">
                       {quickRemainingItems.filter(i => i.quantity > 0).reduce((sum, i) => sum + i.quantity, 0)}
                     </Badge>
                   </div>
                 </div>
               </div>
             </div>
-            {/* Action Buttons */}
-            <div className="flex gap-4 pt-6">
+            {/* Action Buttons - Mobile-First Responsive Design */}
+            <div className="w-full max-w-full min-w-0 flex gap-2 sm:gap-3 md:gap-4 pt-4 sm:pt-6 px-1 sm:px-0">
               <Button
                 variant="outline"
                 onClick={handleBackNavigation}
                 disabled={submitting || isNavigatingBack}
-                className="flex-1 py-4 px-6 rounded-2xl border-2 hover:border-blue-400 transition-all duration-200 text-base font-semibold touch-manipulation min-h-[56px]"
+                className="flex-1 py-3 sm:py-4 px-3 sm:px-4 md:px-6 rounded-xl sm:rounded-2xl border-2 hover:border-blue-400 transition-all duration-200 text-sm sm:text-base font-semibold touch-manipulation min-h-[48px] sm:min-h-[56px] max-w-[120px] sm:max-w-none"
               >
-                Cancel
+                <span className="truncate">Cancel</span>
               </Button>
               <Button
                 onClick={handleSubmitReport}
                 disabled={submitting || !shouldEnableEndShift}
-                className="flex-1 py-4 px-6 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl touch-manipulation min-h-[56px] disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                className="flex-1 py-3 sm:py-4 px-3 sm:px-4 md:px-6 rounded-xl sm:rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl touch-manipulation min-h-[48px] sm:min-h-[56px] disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
                 aria-label="Record all sales and proceed to shift report generation"
               >
                 {submitting ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="rounded-full h-5 w-5 border-2 border-white border-t-transparent animate-spin" />
-                    <span className="text-base font-semibold truncate">Processing...</span>
+                  <div className="flex items-center justify-center gap-1 sm:gap-2">
+                    <div className="rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-white border-t-transparent animate-spin" />
+                    <span className="text-sm sm:text-base font-semibold truncate">
+                      <span className="hidden sm:inline">Processing...</span>
+                      <span className="sm:hidden">Processing</span>
+                    </span>
                   </div>
                 ) : (
-                  <span className="text-base font-semibold truncate">
-                    Record All Sale
+                  <span className="text-sm sm:text-base font-semibold truncate">
+                    <span className="hidden sm:inline">Record All Sale</span>
+                    <span className="sm:hidden">Record Sale</span>
                   </span>
                 )}
               </Button>

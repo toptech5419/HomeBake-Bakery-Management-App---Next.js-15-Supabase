@@ -29,7 +29,7 @@ export function DashboardLayoutClient({
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full max-w-full bg-background overflow-x-hidden">
       {/* Header */}
       <Header 
         user={user} 
@@ -39,7 +39,7 @@ export function DashboardLayoutClient({
         isMobileMenuOpen={isMobileMenuOpen}
       />
       
-      <div className="flex">
+      <div className="flex w-full max-w-full min-w-0">
         {/* Sidebar */}
         <Sidebar 
           role={role} 
@@ -48,7 +48,9 @@ export function DashboardLayoutClient({
         />
         
         {/* Main Content */}
-        {children}
+        <div className="flex-1 min-w-0 w-full max-w-full">
+          {children}
+        </div>
       </div>
     </div>
   );
