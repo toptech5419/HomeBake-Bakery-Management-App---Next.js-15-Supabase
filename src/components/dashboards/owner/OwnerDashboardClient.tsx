@@ -58,7 +58,6 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
     supportLevel,
     showUnsupportedMessage,
     toggleNotifications: handlePushNotificationToggle,
-    sendTestNotification,
     retryInitialization
   } = usePushNotifications(user.id);
   
@@ -307,27 +306,16 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
                   )}
                   
                   {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    {/* Test Button - only if enabled */}
-                    {pushNotificationsSupported && pushNotificationsEnabled && (
-                      <button
-                        onClick={() => sendTestNotification()}
-                        className="flex-1 px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors text-sm font-medium"
-                      >
-                        Send Test
-                      </button>
-                    )}
-                    
-                    {/* Retry Button - if there was an error */}
-                    {pushNotificationError && (
+                  {pushNotificationError && (
+                    <div className="flex gap-2">
                       <button
                         onClick={() => retryInitialization()}
                         className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium"
                       >
                         Retry Setup
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
