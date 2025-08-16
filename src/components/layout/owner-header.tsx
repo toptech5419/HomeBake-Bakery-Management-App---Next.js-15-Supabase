@@ -8,9 +8,10 @@ import { NotificationBell } from '@/components/ui/notification-bell';
 interface OwnerHeaderProps {
   onMobileMenuToggle?: () => void;
   isMobileMenuOpen?: boolean;
+  onNotificationClick?: () => void;
 }
 
-export function OwnerHeader({ onMobileMenuToggle, isMobileMenuOpen }: OwnerHeaderProps) {
+export function OwnerHeader({ onMobileMenuToggle, isMobileMenuOpen, onNotificationClick }: OwnerHeaderProps) {
   // Use existing live activities system
   const { activities, isLoading } = useActivities({
     pollingInterval: 30000, // 30 seconds
@@ -26,9 +27,12 @@ export function OwnerHeader({ onMobileMenuToggle, isMobileMenuOpen }: OwnerHeade
   const handleNotificationClick = () => {
     markAllAsRead();
     
-    // Optional: Trigger any additional actions when bell is clicked
-    // Could open a notifications dropdown, navigate to activities page, etc.
-    console.log('[OwnerHeader] Notifications marked as read');
+    // Scroll to live activities section if callback is provided
+    if (onNotificationClick) {
+      onNotificationClick();
+    }
+    
+    console.log('[OwnerHeader] Notifications marked as read, scrolling to live activities');
   };
 
   return (

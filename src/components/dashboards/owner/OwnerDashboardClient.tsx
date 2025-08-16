@@ -27,6 +27,26 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
     enablePolling: true
   });
   
+  // Function to scroll to live activities section
+  const scrollToLiveActivities = () => {
+    const liveActivitiesElement = document.getElementById('live-activities');
+    if (liveActivitiesElement) {
+      liveActivitiesElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+        inline: 'nearest'
+      });
+      
+      // Add a subtle highlight effect after scrolling
+      setTimeout(() => {
+        liveActivitiesElement.classList.add('ring-2', 'ring-orange-300', 'ring-opacity-50', 'rounded-xl');
+        setTimeout(() => {
+          liveActivitiesElement.classList.remove('ring-2', 'ring-orange-300', 'ring-opacity-50', 'rounded-xl');
+        }, 2000);
+      }, 500);
+    }
+  };
+  
   // Use the enhanced push notifications hook
   const {
     isEnabled: pushNotificationsEnabled,
@@ -83,6 +103,7 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
       <OwnerHeader
         onMobileMenuToggle={() => setSidebarOpen(true)}
         isMobileMenuOpen={sidebarOpen}
+        onNotificationClick={scrollToLiveActivities}
       />
 
       {/* Main Content */}
@@ -196,7 +217,7 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
               </div>
 
               {/* Live Activity Notifications */}
-              <div className="space-y-3">
+              <div id="live-activities" className="space-y-3 scroll-mt-20">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>

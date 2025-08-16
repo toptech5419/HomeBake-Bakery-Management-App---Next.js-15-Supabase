@@ -75,6 +75,8 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   const [feedback, setFeedback] = useState('');
   const [initialLoading, setInitialLoading] = useState(true);
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   // Simplified state - no complex interaction tracking
 
@@ -241,6 +243,45 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       });
     }
   }, [showFeedbackModal, quickRemainingItems]);
+
+  // Mobile keyboard detection using visualViewport API
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const handleViewportChange = () => {
+      const viewport = window.visualViewport!;
+      const windowHeight = window.innerHeight;
+      const viewportHeight = viewport.height;
+      const heightDifference = windowHeight - viewportHeight;
+      
+      // Keyboard is considered visible if viewport height is significantly reduced
+      const keyboardVisible = heightDifference > 150; // 150px threshold for keyboard detection
+      
+      setIsKeyboardVisible(keyboardVisible);
+      setKeyboardHeight(keyboardVisible ? heightDifference : 0);
+      
+      // Debug logging for mobile testing
+      console.log('📱 Viewport change:', {
+        windowHeight,
+        viewportHeight,
+        heightDifference,
+        keyboardVisible,
+        keyboardHeight: keyboardVisible ? heightDifference : 0
+      });
+    };
+
+    // Initial measurement
+    handleViewportChange();
+    
+    // Listen for viewport changes
+    window.visualViewport.addEventListener('resize', handleViewportChange);
+    window.visualViewport.addEventListener('scroll', handleViewportChange);
+    
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleViewportChange);
+      window.visualViewport?.removeEventListener('scroll', handleViewportChange);
+    };
+  }, []);
 
   // Handle escape key to close modals
   useEffect(() => {
@@ -1106,14 +1147,14 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         </div>
       )}
 
-      {/* Feedback Modal - True Full Screen */}
+      {/* Feedback Modal - Mobile-First Responsive Design */}
       {showFeedbackModal && !submitting && (
         <div 
           className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-[9999] pointer-events-auto"
           style={{ 
             touchAction: 'none',
             width: '100vw',
-            height: '100vh',
+            height: isKeyboardVisible ? `${window.visualViewport?.height || window.innerHeight}px` : '100vh',
             margin: 0,
             padding: 0
           }}
@@ -1122,32 +1163,53 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             className="bg-white flex flex-col"
             style={{
               width: '100vw',
-              height: '100vh',
-              minHeight: '100vh',
-              maxHeight: '100vh'
+              height: isKeyboardVisible ? `${window.visualViewport?.height || window.innerHeight}px` : '100vh',
+              minHeight: 'auto',
+              maxHeight: isKeyboardVisible ? `${window.visualViewport?.height || window.innerHeight}px` : '100vh'
             }}
           >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 sm:px-6 py-6 sm:py-8">
-              <div className="flex items-center justify-center mb-4 sm:mb-6">
-                <div className="bg-white/20 p-3 sm:p-4 rounded-full">
-                  <Send className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
+            {/* Header - Collapsible on mobile when keyboard is visible */}
+            <div className={`bg-gradient-to-r from-blue-500 to-cyan-500 text-white transition-all duration-300 ${
+              isKeyboardVisible 
+                ? 'px-4 py-3' // Compact header when keyboard is visible
+                : 'px-4 sm:px-6 py-6 sm:py-8' // Full header when keyboard is hidden
+            }`}>
+              {!isKeyboardVisible && (
+                <div className="flex items-center justify-center mb-4 sm:mb-6">
+                  <div className="bg-white/20 p-3 sm:p-4 rounded-full">
+                    <Send className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
+                  </div>
                 </div>
-              </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center">Add Feedback</h1>
-              <p className="text-blue-100 text-center mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">Optional feedback for this shift</p>
+              )}
+              <h1 className={`font-bold text-center transition-all duration-300 ${
+                isKeyboardVisible 
+                  ? 'text-lg' // Smaller title when keyboard visible
+                  : 'text-xl sm:text-2xl md:text-3xl' // Full size when keyboard hidden
+              }`}>Add Feedback</h1>
+              {!isKeyboardVisible && (
+                <p className="text-blue-100 text-center mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
+                  Optional feedback for this shift
+                </p>
+              )}
             </div>
 
-            {/* Content - Takes remaining space */}
-            <div className="flex-1 flex flex-col px-4 sm:px-6 py-6 sm:py-8 overflow-y-auto">
-              <div className="max-w-2xl mx-auto w-full space-y-4 sm:space-y-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-                  <p className="text-blue-800 text-center font-medium text-sm sm:text-base">
-                    Add any feedback or notes about this shift before generating the report.
-                  </p>
-                </div>
+            {/* Content - Responsive height calculation */}
+            <div className={`flex-1 flex flex-col overflow-y-auto transition-all duration-300 ${
+              isKeyboardVisible 
+                ? 'px-4 py-2' // Compact padding when keyboard visible
+                : 'px-4 sm:px-6 py-6 sm:py-8' // Full padding when keyboard hidden
+            }`}>
+              <div className="max-w-2xl mx-auto w-full space-y-3 sm:space-y-4">
+                {/* Info box - hide on mobile when keyboard is visible to save space */}
+                {!isKeyboardVisible && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                    <p className="text-blue-800 text-center font-medium text-sm sm:text-base">
+                      Add any feedback or notes about this shift before generating the report.
+                    </p>
+                  </div>
+                )}
                 
-                <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-2 sm:space-y-3">
                   <label className="block text-base sm:text-lg font-semibold text-gray-900">
                     Shift Feedback
                   </label>
@@ -1155,28 +1217,44 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                     value={feedback}
                     onChange={(e) => setFeedback(e.target.value)}
                     placeholder="Enter feedback about this shift (optional)..."
-                    className="w-full p-4 sm:p-6 border-2 border-gray-300 rounded-xl sm:rounded-2xl resize-none text-base sm:text-lg leading-relaxed focus:border-blue-500 focus:ring-0 transition-colors"
+                    className="w-full p-4 border-2 border-gray-300 rounded-xl resize-none text-base leading-relaxed focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all duration-200"
                     style={{
-                      minHeight: '180px',
-                      height: 'calc(100vh - 400px)',
-                      maxHeight: '300px'
+                      // Mobile-first responsive height calculation
+                      height: isKeyboardVisible 
+                        ? 'calc(100vh - 280px)' // When keyboard visible: full viewport minus header + footer + padding
+                        : 'calc(100vh - 420px)', // When keyboard hidden: full viewport minus header + footer + padding + info box
+                      minHeight: '120px', // Ensure minimum usable height
+                      maxHeight: isKeyboardVisible ? 'calc(100vh - 280px)' : '300px'
                     }}
                     aria-label="Shift feedback textarea"
+                    autoComplete="off"
+                    spellCheck="true"
                   />
-                  <p className="text-gray-500 text-xs sm:text-sm">
-                    This feedback will be included in the shift report for management review.
-                  </p>
+                  {/* Help text - hide on mobile when keyboard visible to save space */}
+                  {!isKeyboardVisible && (
+                    <p className="text-gray-500 text-xs sm:text-sm">
+                      This feedback will be included in the shift report for management review.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Footer with Buttons - Fixed at bottom */}
-            <div className="px-4 sm:px-6 pb-6 sm:pb-8">
-              <div className="flex gap-3 sm:gap-4 max-w-md mx-auto w-full">
+            {/* Footer with Buttons - Always visible and accessible */}
+            <div className={`bg-white border-t border-gray-100 transition-all duration-300 ${
+              isKeyboardVisible 
+                ? 'px-4 py-3' // Compact footer when keyboard visible
+                : 'px-4 sm:px-6 pb-6 sm:pb-8 pt-4' // Full footer when keyboard hidden
+            }`}>
+              <div className="flex gap-3 sm:gap-4 max-w-lg mx-auto w-full">
                 <Button
                   variant="outline"
                   onClick={() => setShowFeedbackModal(false)}
-                  className="flex-1 py-4 sm:py-6 px-4 sm:px-6 rounded-xl sm:rounded-2xl border-2 border-gray-300 hover:border-gray-400 transition-colors text-base sm:text-lg font-semibold touch-manipulation min-h-[56px] sm:min-h-[60px]"
+                  className={`flex-1 rounded-xl border-2 border-gray-300 hover:border-gray-400 transition-colors font-semibold touch-manipulation ${
+                    isKeyboardVisible 
+                      ? 'py-3 px-4 text-base min-h-[48px]' // Compact when keyboard visible
+                      : 'py-4 sm:py-6 px-4 sm:px-6 text-base sm:text-lg min-h-[56px] sm:min-h-[60px]' // Full size when keyboard hidden
+                  }`}
                   aria-label="Go back to previous step"
                 >
                   Back
@@ -1184,16 +1262,26 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                 <Button
                   onClick={handleSubmitWithFeedback}
                   disabled={submitting}
-                  className="flex-1 py-4 sm:py-6 px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 touch-manipulation min-h-[56px] sm:min-h-[60px] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all text-white"
+                  className={`flex-1 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all text-white font-semibold ${
+                    isKeyboardVisible 
+                      ? 'py-3 px-4 text-base min-h-[48px]' // Compact when keyboard visible  
+                      : 'py-4 sm:py-6 px-4 sm:px-6 text-base sm:text-lg min-h-[56px] sm:min-h-[60px]' // Full size when keyboard hidden
+                  }`}
                   aria-label="Generate shift report with feedback"
                 >
                   {submitting ? (
                     <div className="flex items-center justify-center gap-2">
-                      <div className="rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-white border-t-transparent animate-spin" />
-                      <span className="text-base sm:text-lg font-semibold">Generating Report...</span>
+                      <div className={`rounded-full border-2 border-white border-t-transparent animate-spin ${
+                        isKeyboardVisible ? 'h-4 w-4' : 'h-4 w-4 sm:h-5 sm:w-5'
+                      }`} />
+                      <span className={isKeyboardVisible ? 'text-base' : 'text-base sm:text-lg'}>
+                        Generating...
+                      </span>
                     </div>
                   ) : (
-                    <span className="text-base sm:text-lg font-semibold">Generate Report</span>
+                    <span className={isKeyboardVisible ? 'text-base' : 'text-base sm:text-lg'}>
+                      Generate Report
+                    </span>
                   )}
                 </Button>
               </div>
