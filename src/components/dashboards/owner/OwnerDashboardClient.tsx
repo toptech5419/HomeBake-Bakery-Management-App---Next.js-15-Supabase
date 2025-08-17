@@ -10,7 +10,7 @@ import { useReportCounters } from '@/hooks/use-report-counters';
 import { useActivities } from '@/hooks/use-live-activities';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import ActivityNotifications from '@/components/notifications/ActivityNotifications';
-import SimplePushNotifications from '@/components/notifications/SimplePushNotifications';
+import ProductionPushNotifications from '@/components/notifications/ProductionPushNotifications';
 
 interface OwnerDashboardClientProps {
   user: { id: string; email?: string };
@@ -232,10 +232,10 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
                 </div>
               </div>
 
-              {/* Simple Push Notification Section */}
-              <SimplePushNotifications 
+              {/* Production Push Notification Section */}
+              <ProductionPushNotifications 
                 userId={user.id}
-                className="border-0 shadow-sm hover:shadow-md transition-shadow"
+                className="border-0"
               />
 
 
