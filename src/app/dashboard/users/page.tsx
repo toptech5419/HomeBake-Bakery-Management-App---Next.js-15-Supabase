@@ -34,7 +34,7 @@ export default async function UsersPage() {
   const displayName = user.email?.split('@')[0] || 'Owner';
 
   return (
-    <OwnerPageWrapper user={user} displayName={displayName}>
+    <OwnerPageWrapper displayName={displayName}>
       <Suspense fallback={<div>Loading...</div>}>
         <UsersClient users={users} user={user} />
       </Suspense>

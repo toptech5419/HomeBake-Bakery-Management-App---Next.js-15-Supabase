@@ -145,7 +145,11 @@ export default function BreadTypeNewClient({ initialValues, user }: { initialVal
           }}
         >
           <BreadTypeForm
-            initialValues={initialValues || {}}
+            initialValues={initialValues ? {
+              name: initialValues.name,
+              size: initialValues.size || undefined,
+              unit_price: initialValues.unit_price
+            } : {}}
             onSubmit={handleSubmit}
             loading={formLoading}
           />

@@ -115,7 +115,7 @@ export default function HomePage() {
       >
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm md:text-base text-gray-600">
-            Made with ❤️ by HomeBake Team
+            Made with ❤️ for HomeBake Team
           </p>
         </div>
       </motion.footer>

@@ -95,7 +95,7 @@ function getName(val: unknown): string {
     if (val.length && typeof val[0]?.name === 'string') return val[0].name;
     return 'Unknown';
   }
-  if (typeof val === 'object' && typeof val.name === 'string') return val.name;
+  if (typeof val === 'object' && val && 'name' in val && typeof val.name === 'string') return val.name;
   return 'Unknown';
 }
 
@@ -203,7 +203,7 @@ function ReportsPageInner() {
     const matchesStartDate = !reportFilters.startDate || r.date >= reportFilters.startDate;
     const matchesEndDate = !reportFilters.endDate || r.date <= reportFilters.endDate;
     // Bread type filter
-    const matchesBreadType = !reportFilters.breadTypeId || r.breadTypes.includes(breadTypes.find(bt => bt.id === reportFilters.breadTypeId)?.name);
+    const matchesBreadType = !reportFilters.breadTypeId || r.breadTypes.includes(breadTypes.find(bt => bt.id === reportFilters.breadTypeId)?.name || '');
     return matchesShift && matchesSearch && matchesStartDate && matchesEndDate && matchesBreadType;
   });
 
@@ -548,7 +548,7 @@ function ShareModal({ report, onClose, getShareText }: ShareModalProps) {
   const [hasWebShare, setHasWebShare] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined' && window.navigator.share) {
+    if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined' && typeof window.navigator.share === 'function') {
       setHasWebShare(true);
     }
   }, []);
@@ -577,7 +577,7 @@ function ShareModal({ report, onClose, getShareText }: ShareModalProps) {
   };
 
   const handleWebShare = async () => {
-    if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined' && window.navigator.share) {
+    if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined' && typeof window.navigator.share === 'function') {
       try {
         await window.navigator.share({
           title: 'Production Report',

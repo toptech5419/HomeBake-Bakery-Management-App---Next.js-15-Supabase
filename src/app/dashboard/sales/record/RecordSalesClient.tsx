@@ -126,8 +126,8 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
         const result = await createSalesLog(saleData);
         
         // Check if result indicates failure
-        if (result && !result.success && result.error) {
-          throw new Error(result.error);
+        if (result && !result.success) {
+          throw new Error('Sales recording failed');
         }
         
         return result;

@@ -6,9 +6,10 @@ export interface User {
   id: string
   name: string
   role: 'owner' | 'manager' | 'sales_rep'
-  created_by: string | null
+  created_by?: string | null
   is_active: boolean
   created_at: string
+  email?: string | null
 }
 
 export interface BreadType {

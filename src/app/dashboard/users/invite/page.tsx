@@ -31,7 +31,7 @@ export default async function InvitePage() {
 
   // Render the client component for the form
   return (
-    <OwnerPageWrapper user={user} displayName={displayName}>
+    <OwnerPageWrapper displayName={displayName}>
       <InviteFormClient />
     </OwnerPageWrapper>
   );

@@ -44,7 +44,7 @@ export default function InviteFormClient() {
       return;
     }
     try {
-      const result = await generateInviteTokenAction(role);
+      const result = await generateInviteTokenAction(role as 'manager' | 'sales_rep');
       setState({ inviteUrl: result.inviteUrl, role: result.role });
     } catch (err: unknown) {
       const error = err as Error;

@@ -62,7 +62,7 @@ export default async function SalesMetricsPage() {
     averageOrderValue: 2500,
     customerCount: (salesData || []).length,
     topSellingBread: 'White Bread',
-    currentShift: shift,
+    currentShift: shift as 'morning' | 'night',
     previousDaySales: 45000,
     weeklyAverage: 48000,
     lastUpdate: new Date().toISOString(),
