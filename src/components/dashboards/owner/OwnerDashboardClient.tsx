@@ -10,6 +10,7 @@ import { useReportCounters } from '@/hooks/use-report-counters';
 import { useActivities } from '@/hooks/use-live-activities';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import ActivityNotifications from '@/components/notifications/ActivityNotifications';
+import EnhancedPushNotifications from '@/components/notifications/EnhancedPushNotifications';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
 
 interface OwnerDashboardClientProps {
@@ -245,79 +246,10 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
               </div>
 
               {/* Enhanced Push Notification Section */}
-              <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        supportLevel === 'full' ? 'bg-purple-100' :
-                        supportLevel === 'partial' ? 'bg-yellow-100' :
-                        'bg-gray-100'
-                      }`}>
-                        <Settings size={20} className={`${
-                          supportLevel === 'full' ? 'text-purple-600' :
-                          supportLevel === 'partial' ? 'text-yellow-600' :
-                          'text-gray-600'
-                        }`} />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900">Push Notifications</div>
-                        <div className="text-sm text-gray-500">
-                          {pushNotificationsLoading ? 'Initializing...' : supportMessage}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Toggle - only show if supported */}
-                    {pushNotificationsSupported && (
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          className="sr-only peer" 
-                          checked={pushNotificationsEnabled}
-                          disabled={pushNotificationsLoading}
-                          onChange={() => handlePushNotificationToggle(user.id)}
-                        />
-                        <div className={`relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all ${
-                          pushNotificationsEnabled ? 'peer-checked:bg-orange-500' : ''
-                        } ${
-                          pushNotificationsLoading ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}></div>
-                      </label>
-                    )}
-                  </div>
-                  
-                  {/* Error Message */}
-                  {pushNotificationError && (
-                    <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg border border-red-200">
-                      {pushNotificationError}
-                    </div>
-                  )}
-                  
-                  {/* Unsupported Browser Help */}
-                  {showUnsupportedMessage && (
-                    <div className="text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200 space-y-2">
-                      <div className="font-medium">Browser Compatibility</div>
-                      <div>For the best experience, try:</div>
-                      <div className="text-amber-600">
-                        {recommendedBrowsers.join(' • ')}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Action Buttons */}
-                  {pushNotificationError && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => retryInitialization()}
-                        className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium"
-                      >
-                        Retry Setup
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <EnhancedPushNotifications 
+                userId={user.id}
+                className="border-0 shadow-sm hover:shadow-md transition-shadow"
+              />
 
 
               {/* Refresh Button */}
