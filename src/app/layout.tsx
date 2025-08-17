@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "../styles/mobile-optimization.css";
 import PWAWrapper from "@/components/pwa/pwa-wrapper";
 import { Providers } from "@/providers/providers";
 import { cn } from "@/lib/utils";

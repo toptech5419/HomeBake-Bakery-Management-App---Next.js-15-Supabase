@@ -124,7 +124,7 @@ class PushNotificationService {
   }
 
   /**
-   * Initialize push notification service with proper timing and error handling
+   * Initialize push notification service with enhanced error handling and production reliability
    */
   async initialize(): Promise<boolean> {
     // Return existing promise if already initializing
@@ -143,77 +143,236 @@ class PushNotificationService {
       return false;
     }
 
+    const maxInitRetries = 2;
+    let initRetryCount = 0;
+    
+    while (initRetryCount < maxInitRetries) {
+      try {
+        console.log(`🚀 Initializing push notifications service... (attempt ${initRetryCount + 1}/${maxInitRetries})`);
+        
+        // Check if already initialized
+        if (this.registration && this.registration.active) {
+          console.log('♻️ Push notifications service already initialized');
+          return true;
+        }
+        
+        // Register service worker with retry logic
+        await this.registerServiceWorker();
+        
+        // Wait for service worker to be fully ready
+        await this.waitForServiceWorkerReady();
+        
+        // Verify the service worker is working properly
+        await this.verifyServiceWorkerFunctionality();
+        
+        console.log('✅ Push notifications service initialized successfully');
+        return true;
+        
+      } catch (error) {
+        initRetryCount++;
+        
+        if (initRetryCount >= maxInitRetries) {
+          console.error('❌ Failed to initialize push notifications service after all retries:', error);
+          this._initPromise = null; // Reset so we can retry later
+          return false;
+        }
+        
+        console.warn(`⚠️ Push notification initialization attempt ${initRetryCount} failed, retrying...`, error);
+        
+        // Clear any partial state before retry
+        this.registration = null;
+        
+        // Exponential backoff
+        const retryDelay = Math.min(3000 * Math.pow(2, initRetryCount - 1), 10000);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
+    }
+    
+    return false;
+  }
+  
+  /**
+   * Verify service worker functionality for production reliability
+   */
+  private async verifyServiceWorkerFunctionality(): Promise<void> {
     try {
-      // Register service worker with retry logic
-      await this.registerServiceWorker();
+      if (!this.registration || !this.registration.active) {
+        throw new Error('Service worker not active');
+      }
       
-      // Wait for service worker to be fully ready
-      await this.waitForServiceWorkerReady();
+      // Test message passing to ensure service worker is responsive
+      const messageChannel = new MessageChannel();
+      const responsePromise = new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Service worker health check timeout'));
+        }, 5000);
+        
+        messageChannel.port1.onmessage = (event) => {
+          clearTimeout(timeout);
+          if (event.data && event.data.type === 'HEALTH_CHECK_RESPONSE') {
+            resolve(event.data);
+          } else {
+            reject(new Error('Invalid health check response'));
+          }
+        };
+      });
       
-      console.log('✅ Push notifications service initialized successfully');
-      return true;
+      // Send health check message
+      this.registration.active.postMessage(
+        { type: 'HEALTH_CHECK', timestamp: Date.now() },
+        [messageChannel.port2]
+      );
+      
+      await responsePromise;
+      console.log('✅ Service worker health check passed');
+      
     } catch (error) {
-      console.error('❌ Failed to initialize push notifications service:', error);
-      this._initPromise = null; // Reset so we can retry
-      return false;
+      console.warn('⚠️ Service worker health check failed:', error);
+      // Don't throw here as it's a non-critical verification
     }
   }
 
   /**
-   * Register service worker with enhanced error handling and timing
+   * Register service worker with enhanced error handling, retry logic and production optimizations
    */
   private async registerServiceWorker(): Promise<void> {
-    try {
-      console.log('🔄 Registering service worker...');
-      
-      // Check if service worker is already registered
-      const existingRegistration = await navigator.serviceWorker.getRegistration('/');
-      if (existingRegistration) {
-        console.log('♻️ Using existing service worker registration');
-        this.registration = existingRegistration;
-      } else {
+    const maxRetries = 3;
+    let retryCount = 0;
+    
+    while (retryCount < maxRetries) {
+      try {
+        console.log(`🔄 Registering service worker... (attempt ${retryCount + 1}/${maxRetries})`);
+        
+        // Check if service worker is already registered and active
+        const existingRegistration = await navigator.serviceWorker.getRegistration('/');
+        if (existingRegistration && existingRegistration.active) {
+          console.log('♻️ Using existing active service worker registration');
+          this.registration = existingRegistration;
+          return;
+        }
+        
         console.log('📝 Creating new service worker registration');
+        
+        // Register with enhanced options for production
         this.registration = await navigator.serviceWorker.register('/sw.js', {
-          scope: '/'
+          scope: '/',
+          updateViaCache: 'none' // Always check for updates
         });
+        
+        // Enhanced event listeners with error handling
+        this.registration.addEventListener('updatefound', () => {
+          console.log('🔄 Service worker update found');
+          const newWorker = this.registration!.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              console.log('🔄 Service worker state changed:', newWorker.state);
+            });
+          }
+        });
+        
+        // Wait for the registration to become active
+        if (this.registration.installing) {
+          await new Promise((resolve, reject) => {
+            const worker = this.registration!.installing!;
+            const timeout = setTimeout(() => {
+              reject(new Error('Service worker installation timeout'));
+            }, 15000);
+            
+            worker.addEventListener('statechange', () => {
+              if (worker.state === 'activated' || worker.state === 'redundant') {
+                clearTimeout(timeout);
+                if (worker.state === 'activated') {
+                  resolve(void 0);
+                } else {
+                  reject(new Error('Service worker became redundant'));
+                }
+              }
+            });
+          });
+        }
+        
+        console.log('✅ Service worker registered and activated successfully');
+        return;
+        
+      } catch (error) {
+        retryCount++;
+        
+        if (retryCount >= maxRetries) {
+          console.error('❌ Service worker registration failed after all retries:', error);
+          throw new Error(`Service worker registration failed after ${maxRetries} attempts: ${error.message}`);
+        }
+        
+        console.warn(`⚠️ Service worker registration attempt ${retryCount} failed, retrying...`, error);
+        
+        // Clear any partial registration before retry
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(reg => reg.unregister()));
+        } catch (cleanupError) {
+          console.warn('⚠️ Failed to cleanup registrations:', cleanupError);
+        }
+        
+        // Exponential backoff before retry
+        const retryDelay = Math.min(2000 * Math.pow(2, retryCount - 1), 8000);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
-      
-      // Listen for registration events
-      this.registration.addEventListener('updatefound', () => {
-        console.log('🔄 Service worker update found');
-      });
-      
-      console.log('✅ Service worker registered successfully');
-    } catch (error) {
-      console.error('❌ Service worker registration failed:', error);
-      throw new Error(`Service worker registration failed: ${error.message}`);
     }
   }
   
   /**
-   * Wait for service worker to be fully ready with timeout
+   * Wait for service worker to be fully ready with enhanced timeout and retry logic
    */
   private async waitForServiceWorkerReady(): Promise<void> {
-    try {
-      console.log('⏳ Waiting for service worker to be ready...');
-      
-      // Wait for service worker to be ready with timeout
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Service worker ready timeout')), 10000);
-      });
-      
-      await Promise.race([
-        navigator.serviceWorker.ready,
-        timeoutPromise
-      ]);
-      
-      // Additional small delay to ensure everything is fully initialized
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      console.log('✅ Service worker is ready');
-    } catch (error) {
-      console.error('❌ Service worker ready timeout:', error);
-      throw error;
+    const maxRetries = 3;
+    let retryCount = 0;
+    
+    while (retryCount < maxRetries) {
+      try {
+        console.log(`⏳ Waiting for service worker to be ready... (attempt ${retryCount + 1}/${maxRetries})`);
+        
+        // Increased timeout to 30 seconds for production reliability
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Service worker ready timeout')), 30000);
+        });
+        
+        // Check if service worker is already ready
+        if (navigator.serviceWorker.controller) {
+          console.log('♻️ Service worker already active and controlling');
+          return;
+        }
+        
+        await Promise.race([
+          navigator.serviceWorker.ready,
+          timeoutPromise
+        ]);
+        
+        // Verify service worker is actually ready and controlling
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration || !registration.active) {
+          throw new Error('Service worker registration not active');
+        }
+        
+        // Additional validation delay with exponential backoff
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 3000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        console.log('✅ Service worker is ready and active');
+        return;
+        
+      } catch (error) {
+        retryCount++;
+        
+        if (retryCount >= maxRetries) {
+          console.error('❌ Service worker failed after all retries:', error);
+          throw new Error(`Service worker initialization failed after ${maxRetries} attempts: ${error.message}`);
+        }
+        
+        console.warn(`⚠️ Service worker attempt ${retryCount} failed, retrying...`, error);
+        
+        // Exponential backoff before retry
+        const retryDelay = Math.min(2000 * Math.pow(2, retryCount - 1), 8000);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
     }
   }
 

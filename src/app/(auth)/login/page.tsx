@@ -76,11 +76,12 @@ const LoginPage = memo(function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 p-4">
-      <div className="w-full max-w-md rounded-lg border border-orange-200 bg-white p-8 text-center shadow-xl">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 p-4 md:p-6">
+      <div className="w-full max-w-md rounded-lg border border-orange-200 bg-white p-6 md:p-8 text-center shadow-xl">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome to HomeBake</h1>
-          <p className="text-gray-600 text-sm">Sign in to your bakery account</p>
+          <div className="text-4xl mb-3">🍞</div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Welcome to HomeBake</h1>
+          <p className="text-gray-600 text-sm md:text-base">Sign in to your bakery account</p>
         </div>
         
         <form onSubmit={handleLogin} className="space-y-5">
@@ -98,8 +99,9 @@ const LoginPage = memo(function LoginPage() {
                 value={email} 
                 onChange={e => setEmail(e.target.value)}
                 disabled={isPending}
-                className="w-full pl-10 pr-4 py-3 rounded-md border border-gray-300 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
+                className="w-full pl-10 pr-4 py-3 md:py-4 rounded-md border border-gray-300 text-sm md:text-base focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200 disabled:bg-gray-50 disabled:text-gray-500 transition-colors min-h-[44px]"
                 placeholder="your@email.com"
+                autoComplete="email"
               />
             </div>
           </div>
@@ -118,8 +120,9 @@ const LoginPage = memo(function LoginPage() {
                 value={password} 
                 onChange={e => setPassword(e.target.value)}
                 disabled={isPending}
-                className="w-full pl-10 pr-4 py-3 rounded-md border border-gray-300 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
+                className="w-full pl-10 pr-4 py-3 md:py-4 rounded-md border border-gray-300 text-sm md:text-base focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200 disabled:bg-gray-50 disabled:text-gray-500 transition-colors min-h-[44px]"
                 placeholder="Enter your password"
+                autoComplete="current-password"
               />
             </div>
           </div>
@@ -135,15 +138,15 @@ const LoginPage = memo(function LoginPage() {
             isLoading={isPending}
             loadingText="Logging In..."
             icon={LogIn}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white min-h-[44px] text-base md:text-lg font-semibold transition-all duration-200 transform hover:scale-[1.02] disabled:transform-none"
             size="lg"
           >
             Log In
           </LoadingButton>
         </form>
         
-        <div className="mt-6 pt-6 border-t border-gray-200 text-sm text-gray-600">
-          <p>Don&apos;t have an account? <a href="/signup" className="text-orange-600 hover:underline font-medium">Sign up</a></p>
+        <div className="mt-6 pt-6 border-t border-gray-200 text-sm md:text-base text-gray-600">
+          <p>Don&apos;t have an account? <a href="/signup" className="text-orange-600 hover:underline font-medium transition-colors">Sign up</a></p>
           <p className="mt-2">Need access? Contact your bakery owner for an invite.</p>
         </div>
       </div>
