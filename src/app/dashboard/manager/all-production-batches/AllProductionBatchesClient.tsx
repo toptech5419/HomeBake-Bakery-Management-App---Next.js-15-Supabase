@@ -9,6 +9,9 @@ import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { getAllBatchesWithDetails } from '@/lib/batches/api-actions';
 import { useShift } from '@/contexts/ShiftContext';
+import { QUERY_KEYS, getQueryConfig } from '@/lib/react-query/config';
+import { ProductionLoading, ProductionError } from '@/components/ui/production-loading';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { motion } from 'framer-motion';
 
@@ -40,22 +43,22 @@ interface BatchWithDetails {
   };
 }
 
-export function AllProductionBatchesClient({ userName }: AllProductionBatchesClientProps) {
+function AllProductionBatchesClientInner({ userName }: AllProductionBatchesClientProps) {
   const { currentShift } = useShift();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Fetch all batches for the current day and shift
+  // Fetch all batches for the current day and shift using production config
   const {
     data: batches = [],
     isLoading,
     error,
     refetch
   } = useQuery({
-    queryKey: ['batches', 'all', 'details', currentShift],
+    queryKey: QUERY_KEYS.batches.details(currentShift),
     queryFn: () => getAllBatchesWithDetails(currentShift),
-    staleTime: 30000, // 30 seconds
+    ...getQueryConfig('historical'), // Use historical config for better performance
   });
 
   // Filter and search batches
@@ -264,23 +267,18 @@ export function AllProductionBatchesClient({ userName }: AllProductionBatchesCli
 
           {/* Main Content - Batches List */}
           {isLoading ? (
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl p-8 sm:p-12 border border-orange-200/50 shadow-sm">
-              <div className="flex flex-col items-center justify-center">
-                <div className="h-10 w-10 sm:h-12 sm:w-12 animate-spin rounded-full border-4 border-orange-500 border-t-transparent"></div>
-                <p className="mt-4 sm:mt-6 text-gray-600 text-sm sm:text-lg">Loading production batches...</p>
-              </div>
-            </div>
+            <ProductionLoading 
+              type="card" 
+              message="Loading production batches..." 
+              className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl border border-orange-200/50 shadow-sm"
+            />
           ) : error ? (
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl p-8 sm:p-12 border border-orange-200/50 shadow-sm">
-              <div className="flex flex-col items-center justify-center text-center">
-                <div className="text-4xl sm:text-5xl mb-4">⚠️</div>
-                <p className="text-red-600 text-lg mb-2">Error loading batches</p>
-                <p className="text-gray-500 text-sm mb-4">Please try again</p>
-                <Button onClick={handleRefresh} className="bg-orange-500 hover:bg-orange-600">
-                  Retry
-                </Button>
-              </div>
-            </div>
+            <ProductionError 
+              message="Failed to load production batches. Please check your connection and try again."
+              onRetry={refetch}
+              type="card"
+              className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl border border-orange-200/50 shadow-sm"
+            />
           ) : filteredBatches.length === 0 ? (
             <div className="bg-white/80 backdrop-blur-sm rounded-xl lg:rounded-2xl p-8 sm:p-12 border border-orange-200/50 shadow-sm">
               <div className="flex flex-col items-center justify-center text-center">
@@ -359,5 +357,18 @@ export function AllProductionBatchesClient({ userName }: AllProductionBatchesCli
         </div>
       </div>
     </div>
+  );
+}
+
+// Export the component wrapped in an error boundary
+export function AllProductionBatchesClient(props: AllProductionBatchesClientProps) {
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('🚨 AllProductionBatchesClient Error:', error, errorInfo);
+      }}
+    >
+      <AllProductionBatchesClientInner {...props} />
+    </ErrorBoundary>
   );
 }

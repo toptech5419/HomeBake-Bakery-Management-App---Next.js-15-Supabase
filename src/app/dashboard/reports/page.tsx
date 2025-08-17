@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { BarChart3, Package, Search, Filter, Download, ChevronDown, Clock, User, Eye, Share2, Calendar, X, ArrowLeft } from "lucide-react";
+import { ProductionLoading, ProductionError, ReportSkeleton } from '@/components/ui/production-loading';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
 import { cn } from '@/lib/utils';
 import { getManagerReports } from '@/lib/reports/manager-reports-server-actions';
 import { Modal } from '@/components/ui/modal';
@@ -79,13 +81,9 @@ const getStatusColor = (status: string) => {
 };
 
 const LoadingSkeleton = () => (
-  <div className="animate-pulse space-y-4">
+  <div className="space-y-4">
     {[...Array(3)].map((_, i) => (
-      <div key={i} className="bg-white rounded-lg border border-gray-200 p-6 flex flex-col gap-4">
-        <div className="h-4 w-1/3 bg-gray-200 rounded" />
-        <div className="h-3 w-1/2 bg-gray-100 rounded" />
-        <div className="h-8 w-full bg-gray-100 rounded" />
-      </div>
+      <ReportSkeleton key={i} />
     ))}
   </div>
 );
@@ -101,9 +99,10 @@ function getName(val: unknown): string {
   return 'Unknown';
 }
 
-export default function ReportsPage() {
+function ReportsPageInner() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [groupedReports, setGroupedReports] = useState<GroupedReport[]>([]);
   const [search, setSearch] = useState("");
   const [filterShift, setFilterShift] = useState("All");
@@ -145,37 +144,41 @@ export default function ReportsPage() {
     }
   }, []);
 
+  // Refetch function for error retry
+  const fetchReports = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Use server action to fetch reports data (already grouped)
+      const groupedReports = await getManagerReports();
+      console.log('✅ Fetched grouped reports:', groupedReports.length, 'reports');
+      
+      // Convert from server action GroupedReport to page GroupedReport format
+      const pageReports = groupedReports.map(report => ({
+        ...report,
+        missingManager: report.manager.startsWith('User ID'),
+        endTimes: report.batches
+          .filter(batch => batch.end_time)
+          .map(batch => batch.end_time!),
+        statuses: report.batches.map(batch => batch.status),
+        latestEndTime: report.batches
+          .filter(batch => batch.end_time)
+          .map(batch => batch.end_time!)
+          .sort()
+          .slice(-1)[0] || ''
+      }));
+      
+      setGroupedReports(pageReports);
+    } catch (error) {
+      console.error('🚨 Error fetching reports:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load reports');
+      setGroupedReports([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchReports = async () => {
-      setLoading(true);
-      try {
-        // Use server action to fetch reports data (already grouped)
-        const groupedReports = await getManagerReports();
-        console.log('Fetched grouped reports:', groupedReports); // DEBUG LOG
-        
-        // Convert from server action GroupedReport to page GroupedReport format
-        const pageReports = groupedReports.map(report => ({
-          ...report,
-          missingManager: report.manager.startsWith('User ID'),
-          endTimes: report.batches
-            .filter(batch => batch.end_time)
-            .map(batch => batch.end_time!),
-          statuses: report.batches.map(batch => batch.status),
-          latestEndTime: report.batches
-            .filter(batch => batch.end_time)
-            .map(batch => batch.end_time!)
-            .sort()
-            .slice(-1)[0] || ''
-        }));
-        
-        setGroupedReports(pageReports);
-      } catch (error) {
-        console.error('Error fetching reports:', error);
-        setGroupedReports([]);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchReports();
   }, []);
 
@@ -399,6 +402,13 @@ export default function ReportsPage() {
       <main className="flex-1 p-2 sm:p-4">
         {loading ? (
           <LoadingSkeleton />
+        ) : error ? (
+          <ProductionError 
+            type="card"
+            message={error}
+            onRetry={fetchReports}
+            showRetry={true}
+          />
         ) : filtered.length === 0 ? (
           <div className="text-center py-12">
             <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4 animate-pulse" />
@@ -506,6 +516,19 @@ export default function ReportsPage() {
   );
 }
 
+// Export the component wrapped in an error boundary
+export default function ReportsPage() {
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('🚨 ReportsPage Error:', error, errorInfo);
+      }}
+    >
+      <ReportsPageInner />
+    </ErrorBoundary>
+  );
+}
+
 interface ShareModalProps {
   report: GroupedReport;
   onClose: () => void;
@@ -523,25 +546,6 @@ function ShareModal({ report, onClose, getShareText }: ShareModalProps) {
   const shareText = getShareText(report);
 
   const [hasWebShare, setHasWebShare] = useState(false);
-  
-  // Prevent background scroll when modal is open
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    
-    // Handle escape key
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    
-    document.addEventListener('keydown', handleEscape);
-    
-    return () => {
-      document.body.style.overflow = 'unset';
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [onClose]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined' && window.navigator.share) {
@@ -588,41 +592,30 @@ function ShareModal({ report, onClose, getShareText }: ShareModalProps) {
     onClose();
   };
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm overflow-hidden"
-      onClick={handleBackdropClick}
+    <Modal 
+      isOpen={true} 
+      onClose={onClose} 
+      title="Share Report"
+      className="w-full sm:max-w-xs"
     >
-      <div 
-        className="bg-white w-full sm:max-w-xs rounded-t-2xl sm:rounded-2xl shadow-lg p-4 sm:p-6 animate-fade-in flex flex-col gap-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-base font-bold">Share Report</h3>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100"><X className="w-5 h-5" /></button>
-        </div>
-        <div className="mb-2 text-xs text-gray-500">{report.shift.charAt(0).toUpperCase() + report.shift.slice(1)} Shift • {formatDate(report.date)}</div>
-        <div className="mb-2 p-2 bg-gray-50 rounded text-xs text-gray-700 whitespace-pre-line">{shareText}</div>
+      <div className="flex flex-col gap-4">
+        <div className="text-xs text-gray-500">{report.shift.charAt(0).toUpperCase() + report.shift.slice(1)} Shift • {formatDate(report.date)}</div>
+        <div className="p-2 bg-gray-50 rounded text-xs text-gray-700 whitespace-pre-line">{shareText}</div>
         <div className="grid grid-cols-3 gap-2">
           {shareOptions.map(opt => (
-            <button key={opt.platform} onClick={() => handleShare(opt.platform)} className={`flex flex-col items-center gap-1 rounded-lg p-2 text-xs font-medium ${opt.color}`}>
+            <button key={opt.platform} onClick={() => handleShare(opt.platform)} className={`flex flex-col items-center gap-1 rounded-lg p-2 text-xs font-medium transition-colors touch-manipulation ${opt.color}`}>
               <span className="text-lg">{opt.icon}</span>
               {opt.label}
             </button>
           ))}
           {hasWebShare && (
-            <button onClick={handleWebShare} className="flex flex-col items-center gap-1 rounded-lg p-2 text-xs font-medium bg-orange-50 hover:bg-orange-100 text-orange-600 col-span-3 sm:col-span-1 mt-2 sm:mt-0">
+            <button onClick={handleWebShare} className="flex flex-col items-center gap-1 rounded-lg p-2 text-xs font-medium bg-orange-50 hover:bg-orange-100 text-orange-600 col-span-3 sm:col-span-1 mt-2 sm:mt-0 transition-colors touch-manipulation">
               <span className="text-lg">📲</span>
               Share...</button>
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

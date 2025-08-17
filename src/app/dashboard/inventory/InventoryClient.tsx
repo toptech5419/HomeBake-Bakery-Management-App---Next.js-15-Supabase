@@ -4,6 +4,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { BackButton } from '@/components/ui/back-button';
 import { Package, TrendingUp, Clock, RefreshCw, Archive, AlertTriangle } from 'lucide-react';
+import { ProductionLoading, ProductionError } from '@/components/ui/production-loading';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
 import { useInventoryData } from '@/hooks/use-inventory-data';
 import { useAuth } from '@/hooks/use-auth';
 import { useAutoShift } from '@/hooks/use-auto-shift';
@@ -22,7 +24,7 @@ interface InventoryClientProps {
   serverUser?: unknown;
 }
 
-export default function InventoryClient({ serverUser }: InventoryClientProps) {
+function InventoryClientInner({ serverUser }: InventoryClientProps) {
   const { user: clientUser } = useAuth();
 
   // Use server user if available, otherwise fall back to client user
@@ -43,33 +45,22 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
   // Handle loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading inventory data...</p>
-        </div>
-      </div>
+      <ProductionLoading 
+        type="page"
+        message="Loading inventory data..."
+        icon={Package}
+      />
     );
   }
 
   // Handle error state
   if (isError && error) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="text-red-500 mb-4">
-            <AlertTriangle className="h-12 w-12 mx-auto mb-2" />
-            <h3 className="text-lg font-semibold">Failed to load inventory</h3>
-            <p className="text-sm text-gray-600 mt-1">{error.message}</p>
-          </div>
-              <button 
-            onClick={() => refetch()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Try Again
-              </button>
-        </div>
-      </div>
+      <ProductionError 
+        type="page"
+        message={`Failed to load inventory: ${error.message}`}
+        onRetry={refetch}
+      />
     );
   }
 
@@ -276,5 +267,18 @@ export default function InventoryClient({ serverUser }: InventoryClientProps) {
         )}
       </div>
     </div>
+  );
+}
+
+// Export the component wrapped in an error boundary
+export default function InventoryClient(props: InventoryClientProps) {
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('🚨 InventoryClient Error:', error, errorInfo);
+      }}
+    >
+      <InventoryClientInner {...props} />
+    </ErrorBoundary>
   );
 }

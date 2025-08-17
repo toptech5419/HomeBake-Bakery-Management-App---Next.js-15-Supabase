@@ -14,6 +14,9 @@ import { useQuery } from '@tanstack/react-query';
 import { getBatches } from '@/lib/batches/api-actions';
 import { Batch } from '@/lib/batches/actions';
 import { useShift } from '@/contexts/ShiftContext';
+import { QUERY_KEYS, getQueryConfig } from '@/lib/react-query/config';
+import { ProductionLoading, ProductionError } from '@/components/ui/production-loading';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -34,7 +37,7 @@ interface BatchWithDetails extends Batch {
   };
 }
 
-export function ExportProductionBatchesClient({ userName }: ExportProductionBatchesClientProps) {
+function ExportProductionBatchesClientInner({ userName }: ExportProductionBatchesClientProps) {
   const { currentShift } = useShift();
   const router = useRouter();
   const [selectedBatches, setSelectedBatches] = useState<string[]>([]);
@@ -42,16 +45,16 @@ export function ExportProductionBatchesClient({ userName }: ExportProductionBatc
   const [statusFilter, setStatusFilter] = useState('all');
   const [exporting, setExporting] = useState(false);
 
-  // Fetch all batches with details and shift filtering
+  // Fetch all batches with details and shift filtering using production config
   const {
     data: batches = [],
     isLoading,
     error,
     refetch
   } = useQuery({
-    queryKey: ['batches', 'all', 'export', currentShift],
+    queryKey: QUERY_KEYS.batches.export(currentShift),
     queryFn: () => getBatches(currentShift),
-    staleTime: 30000, // 30 seconds
+    ...getQueryConfig('historical'), // Use historical config since this is for exporting
   });
 
   // Filter and search batches
@@ -482,23 +485,18 @@ Generated from HomeBake Bakery Management System`;
 
           {/* Main Content - Batches List */}
           {isLoading ? (
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 border border-blue-200/50 shadow-sm w-full">
-              <div className="flex flex-col items-center justify-center">
-                <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
-                <p className="mt-4 text-gray-600 text-sm">Loading production batches...</p>
-              </div>
-            </div>
+            <ProductionLoading 
+              type="card" 
+              message="Loading export data..." 
+              className="bg-white/80 backdrop-blur-sm rounded-xl border border-blue-200/50 shadow-sm w-full"
+            />
           ) : error ? (
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 border border-blue-200/50 shadow-sm w-full">
-              <div className="flex flex-col items-center justify-center text-center">
-                <div className="text-4xl mb-4">⚠️</div>
-                <p className="text-red-600 text-lg mb-2">Error loading batches</p>
-                <p className="text-gray-500 text-sm mb-4">Please try again</p>
-                <Button onClick={() => refetch()} className="bg-blue-500 hover:bg-blue-600">
-                  Retry
-                </Button>
-              </div>
-            </div>
+            <ProductionError 
+              message="Failed to load export data. Please check your connection and try again."
+              onRetry={refetch}
+              type="card"
+              className="bg-white/80 backdrop-blur-sm rounded-xl border border-blue-200/50 shadow-sm w-full"
+            />
           ) : filteredBatches.length === 0 ? (
             <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 border border-blue-200/50 shadow-sm w-full">
               <div className="flex flex-col items-center justify-center text-center">
@@ -579,5 +577,18 @@ Generated from HomeBake Bakery Management System`;
         </div>
       </div>
     </div>
+  );
+}
+
+// Export the component wrapped in an error boundary
+export function ExportProductionBatchesClient(props: ExportProductionBatchesClientProps) {
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('🚨 ExportProductionBatchesClient Error:', error, errorInfo);
+      }}
+    >
+      <ExportProductionBatchesClientInner {...props} />
+    </ErrorBoundary>
   );
 }

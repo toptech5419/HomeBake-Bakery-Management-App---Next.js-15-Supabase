@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useActiveBatches } from '@/hooks/use-batches-query';
 import { useShift } from '@/contexts/ShiftContext';
+import { ProductionLoading, ProductionError } from '@/components/ui/production-loading';
+import ErrorBoundary from '@/components/error/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -106,7 +108,7 @@ const BatchItem = ({
   batch, 
   index 
 }: { 
-  batch: unknown; 
+  batch: any; 
   index: number;
 }) => (
   <motion.div
@@ -194,7 +196,7 @@ const EmptyState = () => (
 );
 
 
-export function ProductionClient({ }: ProductionClientProps) {
+function ProductionClientInner({ }: ProductionClientProps) {
   const { currentShift } = useShift();
   const { toast } = useOptimizedToast();
   
@@ -362,35 +364,11 @@ export function ProductionClient({ }: ProductionClientProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-100">
-        <div className="container mx-auto px-4 py-5 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="max-w-md mx-auto mt-20"
-          >
-            <Card className="border-red-200 bg-white shadow-xl">
-              <CardContent className="text-center py-16 px-8">
-                <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <AlertCircle className="w-10 h-10 text-red-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">Connection Error</h3>
-                <p className="text-gray-600 mb-8 leading-relaxed">
-                  Unable to load production data. Please check your connection and try again.
-                </p>
-                <Button 
-                  onClick={handleRefresh} 
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-xl"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Try Again
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </div>
+      <ProductionError 
+        type="page"
+        message="Unable to load production data. Please check your connection and try again."
+        onRetry={handleRefresh}
+      />
     );
   }
 
@@ -641,5 +619,18 @@ export function ProductionClient({ }: ProductionClientProps) {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+// Export the component wrapped in an error boundary
+export function ProductionClient(props: ProductionClientProps) {
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('🚨 ProductionClient Error:', error, errorInfo);
+      }}
+    >
+      <ProductionClientInner {...props} />
+    </ErrorBoundary>
   );
 }

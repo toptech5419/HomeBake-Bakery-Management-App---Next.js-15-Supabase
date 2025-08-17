@@ -48,7 +48,11 @@
       "Bash(git checkout:*)",
       "WebFetch(domain:home-bake-bakery-management-app-nex.vercel.app)",
       "Bash(chmod:*)",
-      "Bash(timeout 10 npm run build:*)"
+      "Bash(timeout 10 npm run build:*)",
+      "Bash(npm:*)",
+      "Bash(source ~/.bashrc)",
+      "Bash(fnm:*)",
+      "Bash(timeout 60 npm run build)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
