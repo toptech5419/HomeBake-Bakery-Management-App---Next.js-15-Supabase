@@ -12,6 +12,14 @@ import { createSalesLog } from '@/lib/sales/actions';
 import { getBreadTypesForSalesRep } from '@/lib/dashboard/server-actions';
 import { useShift } from '@/contexts/ShiftContext';
 import { useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { handleAndShowSalesError, defaultQueryOptions } from '@/lib/utils/sales-error-handler';
+import { 
+  salesQueryKeys, 
+  salesCacheConfig, 
+  invalidateSalesQueries,
+  createSalesQueryOptions 
+} from '@/lib/queries/sales-query-keys';
 import { toast } from 'sonner';
 import { usePerformanceMonitor } from '@/lib/monitoring/performance';
 import { useScreenReader } from '@/lib/accessibility/screen-reader';
@@ -37,12 +45,46 @@ interface SaleForm {
 }
 
 export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) {
-  const [breadTypes, setBreadTypes] = useState<BreadType[]>([]);
   const [selectedBreadType, setSelectedBreadType] = useState<BreadType | null>(null);
   const router = useRouter();
   const { currentShift } = useShift();
   const { startTimer, endTimer, trackUserAction } = usePerformanceMonitor();
   const { announceLoading, announceDataLoaded, announceSuccess, announceValidationError } = useScreenReader();
+  const queryClient = useQueryClient();
+
+  // Optimized React Query for bread types with production-grade caching
+  const {
+    data: breadTypes = [],
+    isLoading,
+    error,
+    refetch: refetchBreadTypes
+  } = useQuery(
+    createSalesQueryOptions(
+      salesQueryKeys.breadTypesForSales(),
+      async () => {
+        try {
+          startTimer('fetch_bread_types');
+          announceLoading('bread types');
+          const data = await getBreadTypesForSalesRep();
+          endTimer('fetch_bread_types');
+          
+          if (!data || data.length === 0) {
+            announceDataLoaded('No bread types found');
+            toast.info('No Bread Types Found - Please add bread types first before recording sales.');
+          } else {
+            announceDataLoaded(`${data.length} bread types available for selection`);
+          }
+          
+          return data || [];
+        } catch (error) {
+          endTimer('fetch_bread_types', { error: true });
+          handleAndShowSalesError(error, 'Fetching bread types', { userId });
+          throw error;
+        }
+      },
+      salesCacheConfig.breadTypes
+    )
+  );
   
   const [formData, setFormData] = useState<SaleForm>({
     breadTypeId: '',
@@ -52,8 +94,8 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
     discount: 0,
     totalAmount: 0
   });
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  // Removed: loading state now managed by React Query
+  // Removed: submitting state now managed by React Query mutation
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
 
   // Ref for auto-scroll functionality
@@ -73,42 +115,70 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
   };
 
   useEffect(() => {
-    fetchBreadTypes();
     resetForm();
-  }, []);
+  }, []); // Removed fetchBreadTypes - now handled by React Query
 
-  const fetchBreadTypes = async () => {
-    try {
-      setLoading(true);
-      announceLoading('bread types');
-      startTimer('fetch_bread_types');
-      const data = await getBreadTypesForSalesRep();
-      
-      if (!data || data.length === 0) {
-        toast.info('No Bread Types Found - Please add bread types first before recording sales.');
-        announceDataLoaded('No bread types found');
-      } else {
-        announceDataLoaded(`${data.length} bread types available for selection`);
+  // React Query mutation with production-grade error handling
+  const createSaleMutation = useMutation({
+    mutationFn: async (saleData: any) => {
+      try {
+        startTimer('record_sale');
+        const result = await createSalesLog(saleData);
+        
+        // Check if result indicates failure
+        if (result && !result.success && result.error) {
+          throw new Error(result.error);
+        }
+        
+        return result;
+      } catch (error) {
+        endTimer('record_sale', { error: true });
+        throw error; // Re-throw for mutation error handling
       }
+    },
+    onSuccess: (result) => {
+      const duration = endTimer('record_sale');
+      const successMessage = `Sale recorded: ${formData.breadTypeName} x${formData.quantity} units`;
+      toast.success(successMessage);
+      announceSuccess(successMessage);
       
-      setBreadTypes(data || []);
-      const duration = endTimer('fetch_bread_types');
       trackUserAction({
-        action: 'fetch_bread_types',
+        action: 'sale_recorded',
         component: 'RecordSalesClient',
         timestamp: Date.now(),
         duration,
-        metadata: { breadTypesCount: data?.length || 0 }
+        metadata: { 
+          breadType: formData.breadTypeName,
+          amount: formData.totalAmount,
+          shift: currentShift 
+        }
       });
-    } catch (error) {
-      console.error('Error fetching bread types:', error);
-      toast.error('Failed to load bread types');
-      announceDataLoaded('Failed to load bread types');
-      endTimer('fetch_bread_types', { error: true });
-    } finally {
-      setLoading(false);
-    }
-  };
+      
+      resetForm();
+      
+      // Use optimized query invalidation
+      invalidateSalesQueries(queryClient, {
+        userId,
+        shift: currentShift,
+        includeStock: true,
+        includeMetrics: true
+      });
+    },
+    onError: (error) => {
+      // Use centralized error handling
+      handleAndShowSalesError(error, 'Recording sale', {
+        breadType: formData.breadTypeName,
+        quantity: formData.quantity,
+        userId,
+        shift: currentShift
+      });
+      
+      announceValidationError('Sale recording failed', 'Failed to record sale');
+    },
+    ...defaultQueryOptions
+  });
+
+  // Removed fetchBreadTypes function - now using React Query above
 
   const handleBreadTypeSelect = (breadType: BreadType) => {
     setSelectedBreadType(breadType);
@@ -167,6 +237,7 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
   };
 
   const handleSubmit = async () => {
+    // Validation
     if (!formData.breadTypeId) {
       toast.error('Please select a bread type');
       announceValidationError('Bread type', 'Please select a bread type');
@@ -179,73 +250,33 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
       return;
     }
 
-    try {
-      setSubmitting(true);
-      startTimer('record_sale');
+    // Use React Query mutation
+    const saleData = {
+      bread_type_id: formData.breadTypeId,
+      quantity: formData.quantity,
+      unit_price: formData.unitPrice,
+      discount: formData.discount,
+      shift: currentShift,
+      recorded_by: userId
+    };
 
-      console.log('Recording sale using server action:', {
-        bread_type_id: formData.breadTypeId,
-        quantity: formData.quantity,
-        unit_price: formData.unitPrice,
-        discount: formData.discount,
-        shift: currentShift,
-        recorded_by: userId
-      });
-
-      await createSalesLog({
-        bread_type_id: formData.breadTypeId,
-        quantity: formData.quantity,
-        unit_price: formData.unitPrice,
-        discount: formData.discount,
-        shift: currentShift,
-        recorded_by: userId
-      });
-
-      const duration = endTimer('record_sale');
-      const successMessage = `Sale recorded: ${formData.breadTypeName} x${formData.quantity} units`;
-      toast.success(successMessage);
-      announceSuccess(successMessage);
-      
-      trackUserAction({
-        action: 'record_sale_success',
-        component: 'RecordSalesClient',
-        timestamp: Date.now(),
-        duration,
-        metadata: { 
-          breadType: formData.breadTypeName, 
-          quantity: formData.quantity,
-          totalAmount: formData.totalAmount
-        }
-      });
-      
-      // Add a small delay for better UX and smooth transition
-      setTimeout(() => {
-        // Get the previous page from cookie for navigation after success
-        const previousPage = getCookie('previousPage');
-        
-        if (previousPage && (previousPage === '/dashboard/sales-management' || previousPage.startsWith('/dashboard/'))) {
-          // Clear the cookie after using it
-          document.cookie = `previousPage=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`;
-          router.push(previousPage);
-        } else {
-          // Default fallback to sales dashboard
-          router.push('/dashboard/sales');
-        }
-      }, 1000); // 1 second delay to show success message
-      
-    } catch (error) {
-      console.error('Error recording sales:', error);
-      toast.error('Failed to record sale. Please try again.');
-      endTimer('record_sale', { error: true });
-      trackUserAction({
-        action: 'record_sale_error',
-        component: 'RecordSalesClient',
-        timestamp: Date.now(),
-        metadata: { error: (error as Error).message }
-      });
-      setSubmitting(false); // Only reset submitting on error
-    }
-    // Don't reset submitting on success - keep loading state during navigation
+    console.log('Recording sale using React Query mutation:', saleData);
+    
+    createSaleMutation.mutate(saleData, {
+      onSuccess: () => {
+        // Navigation with smart routing
+        setTimeout(() => {
+          const previousPage = getCookie('previousPage');
+          
+          if (previousPage && (previousPage === '/dashboard/sales-management' || previousPage.startsWith('/dashboard/'))) {
+            document.cookie = `previousPage=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`;
+            router.push(previousPage);
+          } else {
+            router.push('/dashboard/sales');
+          }
+        }, 1000);
+      }
+    });
   };
 
   // Utility function to get cookie value
@@ -311,7 +342,7 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
               variant="ghost"
               size="sm"
               onClick={handleBackNavigation}
-              disabled={submitting || isNavigatingBack}
+              disabled={createSaleMutation.isPending || isNavigatingBack}
               className="h-10 w-10 p-0 text-white hover:bg-white/20 rounded-xl touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Go back to previous page"
               title="Go back"
@@ -333,7 +364,7 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
 
       {/* Content Area - Full Screen Scrollable */}
       <div className="flex-1 overflow-y-auto bg-gradient-to-br from-orange-50 to-amber-50">
-        {loading ? (
+        {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
             <p className="mt-6 text-gray-600 text-lg">Loading bread types...</p>
@@ -513,7 +544,7 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
           <Button
             variant="outline"
             onClick={handleBackNavigation}
-            disabled={submitting || isNavigatingBack}
+            disabled={createSaleMutation.isPending || isNavigatingBack}
             className="flex-1 py-4 rounded-2xl border-2 hover:border-orange-400 transition-all duration-200 text-base font-semibold touch-manipulation min-h-[56px]"
             size="lg"
           >
@@ -521,14 +552,14 @@ export function RecordSalesClient({ userId, userName }: RecordSalesClientProps) 
           </Button>
           <LoadingButton
             onClick={handleSubmit}
-            isLoading={submitting}
+            isLoading={createSaleMutation.isPending}
             loadingText="Recording Sale..."
             icon={ShoppingCart}
             disabled={!formData.breadTypeId || formData.quantity <= 0}
             className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-base font-semibold touch-manipulation min-h-[56px]"
             size="lg"
           >
-            {submitting ? 'Saving & Returning...' : 'Record Sale'}
+            {createSaleMutation.isPending ? 'Saving & Returning...' : 'Record Sale'}
           </LoadingButton>
         </div>
       </div>

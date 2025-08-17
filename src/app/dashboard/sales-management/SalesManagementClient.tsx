@@ -39,6 +39,8 @@ interface SalesRecord {
   shift: string;
   recorded_by: string;
   created_at: string;
+  updated_at: string;
+  leftovers?: number;
   bread_types: {
     id: string;
     name: string;
@@ -59,11 +61,13 @@ interface AvailableStock {
   quantity: number;
   unit_price: number;
   last_updated: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface SalesManagementData {
   salesRecords: SalesRecord[];
-  availableStock: AvailableStock[];
+  availableStock?: AvailableStock[];
   metrics: DashboardMetrics;
 }
 
@@ -200,7 +204,8 @@ export default function SalesManagementClient({
           metrics: result.data.metrics
         });
       } else {
-        console.error('Error fetching sales data:', result.error);
+        const errorMessage = 'error' in result ? result.error : 'Unknown error occurred';
+        console.error('Error fetching sales data:', errorMessage);
         toast.error('Failed to fetch sales data');
       }
     } catch (error) {
@@ -234,10 +239,7 @@ export default function SalesManagementClient({
     return <CheckCircle className="h-4 w-4 text-green-500" />;
   };
 
-  const handleSalesRecorded = () => {
-    fetchSalesData();
-    toast.success('Sale recorded successfully');
-  };
+  // Removed unused handleSalesRecorded function
 
   // Removed modal transition handler - now using page routes
 

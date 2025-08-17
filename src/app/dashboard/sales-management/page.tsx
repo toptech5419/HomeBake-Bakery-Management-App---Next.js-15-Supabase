@@ -35,7 +35,14 @@ export default async function SalesManagementPage() {
       userId={user.id}
       userName={profile.name}
       userRole={profile.role}
-      initialData={initialData.success && initialData.data ? initialData.data : null}
+      initialData={
+        initialData.success && 
+        initialData.data && 
+        typeof initialData.data === 'object' && 
+        'salesRecords' in initialData.data 
+          ? initialData.data 
+          : null
+      }
     />
   );
 }

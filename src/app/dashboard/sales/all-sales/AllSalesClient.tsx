@@ -6,6 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
+import { handleAndShowSalesError, defaultQueryOptions } from '@/lib/utils/sales-error-handler';
+import { 
+  salesQueryKeys, 
+  salesCacheConfig, 
+  createSalesQueryOptions 
+} from '@/lib/queries/sales-query-keys';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { useShift } from '@/contexts/ShiftContext';
 import { useRouter } from 'next/navigation';
@@ -44,20 +50,30 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [isNavigatingBack, setIsNavigatingBack] = useState(false);
 
-  // Fetch all sales for the user and shift (no date filtering)
+  // Optimized fetch for all sales with production-grade caching
   const {
     data: sales = [],
     isLoading,
     error,
     refetch
-  } = useQuery({
-    queryKey: ['sales', 'all', 'details', currentShift, userId],
-    queryFn: async () => {
-      const data = await getAllSalesForShift(userId, currentShift);
-      return data as SalesLogWithDetails[];
-    },
-    staleTime: 30000, // 30 seconds
-  });
+  } = useQuery(
+    createSalesQueryOptions(
+      salesQueryKeys.allSalesDetails(userId, currentShift),
+      async () => {
+        try {
+          const data = await getAllSalesForShift(userId, currentShift);
+          return data as SalesLogWithDetails[];
+        } catch (error) {
+          handleAndShowSalesError(error, 'Fetching sales data', { 
+            userId, 
+            shift: currentShift 
+          });
+          throw error;
+        }
+      },
+      salesCacheConfig.salesData
+    )
+  );
 
   // Filter and search sales
   const filteredSales = useMemo(() => {

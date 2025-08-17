@@ -5,6 +5,39 @@ import { BarChart3, Package, Search, Filter, Download, Plus, Clock, User, Eye, S
 import { cn } from '@/lib/utils';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
+interface BatchData {
+  id: string;
+  bread_type_id: string;
+  batch_number: string;
+  start_time: string;
+  end_time: string | null;
+  actual_quantity: number;
+  status: 'active' | 'completed' | 'cancelled';
+  shift: 'morning' | 'night';
+  created_by: string;
+  bread_types: {
+    name: string;
+  } | null;
+  users: {
+    name: string;
+  } | null;
+}
+
+interface GroupedReport {
+  id: string;
+  date: string;
+  shift: 'morning' | 'night';
+  batches: BatchData[];
+  manager: string;
+  breadTypes: Set<string>;
+  endTimes: string[];
+  statuses: string[];
+  totalUnits: number;
+  breadTypesCount?: number;
+  status?: string;
+  totalValue?: number;
+}
+
 // Utility: Format date
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
@@ -38,7 +71,7 @@ const LoadingSkeleton = () => (
 
 export default function ManagerReportsPage() {
   const [loading, setLoading] = useState(true);
-  const [groupedReports, setGroupedReports] = useState<unknown[]>([]);
+  const [groupedReports, setGroupedReports] = useState<GroupedReport[]>([]);
   const [search, setSearch] = useState("");
   const [filterShift, setFilterShift] = useState("All");
 
@@ -57,8 +90,8 @@ export default function ManagerReportsPage() {
         return;
       }
       // Group by date+shift
-      const groups: Record<string, unknown> = {};
-      for (const batch of batches) {
+      const groups: Record<string, GroupedReport> = {};
+      for (const batch of (batches || []) as unknown as BatchData[]) {
         const date = batch.start_time ? batch.start_time.split('T')[0] : 'unknown';
         const shift = batch.shift;
         const key = `${date}-${shift}`;
@@ -68,7 +101,7 @@ export default function ManagerReportsPage() {
             date,
             shift,
             batches: [],
-            manager: (batch as any).users?.name || 'Unknown',
+            manager: batch.users?.name || 'Unknown',
             breadTypes: new Set(),
             endTimes: [],
             statuses: [],
@@ -76,15 +109,15 @@ export default function ManagerReportsPage() {
           };
         }
         groups[key].batches.push(batch);
-        if ((batch as any).bread_types && typeof (batch as any).bread_types.name === 'string') {
-          groups[key].breadTypes.add((batch as any).bread_types.name);
+        if (batch.bread_types && typeof batch.bread_types.name === 'string') {
+          groups[key].breadTypes.add(batch.bread_types.name);
         }
-        if ((batch as any).end_time) groups[key].endTimes.push((batch as any).end_time);
-        groups[key].statuses.push((batch as any).status);
-        groups[key].totalUnits += (batch as any).actual_quantity || 0;
+        if (batch.end_time) groups[key].endTimes.push(batch.end_time);
+        groups[key].statuses.push(batch.status);
+        groups[key].totalUnits += batch.actual_quantity || 0;
       }
       // Build array
-      const arr = Object.values(groups).map((g: any) => {
+      const arr = Object.values(groups).map((g: GroupedReport) => {
         const allCompleted = g.statuses.every((s: string) => s === 'completed');
         return {
           ...g,
@@ -92,7 +125,7 @@ export default function ManagerReportsPage() {
           totalUnits: g.totalUnits,
           status: allCompleted ? 'Completed' : 'In Progress',
           latestEndTime: g.endTimes.length > 0 ? g.endTimes.sort().slice(-1)[0] : '',
-          breadTypes: Array.from(g.breadTypes),
+          breadTypesCount: g.breadTypes.size,
         };
       });
       setGroupedReports(arr);

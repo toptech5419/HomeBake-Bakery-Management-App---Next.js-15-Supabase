@@ -30,7 +30,7 @@ export default function ShiftManagementClient({
   const calculateShiftMetrics = (sales: typeof todaysSales) => {
     return {
       totalRevenue: sales.reduce((sum, sale) => 
-        sum + (sale.quantity * (sale.unitPrice || 0)), 0),
+        sum + (sale.quantity * (sale.unit_price || 0)), 0),
       totalItems: sales.reduce((sum, sale) => 
         sum + sale.quantity, 0),
       totalTransactions: sales.length
@@ -151,7 +151,7 @@ export default function ShiftManagementClient({
           )}
           <Button 
             variant="outline"
-            onClick={() => window.location.href = '/dashboard/sales/end'}
+            onClick={() => window.location.href = '/dashboard/sales/end-shift'}
           >
             End Current Shift
           </Button>
@@ -192,12 +192,12 @@ export default function ShiftManagementClient({
                 .map((sale) => (
                   <tr key={sale.id} className="border-b">
                     <td className="p-2">
-                      {new Date(sale.createdAt).toLocaleTimeString()}
+                      {new Date(sale.created_at).toLocaleTimeString()}
                     </td>
                     <td className="p-2">{sale.bread_types.name}</td>
                     <td className="p-2">{sale.quantity}</td>
                     <td className="p-2">
-                      {formatCurrencyNGN(sale.quantity * (sale.unitPrice || 0))}
+                      {formatCurrencyNGN(sale.quantity * (sale.unit_price || 0))}
                     </td>
                   </tr>
                 ))}
@@ -233,7 +233,7 @@ export default function ShiftManagementClient({
                     {feedback.shift === 'morning' ? '☀️ Morning' : '🌙 Night'}
                   </Badge>
                   <span className="text-sm text-muted-foreground">
-                    {new Date(feedback.createdAt).toLocaleTimeString()}
+                    {new Date(feedback.created_at).toLocaleTimeString()}
                   </span>
                 </div>
                 <p className="text-sm">{feedback.note}</p>

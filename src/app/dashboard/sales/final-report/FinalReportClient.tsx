@@ -496,7 +496,7 @@ export function FinalReportClient({ userName }: FinalReportClientProps) {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-gray-700">
-                        {user?.name || user?.email || 'Sales Rep'}
+                        {userName || user?.email || 'Sales Rep'}
                       </span>
                       <span className="text-sm text-gray-500">
                         {shiftFeedback?.created_at 

@@ -12,7 +12,7 @@ import { createUserMessages, withRetry } from '@/lib/utils/error-handling';
 interface BreadType {
   id: string;
   name: string;
-  size?: string;
+  size?: string | null;
   unit_price: number;
 }
 

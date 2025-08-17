@@ -77,6 +77,7 @@ interface ReportData {
   totalItemsSold: number;
   totalRemaining: number;
   shift?: string;
+  feedback?: string;
 }
 
 interface SalesReportsHistoryClientProps {

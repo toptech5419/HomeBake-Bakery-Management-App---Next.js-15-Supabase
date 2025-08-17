@@ -9,7 +9,7 @@ import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { supabase } from '@/lib/supabase/client';
 import { useShift } from '@/contexts/ShiftContext';
 import { toast } from 'sonner';
-import { createSalesLog } from '@/lib/sales/actions';
+// import { createSalesLog } from '@/lib/sales/actions'; // Removed unused import
 import { getBreadTypesForSales, getSalesDataForShift, getRemainingBreadData, createShiftReport } from '@/lib/reports/sales-reports-server-actions';
 import { getRemainingBread, updateRemainingBread } from '@/lib/reports/actions';
 import { upsertSalesLogs } from '@/lib/sales/end-shift-actions';
@@ -677,7 +677,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
   };
 
   // Simplified button logic - always enable the button
-  const hasSalesLogs = salesLogs.length > 0;
+  // const hasSalesLogs = salesLogs.length > 0; // Removed unused variable
   const shouldEnableEndShift = true; // Always enabled for simple functionality
 
 
