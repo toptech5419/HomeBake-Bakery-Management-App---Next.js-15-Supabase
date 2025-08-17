@@ -1,10 +1,27 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
 
 interface ProductionPushNotificationsProps {
   userId: string;
   className?: string;
+}
+
+interface PushSubscriptionData {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
+interface PushPreferences {
+  enabled: boolean;
+  endpoint: string | null;
+  p256dh_key: string | null;
+  auth_key: string | null;
+  user_agent: string;
 }
 
 export function ProductionPushNotifications({ userId, className = '' }: ProductionPushNotificationsProps) {
@@ -12,13 +29,133 @@ export function ProductionPushNotifications({ userId, className = '' }: Producti
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
+  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [subscription, setSubscription] = useState<PushSubscriptionData | null>(null);
 
   useEffect(() => {
     initializeNotifications();
   }, [userId]);
 
+  // Utility: Convert VAPID key to Uint8Array
+  const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
+  // Utility: Convert ArrayBuffer to Base64
+  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+  };
+
+  // Save preferences to database
+  const savePreferences = async (enabled: boolean, subscriptionData: PushSubscriptionData | null): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('push_notification_preferences')
+        .upsert({
+          user_id: userId,
+          enabled,
+          endpoint: subscriptionData?.endpoint || null,
+          p256dh_key: subscriptionData?.keys.p256dh || null,
+          auth_key: subscriptionData?.keys.auth || null,
+          user_agent: navigator.userAgent,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.warn('Failed to save push preferences:', error);
+      }
+    } catch (error) {
+      console.warn('Failed to save preferences:', error);
+    }
+  };
+
+  // Subscribe to push notifications with VAPID
+  const subscribeToPush = async (): Promise<PushSubscriptionData | null> => {
+    if (!registration) {
+      throw new Error('Service worker not available');
+    }
+
+    try {
+      // Check for existing subscription
+      let browserSubscription = await registration.pushManager.getSubscription();
+      
+      if (!browserSubscription) {
+        // Create new subscription with VAPID key
+        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_KEY || 'BNxVgm6xOemQ7qBRSXWnRIqQNDaKyJLEiGTiJbpEDOi2NDL-ZFY4Xq8xvQ_QO6Qh8yg8R2vQq2qPYo_3qz5-A';
+        
+        const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+
+        browserSubscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey
+        });
+        
+        console.log('✅ New push subscription created');
+      }
+
+      // Convert to our format
+      const subscriptionData: PushSubscriptionData = {
+        endpoint: browserSubscription.endpoint,
+        keys: {
+          p256dh: arrayBufferToBase64(browserSubscription.getKey('p256dh')!),
+          auth: arrayBufferToBase64(browserSubscription.getKey('auth')!)
+        }
+      };
+
+      setSubscription(subscriptionData);
+      return subscriptionData;
+
+    } catch (error) {
+      console.error('❌ Push subscription failed:', error);
+      throw new Error('Failed to set up push notifications');
+    }
+  };
+
+  // Unsubscribe from push notifications
+  const unsubscribeFromPush = async (): Promise<void> => {
+    try {
+      if (registration) {
+        const browserSubscription = await registration.pushManager.getSubscription();
+        if (browserSubscription) {
+          await browserSubscription.unsubscribe();
+          console.log('✅ Push subscription removed');
+        }
+      }
+      setSubscription(null);
+    } catch (error) {
+      console.warn('⚠️ Failed to unsubscribe:', error);
+    }
+  };
+
   const initializeNotifications = async () => {
     try {
+      // Register service worker first
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.register('/service-worker.js');
+          setRegistration(reg);
+          console.log('✅ Service worker registered');
+        } catch (swError) {
+          console.warn('Service worker registration failed:', swError);
+        }
+      }
+
       // Check if notifications are supported
       if (!('Notification' in window)) {
         setStatus('error');
@@ -26,12 +163,37 @@ export function ProductionPushNotifications({ userId, className = '' }: Producti
         return;
       }
 
+      // Load existing preferences from database
+      try {
+        const { data: preferences } = await supabase
+          .from('push_notification_preferences')
+          .select('enabled, endpoint, p256dh_key, auth_key')
+          .eq('user_id', userId)
+          .single();
+
+        if (preferences?.enabled && preferences.endpoint) {
+          setIsEnabled(true);
+          setStatus('success');
+          setMessage('Receiving real-time notifications');
+          setSubscription({
+            endpoint: preferences.endpoint,
+            keys: {
+              p256dh: preferences.p256dh_key || '',
+              auth: preferences.auth_key || ''
+            }
+          });
+          return;
+        }
+      } catch (error) {
+        console.log('No existing preferences found');
+      }
+
       // Check current permission status
       const permission = Notification.permission;
       if (permission === 'granted') {
-        setIsEnabled(true);
-        setStatus('success');
-        setMessage('Receiving real-time notifications');
+        setIsEnabled(false); // Not enabled until VAPID subscription is created
+        setStatus('idle');
+        setMessage('Turn on to get notified about bakery activities');
       } else if (permission === 'denied') {
         setIsEnabled(false);
         setStatus('error');
@@ -43,7 +205,6 @@ export function ProductionPushNotifications({ userId, className = '' }: Producti
       }
     } catch (error) {
       console.warn('Failed to initialize notifications:', error);
-      // Don't show error state on initialization failure
       setIsEnabled(false);
       setStatus('idle');
       setMessage('Turn on to get notified about bakery activities');
@@ -69,30 +230,31 @@ export function ProductionPushNotifications({ userId, className = '' }: Producti
         const permission = await Notification.requestPermission();
         
         if (permission === 'granted') {
-          // Set success state FIRST before any potentially failing operations
-          setIsEnabled(true);
-          setStatus('success');
-          setMessage('✅ Notifications enabled! You\'ll receive real-time updates');
-          
-          // Register service worker if available (don't let this fail the whole process)
-          if ('serviceWorker' in navigator) {
-            try {
-              await navigator.serviceWorker.register('/service-worker.js');
-            } catch (swError) {
-              console.warn('Service worker registration failed:', swError);
-              // Don't fail the whole process for this
-            }
-          }
-          
-          // Show test notification (don't let this fail the whole process)
           try {
-            new Notification('HomeBake', {
-              body: 'Push notifications are now enabled!',
-              icon: '/icons/icon-192x192.png'
-            });
-          } catch (notifError) {
-            console.warn('Test notification failed:', notifError);
-            // Notifications are still enabled, just the test failed
+            // Create VAPID subscription for actual push notifications
+            const subscriptionData = await subscribeToPush();
+            
+            // Save to database
+            await savePreferences(true, subscriptionData);
+            
+            // Set success state after everything is set up
+            setIsEnabled(true);
+            setStatus('success');
+            setMessage('✅ Push notifications enabled! You\'ll receive real-time updates');
+            
+            // Show test notification
+            try {
+              new Notification('HomeBake', {
+                body: 'Push notifications are now enabled!',
+                icon: '/icons/icon-192x192.png'
+              });
+            } catch (notifError) {
+              console.warn('Test notification failed:', notifError);
+            }
+          } catch (vapidError) {
+            console.error('VAPID subscription failed:', vapidError);
+            setStatus('error');
+            setMessage('❌ Failed to set up push notifications. Please try again');
           }
           
         } else if (permission === 'denied') {
@@ -104,9 +266,19 @@ export function ProductionPushNotifications({ userId, className = '' }: Producti
         }
       } else {
         // Disabling notifications
-        setIsEnabled(false);
-        setStatus('idle');
-        setMessage('Notifications disabled');
+        try {
+          await unsubscribeFromPush();
+          await savePreferences(false, null);
+          
+          setIsEnabled(false);
+          setStatus('idle');
+          setMessage('Notifications disabled');
+        } catch (error) {
+          console.warn('Failed to disable notifications:', error);
+          setIsEnabled(false);
+          setStatus('idle');
+          setMessage('Notifications disabled');
+        }
       }
     } catch (error) {
       // Only show error if we actually failed (not if just test notification failed)
