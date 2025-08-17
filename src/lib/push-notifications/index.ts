@@ -31,23 +31,6 @@ interface BrowserSupport {
   hasServiceWorker: boolean;
   hasPushManager: boolean;
   hasNotifications: boolean;
-  isIOSSafari: boolean;
-  isIOSVersionSupported: boolean;
-  isMobileSafari: boolean;
-  isChrome: boolean;
-  isFirefox: boolean;
-  isEdge: boolean;
-  isSamsungInternet: boolean;
-  isOpera: boolean;
-  isBrave: boolean;
-  isUCBrowser: boolean;
-  isInAppBrowser: boolean;
-  browserName: string;
-  browserVersion: string;
-  supportLevel: 'full' | 'partial' | 'none' | 'fallback';
-  reason?: string;
-  fallbackMethods: string[];
-  recommendedBrowsers: string[];
 }
 
 class PushNotificationService {
@@ -63,61 +46,24 @@ class PushNotificationService {
   }
 
   /**
-   * Comprehensive browser support detection with enhanced compatibility
+   * Simple and permissive browser support detection
    */
   private checkSupport(): void {
-    const userAgent = navigator.userAgent;
-    
-    // Enhanced feature detection with fallbacks
-    const hasServiceWorker = this.checkServiceWorkerSupport();
-    const hasPushManager = this.checkPushManagerSupport();
-    const hasNotifications = this.checkNotificationSupport();
-    
-    // Comprehensive browser detection
-    const browserInfo = this.detectBrowser(userAgent);
-    
-    // iOS version detection with better parsing
-    let isIOSVersionSupported = true;
-    if (browserInfo.isIOSSafari) {
-      isIOSVersionSupported = this.checkIOSVersion(userAgent);
-    }
-    
-    // Determine support level with progressive enhancement
-    const { supportLevel, reason, fallbackMethods, recommendedBrowsers } = this.determineSupportLevel({
-      hasServiceWorker,
-      hasPushManager,
-      hasNotifications,
-      browserInfo,
-      isIOSVersionSupported
-    });
+    // Simple feature detection - assume support by default
+    const hasServiceWorker = 'serviceWorker' in navigator;
+    const hasPushManager = 'PushManager' in window;
+    const hasNotifications = 'Notification' in window;
     
     this.browserSupport = {
-      isSupported: supportLevel !== 'none',
+      isSupported: true, // Always assume supported, let actual usage determine compatibility
       hasServiceWorker,
       hasPushManager,
-      hasNotifications,
-      isIOSSafari: browserInfo.isIOSSafari,
-      isIOSVersionSupported,
-      isMobileSafari: browserInfo.isMobileSafari,
-      isChrome: browserInfo.isChrome,
-      isFirefox: browserInfo.isFirefox,
-      isEdge: browserInfo.isEdge,
-      isSamsungInternet: browserInfo.isSamsungInternet,
-      isOpera: browserInfo.isOpera,
-      isBrave: browserInfo.isBrave,
-      isUCBrowser: browserInfo.isUCBrowser,
-      isInAppBrowser: browserInfo.isInAppBrowser,
-      browserName: browserInfo.browserName,
-      browserVersion: browserInfo.browserVersion,
-      supportLevel,
-      reason,
-      fallbackMethods,
-      recommendedBrowsers
+      hasNotifications
     };
     
-    this._isSupported = this.browserSupport.isSupported;
+    this._isSupported = true; // Always try to enable, handle errors gracefully
     
-    console.log('🔍 Enhanced browser support analysis:', this.browserSupport);
+    console.log('🔍 Simple browser support check:', this.browserSupport);
   }
 
   /**

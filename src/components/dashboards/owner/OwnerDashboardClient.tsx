@@ -10,8 +10,7 @@ import { useReportCounters } from '@/hooks/use-report-counters';
 import { useActivities } from '@/hooks/use-live-activities';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import ActivityNotifications from '@/components/notifications/ActivityNotifications';
-import EnhancedPushNotifications from '@/components/notifications/EnhancedPushNotifications';
-import { usePushNotifications } from '@/hooks/use-push-notifications';
+import SimplePushNotifications from '@/components/notifications/SimplePushNotifications';
 
 interface OwnerDashboardClientProps {
   user: { id: string; email?: string };
@@ -48,19 +47,7 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
     }
   };
   
-  // Use the enhanced push notifications hook
-  const {
-    isEnabled: pushNotificationsEnabled,
-    isSupported: pushNotificationsSupported,
-    isLoading: pushNotificationsLoading,
-    error: pushNotificationError,
-    supportMessage,
-    recommendedBrowsers,
-    supportLevel,
-    showUnsupportedMessage,
-    toggleNotifications: handlePushNotificationToggle,
-    retryInitialization
-  } = usePushNotifications(user.id);
+  // Removed complex push notification hook - using simple component instead
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -245,8 +232,8 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
                 </div>
               </div>
 
-              {/* Enhanced Push Notification Section */}
-              <EnhancedPushNotifications 
+              {/* Simple Push Notification Section */}
+              <SimplePushNotifications 
                 userId={user.id}
                 className="border-0 shadow-sm hover:shadow-md transition-shadow"
               />
