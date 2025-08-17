@@ -32,6 +32,10 @@ export function ProductionPushNotifications({ userId, className = '' }: Producti
         setIsEnabled(true);
         setStatus('success');
         setMessage('Receiving real-time notifications');
+      } else if (permission === 'denied') {
+        setIsEnabled(false);
+        setStatus('error');
+        setMessage('Notifications blocked. Click for help with browser settings');
       } else {
         setIsEnabled(false);
         setStatus('idle');
@@ -39,6 +43,10 @@ export function ProductionPushNotifications({ userId, className = '' }: Producti
       }
     } catch (error) {
       console.warn('Failed to initialize notifications:', error);
+      // Don't show error state on initialization failure
+      setIsEnabled(false);
+      setStatus('idle');
+      setMessage('Turn on to get notified about bakery activities');
     }
   };
 
@@ -61,24 +69,31 @@ export function ProductionPushNotifications({ userId, className = '' }: Producti
         const permission = await Notification.requestPermission();
         
         if (permission === 'granted') {
-          // Register service worker if available
+          // Set success state FIRST before any potentially failing operations
+          setIsEnabled(true);
+          setStatus('success');
+          setMessage('✅ Notifications enabled! You\'ll receive real-time updates');
+          
+          // Register service worker if available (don't let this fail the whole process)
           if ('serviceWorker' in navigator) {
             try {
               await navigator.serviceWorker.register('/service-worker.js');
             } catch (swError) {
               console.warn('Service worker registration failed:', swError);
+              // Don't fail the whole process for this
             }
           }
-
-          setIsEnabled(true);
-          setStatus('success');
-          setMessage('✅ Notifications enabled! You\'ll receive real-time updates');
           
-          // Show test notification
-          new Notification('HomeBake', {
-            body: 'Push notifications are now enabled!',
-            icon: '/icons/icon-192x192.png'
-          });
+          // Show test notification (don't let this fail the whole process)
+          try {
+            new Notification('HomeBake', {
+              body: 'Push notifications are now enabled!',
+              icon: '/icons/icon-192x192.png'
+            });
+          } catch (notifError) {
+            console.warn('Test notification failed:', notifError);
+            // Notifications are still enabled, just the test failed
+          }
           
         } else if (permission === 'denied') {
           setStatus('error');
@@ -94,9 +109,13 @@ export function ProductionPushNotifications({ userId, className = '' }: Producti
         setMessage('Notifications disabled');
       }
     } catch (error) {
-      setStatus('error');
-      setMessage('❌ Failed to toggle notifications. Please try again');
-      console.error('Toggle failed:', error);
+      // Only show error if we actually failed (not if just test notification failed)
+      if (!isEnabled) {
+        setStatus('error');
+        setMessage('❌ Failed to enable notifications. Please try again');
+        console.error('Toggle failed:', error);
+      }
+      // If isEnabled is true, we succeeded despite the error
     } finally {
       setIsLoading(false);
     }
@@ -181,7 +200,7 @@ export function ProductionPushNotifications({ userId, className = '' }: Producti
         </p>
         
         {/* Error Actions */}
-        {status === 'error' && message.includes('Permission denied') && (
+        {status === 'error' && (message.includes('Permission denied') || message.includes('blocked')) && (
           <button
             onClick={openBrowserSettings}
             className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
@@ -190,9 +209,13 @@ export function ProductionPushNotifications({ userId, className = '' }: Producti
           </button>
         )}
         
-        {status === 'error' && !message.includes('not supported') && (
+        {status === 'error' && !message.includes('not supported') && !message.includes('blocked') && (
           <button
-            onClick={handleToggle}
+            onClick={() => {
+              setStatus('idle');
+              setMessage('Turn on to get notified about bakery activities');
+              handleToggle();
+            }}
             disabled={isLoading}
             className="mt-2 px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded-md transition-colors disabled:opacity-50"
           >
