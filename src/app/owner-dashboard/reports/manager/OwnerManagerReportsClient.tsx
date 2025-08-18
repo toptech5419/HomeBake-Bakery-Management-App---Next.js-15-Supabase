@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { getManagerReports, type BatchData, type GroupedReport } from '@/lib/reports/manager-reports-server-actions';
 import { cn } from '@/lib/utils';
+import { Logger } from '@/lib/utils/logger';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { Card } from '@/components/ui/card';
@@ -138,7 +139,7 @@ export default function OwnerManagerReportsClient({ user, displayName }: OwnerMa
       const reports = await getManagerReports();
       setGroupedReports(reports);
     } catch (error) {
-      console.error('Error fetching reports:', error);
+      Logger.error('Error fetching reports', error);
       setGroupedReports([]);
     }
     

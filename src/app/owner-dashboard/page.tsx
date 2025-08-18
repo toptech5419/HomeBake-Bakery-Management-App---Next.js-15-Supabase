@@ -2,6 +2,7 @@ import { createServerComponentClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { UserRole } from '@/types';
 import OwnerDashboardClient from '@/components/dashboards/owner/OwnerDashboardClient';
+import { Logger } from '@/lib/utils/logger';
 
 // Force dynamic rendering for authentication
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,7 @@ export default async function OwnerDashboardPage() {
       role = profile?.role as UserRole || role;
       displayName = profile?.name || displayName;
     } catch {
-      console.log('No profile found in users table, using metadata');
+      Logger.debug('No profile found in users table, using metadata');
       role = role || 'sales_rep';
       displayName = displayName || user.email?.split('@')[0] || 'User';
     }

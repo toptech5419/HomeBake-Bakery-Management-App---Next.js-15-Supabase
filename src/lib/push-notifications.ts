@@ -1,6 +1,7 @@
 'use client';
 
 import { supabase } from '@/lib/supabase/client';
+import { Logger } from '@/lib/utils/logger';
 
 interface PushSubscriptionData {
   endpoint: string;
@@ -59,10 +60,10 @@ class SimplePushNotifications {
     if (this.isInitialized) return true;
 
     try {
-      console.log('🚀 Initializing push notifications...');
+      Logger.debug('Initializing push notifications...');
 
       if (!this.isSupported()) {
-        console.log('ℹ️ Push notifications not supported in this browser');
+        Logger.info('Push notifications not supported in this browser');
         return false;
       }
 
@@ -70,10 +71,10 @@ class SimplePushNotifications {
       await this.registerServiceWorker();
       
       this.isInitialized = true;
-      console.log('✅ Push notifications initialized successfully');
+      Logger.success('Push notifications initialized successfully');
       return true;
     } catch (error) {
-      console.error('❌ Failed to initialize push notifications:', error);
+      Logger.error('Failed to initialize push notifications', error);
       this.initPromise = null; // Allow retry
       return false;
     }
@@ -88,7 +89,7 @@ class SimplePushNotifications {
       const existingReg = await navigator.serviceWorker.getRegistration('/');
       if (existingReg && existingReg.active) {
         this.registration = existingReg;
-        console.log('♻️ Using existing service worker');
+        Logger.debug('Using existing service worker');
         return;
       }
 
@@ -100,9 +101,9 @@ class SimplePushNotifications {
       // Wait for service worker to be ready
       await navigator.serviceWorker.ready;
       
-      console.log('✅ Service worker registered');
+      Logger.success('Service worker registered');
     } catch (error) {
-      console.error('❌ Service worker registration failed:', error);
+      Logger.error('Service worker registration failed', error);
       throw new Error('Failed to register service worker');
     }
   }
@@ -127,7 +128,7 @@ class SimplePushNotifications {
       const permission = await Notification.requestPermission();
       return permission;
     } catch (error) {
-      console.error('Failed to request permission:', error);
+      Logger.error('Failed to request permission', error);
       throw new Error('Failed to request notification permission');
     }
   }
@@ -180,7 +181,7 @@ class SimplePushNotifications {
         }
       };
     } catch (error) {
-      console.error('Failed to create subscription:', error);
+      Logger.error('Failed to create subscription', error);
       throw new Error('Failed to subscribe to push notifications');
     }
   }
@@ -195,10 +196,10 @@ class SimplePushNotifications {
       const subscription = await this.registration.pushManager.getSubscription();
       if (subscription) {
         await subscription.unsubscribe();
-        console.log('✅ Unsubscribed from push notifications');
+        Logger.success('Unsubscribed from push notifications');
       }
     } catch (error) {
-      console.error('Failed to unsubscribe:', error);
+      Logger.error('Failed to unsubscribe', error);
       throw new Error('Failed to unsubscribe from push notifications');
     }
   }
@@ -208,11 +209,11 @@ class SimplePushNotifications {
    */
   async saveSubscription(userId: string, subscriptionData: PushSubscriptionData): Promise<void> {
     const maxRetries = 3;
-    let lastError: Error;
+    let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`💾 Attempting to save subscription (${attempt}/${maxRetries})...`);
+        Logger.debug(`Attempting to save subscription (${attempt}/${maxRetries})`);
 
         const { error } = await supabase
           .from('push_notification_preferences')
@@ -233,11 +234,11 @@ class SimplePushNotifications {
           throw error;
         }
 
-        console.log('✅ Push subscription saved successfully');
+        Logger.success('Push subscription saved successfully');
         return;
       } catch (error) {
         lastError = error as Error;
-        console.warn(`❌ Save attempt ${attempt}/${maxRetries} failed:`, {
+        Logger.warn(`Save attempt ${attempt}/${maxRetries} failed`, {
           error: lastError.message,
           userId,
           endpoint: subscriptionData.endpoint.substring(0, 50) + '...'
@@ -250,14 +251,14 @@ class SimplePushNotifications {
 
         // Wait before retry with exponential backoff
         const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-        console.log(`⏳ Retrying in ${delay}ms...`);
+        Logger.debug(`Retrying in ${delay}ms`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 
     // All attempts failed
     const errorMessage = lastError?.message || 'Unknown error';
-    console.error('🚨 All save attempts failed:', errorMessage);
+    Logger.error('All save attempts failed', lastError || new Error(errorMessage));
     
     // Provide user-friendly error message
     if (errorMessage.includes('fetch failed') || errorMessage.includes('ERR_CONNECTION_CLOSED')) {
@@ -278,11 +279,11 @@ class SimplePushNotifications {
    */
   async removeSubscription(userId: string): Promise<void> {
     const maxRetries = 3;
-    let lastError: Error;
+    let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`🗑️ Attempting to remove subscription (${attempt}/${maxRetries})...`);
+        Logger.debug(`Attempting to remove subscription (${attempt}/${maxRetries})`);
 
         const { error } = await supabase
           .from('push_notification_preferences')
@@ -300,11 +301,11 @@ class SimplePushNotifications {
           throw error;
         }
 
-        console.log('✅ Push subscription removed successfully');
+        Logger.success('Push subscription removed successfully');
         return;
       } catch (error) {
         lastError = error as Error;
-        console.warn(`❌ Remove attempt ${attempt}/${maxRetries} failed:`, {
+        Logger.warn(`Remove attempt ${attempt}/${maxRetries} failed`, {
           error: lastError.message,
           userId
         });
@@ -319,7 +320,7 @@ class SimplePushNotifications {
     }
 
     const errorMessage = lastError?.message || 'Unknown error';
-    console.error('🚨 All remove attempts failed:', errorMessage);
+    Logger.error('All remove attempts failed', lastError || new Error(errorMessage));
     
     if (errorMessage.includes('fetch failed') || errorMessage.includes('ERR_CONNECTION_CLOSED')) {
       throw new Error('Network connection issue. Please check your internet connection and try again.');
@@ -339,7 +340,7 @@ class SimplePushNotifications {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`📋 Getting user preferences (${attempt}/${maxRetries})...`);
+        Logger.debug(`Getting user preferences (${attempt}/${maxRetries})`);
 
         const { data, error } = await supabase
           .from('push_notification_preferences')
@@ -354,11 +355,11 @@ class SimplePushNotifications {
           hasSubscription: !!(data?.endpoint)
         };
 
-        console.log('✅ User preferences retrieved:', result);
+        Logger.success('User preferences retrieved', result);
         return result;
       } catch (error) {
         lastError = error as Error;
-        console.warn(`❌ Get preferences attempt ${attempt}/${maxRetries} failed:`, {
+        Logger.warn(`Get preferences attempt ${attempt}/${maxRetries} failed`, {
           error: lastError.message,
           userId
         });
@@ -372,7 +373,7 @@ class SimplePushNotifications {
       }
     }
 
-    console.error('🚨 All get preferences attempts failed, using defaults');
+    Logger.warn('All get preferences attempts failed, using defaults');
     return { enabled: false, hasSubscription: false };
   }
 
@@ -393,7 +394,7 @@ class SimplePushNotifications {
         silent: false
       });
     } catch (error) {
-      console.error('Failed to show notification:', error);
+      Logger.error('Failed to show notification', error);
       throw new Error('Failed to show notification');
     }
   }

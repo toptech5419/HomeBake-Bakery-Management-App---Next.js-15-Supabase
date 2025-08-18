@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { getSalesReports, type SalesReport, type SalesDataItem, type RemainingBreadItem } from '@/lib/reports/sales-reports-server-actions';
 import { cn } from '@/lib/utils';
+import { Logger } from '@/lib/utils/logger';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Modal } from '@/components/ui/modal';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
@@ -135,7 +136,7 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
       const reportsData = await getSalesReports();
       setReports(reportsData);
     } catch (error) {
-      console.error('Error fetching sales reports:', error);
+      Logger.error('Error fetching sales reports', error);
       setReports([]);
     }
     

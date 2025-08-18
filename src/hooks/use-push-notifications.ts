@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { pushNotifications } from '@/lib/push-notifications';
+import { Logger } from '@/lib/utils/logger';
 
 interface UsePushNotificationsReturn {
   isSupported: boolean;
@@ -32,7 +33,7 @@ export function usePushNotifications(userId?: string): UsePushNotificationsRetur
       const prefs = await pushNotifications.getUserPreferences(userId);
       setIsEnabled(prefs.enabled && prefs.hasSubscription && permission === 'granted');
     } catch (err) {
-      console.error('Failed to load preferences:', err);
+      Logger.error('Failed to load preferences', err);
     }
   }, [userId, isSupported, permission]);
 
@@ -75,12 +76,12 @@ export function usePushNotifications(userId?: string): UsePushNotificationsRetur
       setIsEnabled(true);
       setPermission(pushNotifications.getPermission());
       
-      console.log('✅ Push notifications enabled');
+      Logger.success('Push notifications enabled');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to enable notifications';
       setError(errorMessage);
       setIsEnabled(false);
-      console.error('Failed to enable notifications:', err);
+      Logger.error('Failed to enable notifications', err);
     } finally {
       setIsLoading(false);
     }
@@ -102,11 +103,11 @@ export function usePushNotifications(userId?: string): UsePushNotificationsRetur
       
       setIsEnabled(false);
       
-      console.log('✅ Push notifications disabled');
+      Logger.success('Push notifications disabled');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to disable notifications';
       setError(errorMessage);
-      console.error('Failed to disable notifications:', err);
+      Logger.error('Failed to disable notifications', err);
     } finally {
       setIsLoading(false);
     }
@@ -118,11 +119,11 @@ export function usePushNotifications(userId?: string): UsePushNotificationsRetur
 
     try {
       await pushNotifications.sendTestNotification();
-      console.log('✅ Test notification sent');
+      Logger.success('Test notification sent');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to send test notification';
       setError(errorMessage);
-      console.error('Failed to send test notification:', err);
+      Logger.error('Failed to send test notification', err);
     }
   }, []);
 

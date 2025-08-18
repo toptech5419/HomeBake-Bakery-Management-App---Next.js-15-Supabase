@@ -56,7 +56,8 @@
       "Bash(for pid in 23816 10364 18436 17796)",
       "Bash(psql:*)",
       "Bash(timeout:*)",
-      "Bash(start http://localhost:3003)"
+      "Bash(start http://localhost:3003)",
+      "Bash(supabase:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
