@@ -44,9 +44,12 @@ interface NotificationRequest {
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 Push notification API called');
     const body: NotificationRequest = await request.json();
+    console.log('📝 Request body:', body);
     
     if (!vapidPublicKey || !vapidPrivateKey) {
+      console.error('❌ VAPID keys not configured');
       return NextResponse.json(
         { error: 'Push notifications not configured' }, 
         { status: 500 }
@@ -67,30 +70,64 @@ export async function POST(request: NextRequest) {
     
     
     // Get all owner accounts with push notification subscriptions enabled
+    // Note: push_notification_preferences.user_id references auth.users.id
+    // profiles.id also references auth.users.id, so we can join them
     const { data: subscriptions, error: subscriptionError } = await supabase
       .from('push_notification_preferences')
       .select(`
         user_id,
         endpoint,
         p256dh_key,
-        auth_key,
-        users!inner(id, role)
+        auth_key
       `)
       .eq('enabled', true)
-      .eq('users.role', 'owner')
       .not('endpoint', 'is', null);
 
     if (subscriptionError) {
+      console.error('❌ Failed to fetch subscriptions:', subscriptionError);
       return NextResponse.json(
-        { error: 'Failed to fetch subscriptions' }, 
+        { error: 'Failed to fetch subscriptions', details: subscriptionError.message }, 
         { status: 500 }
       );
     }
 
+    console.log('📋 Found subscriptions:', subscriptions?.length || 0);
+
     if (!subscriptions || subscriptions.length === 0) {
+      console.log('⚠️ No subscriptions found to notify');
       return NextResponse.json({ 
         success: true, 
         message: 'No subscriptions to notify',
+        sent: 0 
+      });
+    }
+
+    // Filter subscriptions to only include owners by checking profiles table
+    const userIds = subscriptions.map(sub => sub.user_id);
+    const { data: ownerProfiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .in('id', userIds)
+      .eq('role', 'owner');
+
+    if (profileError) {
+      console.error('❌ Failed to fetch owner profiles:', profileError);
+      return NextResponse.json(
+        { error: 'Failed to fetch owner profiles', details: profileError.message }, 
+        { status: 500 }
+      );
+    }
+
+    const ownerIds = new Set((ownerProfiles || []).map(profile => profile.id));
+    const ownerSubscriptions = subscriptions.filter(sub => ownerIds.has(sub.user_id));
+
+    console.log('👑 Found owner subscriptions:', ownerSubscriptions.length);
+
+    if (ownerSubscriptions.length === 0) {
+      console.log('⚠️ No owner subscriptions found to notify');
+      return NextResponse.json({ 
+        success: true, 
+        message: 'No owner subscriptions to notify',
         sent: 0 
       });
     }
@@ -105,8 +142,8 @@ export async function POST(request: NextRequest) {
       url: '/owner-dashboard'
     };
 
-    // Send notifications to all subscriptions
-    const notifications = subscriptions.map(async (subscription: any) => {
+    // Send notifications to all owner subscriptions
+    const notifications = ownerSubscriptions.map(async (subscription: any) => {
       try {
         const pushSubscription = {
           endpoint: subscription.endpoint,
@@ -128,10 +165,16 @@ export async function POST(request: NextRequest) {
           options
         );
 
+        console.log('✅ Notification sent successfully to user:', subscription.user_id);
+        
         return { success: true, user_id: subscription.user_id };
       } catch (error: any) {
+        console.error('❌ Failed to send notification to user:', subscription.user_id);
+        console.error('💥 Push error:', error.message);
+        
         // Remove invalid subscriptions
         if (error.statusCode === 410 || error.statusCode === 404) {
+          console.log('🗑️ Removing invalid subscription for user:', subscription.user_id);
           await supabase
             .from('push_notification_preferences')
             .update({ enabled: false, endpoint: null })
@@ -149,9 +192,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Sent ${successful} of ${subscriptions.length} notifications`,
+      message: `Sent ${successful} of ${ownerSubscriptions.length} notifications`,
       sent: successful,
-      total: subscriptions.length
+      total: ownerSubscriptions.length
     });
 
   } catch (error: any) {

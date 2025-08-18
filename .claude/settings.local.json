@@ -52,7 +52,11 @@
       "Bash(npm:*)",
       "Bash(source ~/.bashrc)",
       "Bash(fnm:*)",
-      "Bash(timeout 60 npm run build)"
+      "Bash(timeout 60 npm run build)",
+      "Bash(for pid in 23816 10364 18436 17796)",
+      "Bash(psql:*)",
+      "Bash(timeout:*)",
+      "Bash(start http://localhost:3003)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

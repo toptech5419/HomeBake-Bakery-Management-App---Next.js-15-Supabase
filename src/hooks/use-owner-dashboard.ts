@@ -66,20 +66,34 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
       
       // Get basic stats (without low stock count and batch count since we have real-time tracking)
       const [todayRevenue, staffCounts] = await Promise.all([
-        getTodayRevenue(),
-        getStaffOnlineCount()
+        getTodayRevenue().catch(() => 0),
+        getStaffOnlineCount().catch(() => ({ online: 0, total: 0 }))
       ]);
+
+      // Defensive check to ensure staffCounts is defined and has the expected structure
+      const safeStaffCounts = staffCounts && typeof staffCounts === 'object' && 'online' in staffCounts 
+        ? staffCounts 
+        : { online: 0, total: 0 };
 
       setStats(prevStats => ({
         ...prevStats,
-        todayRevenue,
-        staffOnline: staffCounts.online,
-        staffTotal: staffCounts.total,
+        todayRevenue: typeof todayRevenue === 'number' ? todayRevenue : 0,
+        staffOnline: safeStaffCounts.online || 0,
+        staffTotal: safeStaffCounts.total || 0,
         lastUpdate: new Date().toISOString()
       }));
     } catch (err) {
       console.error('Error fetching owner dashboard stats:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch stats');
+      
+      // Set safe fallback values
+      setStats(prevStats => ({
+        ...prevStats,
+        todayRevenue: 0,
+        staffOnline: 0,
+        staffTotal: 0,
+        lastUpdate: new Date().toISOString()
+      }));
     } finally {
       setIsLoading(false);
     }
@@ -168,9 +182,11 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
           getTodayRevenue().then(revenue => {
             setStats(prev => ({
               ...prev,
-              todayRevenue: revenue,
+              todayRevenue: typeof revenue === 'number' ? revenue : 0,
               lastUpdate: new Date().toISOString()
             }));
+          }).catch(err => {
+            console.warn('Failed to fetch revenue on sales update:', err);
           });
         }
       )
@@ -191,9 +207,11 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
           getTodayBatchCount().then(count => {
             setStats(prev => ({
               ...prev,
-              todayBatches: count,
+              todayBatches: typeof count === 'number' ? count : 0,
               lastUpdate: new Date().toISOString()
             }));
+          }).catch(err => {
+            console.warn('Failed to fetch batch count on batch update:', err);
           });
         }
       )
@@ -215,12 +233,18 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
         () => {
           // Refetch staff counts when sessions change
           getStaffOnlineCount().then(counts => {
+            const safeCounts = counts && typeof counts === 'object' && 'online' in counts 
+              ? counts 
+              : { online: 0, total: 0 };
+            
             setStats(prev => ({
               ...prev,
-              staffOnline: counts.online,
-              staffTotal: counts.total,
+              staffOnline: safeCounts.online || 0,
+              staffTotal: safeCounts.total || 0,
               lastUpdate: new Date().toISOString()
             }));
+          }).catch(err => {
+            console.warn('Failed to fetch staff counts on session update:', err);
           });
         }
       )

@@ -10,7 +10,7 @@ import { useReportCounters } from '@/hooks/use-report-counters';
 import { useActivities } from '@/hooks/use-live-activities';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 import ActivityNotifications from '@/components/notifications/ActivityNotifications';
-import ProductionPushNotifications from '@/components/notifications/ProductionPushNotifications';
+import { PushNotificationToggle } from '@/components/notifications/PushNotificationToggle';
 
 interface OwnerDashboardClientProps {
   user: { id: string; email?: string };
@@ -232,12 +232,8 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
                 </div>
               </div>
 
-              {/* Production Push Notification Section */}
-              <ProductionPushNotifications 
-                userId={user.id}
-                className="border-0"
-              />
-
+              {/* New Push Notifications Component - Guaranteed Visible */}
+              <PushNotificationToggle userId={user.id} />
 
               {/* Refresh Button */}
               <div className="text-center pt-4">

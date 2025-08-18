@@ -1,7 +1,7 @@
-// HomeBake Service Worker - Push Notifications Support
-// Handles push notification events and background sync
+// HomeBake Service Worker - Simple & Production Ready
+// Handles push notifications with cross-browser compatibility
 
-const CACHE_NAME = 'homebake-v1.2';
+const CACHE_NAME = 'homebake-v2.0';
 const ACTIVITY_ICONS = {
   sale: '🛒',
   batch: '📦', 
@@ -14,7 +14,7 @@ const ACTIVITY_ICONS = {
 
 // Install service worker with enhanced caching
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing HomeBake Service Worker v1.1');
+  console.log('[SW] Installing HomeBake Service Worker v2.0 - Simple & Production Ready');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -36,7 +36,7 @@ self.addEventListener('install', (event) => {
 
 // Activate service worker with enhanced cleanup
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating HomeBake Service Worker v1.1');
+  console.log('[SW] Activating HomeBake Service Worker v2.0 - Production Ready');
   event.waitUntil(
     Promise.all([
       // Clean up old caches
@@ -58,7 +58,7 @@ self.addEventListener('activate', (event) => {
   // Notify all clients that service worker is ready
   self.clients.matchAll().then(clients => {
     clients.forEach(client => {
-      client.postMessage({ type: 'SW_ACTIVATED', version: '1.1' });
+      client.postMessage({ type: 'SW_ACTIVATED', version: '2.0' });
     });
   });
 });
