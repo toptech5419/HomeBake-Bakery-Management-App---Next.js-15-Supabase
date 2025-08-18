@@ -39,14 +39,11 @@ export default function ManagerDashboardClient({
   userName,
   userId,
   shiftStartTime,
-  activeBatchesCount: initialActiveBatchesCount,
   recentBatches: initialRecentBatches,
-  totalBatches: initialTotalBatches,
-  progressPercentage: initialProgressPercentage,
 }: ManagerDashboardClientProps) {
   const { toast } = useOptimizedToast();
   const { currentShift, setCurrentShift } = useShift();
-  const { refreshBatches } = useData();
+  useData();
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -55,7 +52,6 @@ export default function ManagerDashboardClient({
     data: dashboardData,
     isLoading,
     error,
-    refreshData,
   } = useManagerDashboard({
     enabled: true,
   });
@@ -290,7 +286,7 @@ export default function ManagerDashboardClient({
                       ? 'bg-white text-orange-600 shadow-sm'
                       : 'text-gray-600'
                   }`}
-                  aria-pressed={currentShift === 'morning'}
+                  aria-pressed={currentShift === 'morning' ? "true" : "false"}
                 >
                   Morning
                 </button>
@@ -301,7 +297,7 @@ export default function ManagerDashboardClient({
                       ? 'bg-white text-orange-600 shadow-sm'
                       : 'text-gray-600'
                   }`}
-                  aria-pressed={currentShift === 'night'}
+                  aria-pressed={currentShift === 'night' ? "true" : "false"}
                 >
                   Night
                 </button>
