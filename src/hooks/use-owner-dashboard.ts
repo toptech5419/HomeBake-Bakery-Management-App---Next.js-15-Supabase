@@ -220,18 +220,19 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
     // Note: Low stock tracking is now handled by useLowStockTracker hook
     // No need for manual available_stock subscription
 
-    // Sessions subscription for staff online count
-    const sessionsSubscription = supabase
-      .channel('owner_dashboard_sessions')
+    // Activities subscription for staff online count (login events)
+    const activitiesSubscription = supabase
+      .channel('owner_dashboard_activities')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
-          table: 'sessions'
+          table: 'activities',
+          filter: 'activity_type=eq.login'
         },
         () => {
-          // Refetch staff counts when sessions change
+          // Refetch staff counts when new login activity occurs
           getStaffOnlineCount().then(counts => {
             const safeCounts = counts && typeof counts === 'object' && 'online' in counts 
               ? counts 
@@ -244,7 +245,7 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
               lastUpdate: new Date().toISOString()
             }));
           }).catch(err => {
-            console.warn('Failed to fetch staff counts on session update:', err);
+            console.warn('Failed to fetch staff counts on login activity:', err);
           });
         }
       )
@@ -253,7 +254,7 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
     return () => {
       salesSubscription.unsubscribe();
       batchesSubscription.unsubscribe();
-      sessionsSubscription.unsubscribe();
+      activitiesSubscription.unsubscribe();
     };
   }, []);
 

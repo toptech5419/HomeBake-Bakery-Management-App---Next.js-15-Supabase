@@ -93,7 +93,8 @@ export async function getTodayBatchCount(): Promise<number> {
 }
 
 /**
- * Get staff online count using sessions table (Server Action)
+ * Get staff online count using recent login activities (Server Action)
+ * Considers staff "online" if they have login activity in the last 4 hours
  */
 export async function getStaffOnlineCount(): Promise<{ online: number; total: number }> {
   const supabase = await createServer();
@@ -108,16 +109,25 @@ export async function getStaffOnlineCount(): Promise<{ online: number; total: nu
 
     if (staffError) throw staffError;
 
-    // Get active sessions count
-    const { data: activeSessions, error: sessionsError } = await supabase
-      .from('sessions')
+    // Get recent login activities (within the last 4 hours)
+    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+    
+    const { data: recentLoginActivities, error: activitiesError } = await supabase
+      .from('activities')
       .select('user_id')
-      .gt('expires_at', new Date().toISOString());
+      .eq('activity_type', 'login')
+      .gte('created_at', fourHoursAgo);
 
-    if (sessionsError) throw sessionsError;
+    if (activitiesError) throw activitiesError;
 
     const totalStaff = allStaff?.length || 0;
-    const onlineStaff = activeSessions?.length || 0;
+    
+    // Get unique user IDs from recent login activities
+    const uniqueOnlineUsers = new Set(
+      recentLoginActivities?.map(activity => activity.user_id) || []
+    );
+    
+    const onlineStaff = uniqueOnlineUsers.size;
 
     return {
       online: Math.min(onlineStaff, totalStaff), // Cap at total staff
