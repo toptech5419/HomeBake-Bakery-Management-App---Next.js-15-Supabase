@@ -163,35 +163,53 @@ export default function ManagerDashboardClient({
         type: 'success'
       });
       
-      console.log('🧹 Clearing all caches and refreshing UI...');
+      console.log('🧹 Refreshing batch data after successful deletion...');
       
-      // 1. Clear ALL React Query cache
-      queryClient.clear();
-      
-      // 2. Clear browser caches
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(
-          cacheNames.map(cacheName => caches.delete(cacheName))
-        );
-        console.log('🗑️ Cleared browser caches');
+      // PRODUCTION-READY: Invalidate and refetch only batch-related queries
+      try {
+        // 1. Invalidate specific batch queries for current shift
+        console.log(`📊 Invalidating batch queries for ${currentShift} shift...`);
+        
+        await Promise.all([
+          queryClient.invalidateQueries({ 
+            queryKey: ['batches', 'active', currentShift],
+            refetchType: 'all'
+          }),
+          queryClient.invalidateQueries({ 
+            queryKey: ['batches', 'stats', currentShift],
+            refetchType: 'all'
+          }),
+          queryClient.invalidateQueries({ 
+            queryKey: ['batches'],
+            refetchType: 'all'
+          })
+        ]);
+        
+        // 2. Wait for fresh data to load (with timeout)
+        console.log('⏳ Waiting for fresh batch data to load...');
+        
+        await Promise.race([
+          Promise.all([
+            queryClient.refetchQueries({ queryKey: ['batches', 'active', currentShift] }),
+            queryClient.refetchQueries({ queryKey: ['batches', 'stats', currentShift] })
+          ]),
+          // Timeout after 5 seconds to prevent hanging
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Data refresh timeout')), 5000)
+          )
+        ]);
+        
+        console.log('✅ Batch data refreshed successfully - UI should now show empty batches');
+        
+      } catch (refreshError) {
+        console.warn('⚠️ Data refresh timeout or error, forcing minimal reload...', refreshError);
+        
+        // Fallback: Only clear batch-related cache and refresh current page
+        queryClient.removeQueries({ queryKey: ['batches'] });
+        
+        // Minimal page refresh without full reload
+        window.location.reload();
       }
-      
-      // 3. Clear localStorage and sessionStorage (but preserve shift preference)
-      const preservedShift = localStorage.getItem('homebake-current-shift');
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      // Restore the user's shift preference
-      if (preservedShift) {
-        localStorage.setItem('homebake-current-shift', preservedShift);
-        console.log('🔄 Preserved user shift preference:', preservedShift);
-      }
-      console.log('🗑️ Cleared browser storage (preserved shift preference)');
-      
-      // 4. Force immediate reload without waiting
-      console.log('🔄 Force reloading page immediately...');
-      window.location.href = window.location.href;
       
     } catch (err) {
       console.error('Error ending shift:', err);
