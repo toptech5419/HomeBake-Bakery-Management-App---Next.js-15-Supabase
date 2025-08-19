@@ -397,7 +397,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [refreshData]);
+  }, []); // ✅ FIXED: Empty dependencies - only run on mount
 
   // Smart refresh interval
   useEffect(() => {
@@ -419,7 +419,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         clearInterval(refreshIntervalRef.current);
       }
     };
-  }, [refreshData, fetchProductionLogs, fetchSalesLogs, fetchBatches]);
+  }, []); // ✅ FIXED: Empty dependencies - only run on mount
 
   // Pause refresh when tab is not visible
   useEffect(() => {

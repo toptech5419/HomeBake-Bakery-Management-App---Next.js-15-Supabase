@@ -148,12 +148,7 @@ export function useRealtimeBatches(options: UseRealtimeBatchesOptions = {}) {
     }
 
     return cleanup;
-  }, [enabled, shift, setupSubscription, cleanup]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return cleanup;
-  }, [cleanup]);
+  }, [enabled, shift]); // ✅ FIXED: Only depend on primitive values
 
   // Handle network reconnection
   useEffect(() => {
@@ -175,7 +170,7 @@ export function useRealtimeBatches(options: UseRealtimeBatchesOptions = {}) {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [setupSubscription, cleanup]);
+  }, []); // ✅ FIXED: Empty dependency array since we only want this on mount/unmount
 
   return {
     connectionState: connectionStateRef.current,
