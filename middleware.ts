@@ -38,65 +38,11 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url))
       }
 
-      // Check role-based access for owner-only routes
-      if (request.nextUrl.pathname.startsWith('/dashboard/users') || 
-          request.nextUrl.pathname.startsWith('/dashboard/owner') ||
-          request.nextUrl.pathname.startsWith('/owner-dashboard')) {
-        // Get user role from metadata or users table
-        let userRole = user.user_metadata?.role;
-        
-        // If no role in metadata, fetch from users table
-        if (!userRole) {
-          try {
-            const { data: profile } = await supabase
-              .from('users')
-              .select('role')
-              .eq('id', user.id)
-              .single();
-            
-            userRole = profile?.role;
-          } catch {
-            // If profile fetch fails, redirect to login
-            return NextResponse.redirect(new URL('/login', request.url))
-          }
-        }
-        
-        // Only owners can access these routes
-        if (userRole !== 'owner') {
-          // Redirect to appropriate dashboard based on role
-          switch (userRole) {
-            case 'manager':
-              return NextResponse.redirect(new URL('/dashboard/manager', request.url))
-            case 'sales_rep':
-            default:
-              return NextResponse.redirect(new URL('/dashboard/sales', request.url))
-          }
-        }
-      }
-
-      // Check manager-specific routes
-      if (request.nextUrl.pathname.startsWith('/dashboard/manager')) {
-        let userRole = user.user_metadata?.role;
-        
-        if (!userRole) {
-          try {
-            const { data: profile } = await supabase
-              .from('users')
-              .select('role')
-              .eq('id', user.id)
-              .single();
-            
-            userRole = profile?.role;
-          } catch {
-            return NextResponse.redirect(new URL('/login', request.url))
-          }
-        }
-        
-        // Owners and managers can access manager routes
-        if (userRole !== 'owner' && userRole !== 'manager') {
-          return NextResponse.redirect(new URL('/dashboard/sales', request.url))
-        }
-      }
+      // Simple route protection - let the dashboard page handle role-based redirects
+      // This eliminates role checking conflicts and race conditions
+      
+      // Only enforce authentication, not role-based access
+      // Role-based redirects are handled by individual dashboard pages
     }
 
     return response

@@ -1,6 +1,5 @@
-import { createServerComponentClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { UserRole } from '@/types';
+import { getAuthenticatedUser } from '@/lib/auth/auth-utils';
 import { DashboardLayoutClient } from '@/components/layout/dashboard-layout-client';
 import { ShiftProvider } from '@/contexts/ShiftContext';
 import { OfflineSyncIndicator } from '@/components/offline-sync-indicator';
@@ -19,51 +18,16 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createServerComponentClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Use single source of truth for authentication
+  const user = await getAuthenticatedUser();
 
   if (!user) {
     return redirect('/login');
   }
 
-  // Get user role and profile data with enhanced error handling
-  let role = user.user_metadata?.role as UserRole;
-  let displayName = user.user_metadata?.name || user.email;
-
-  // Always fetch profile for consistent role detection
-  try {
-    const { data: profile, error } = await supabase
-      .from('users')
-      .select('role, name')
-      .eq('id', user.id)
-      .single();
-
-    if (!error && profile) {
-      role = profile.role as UserRole;
-      displayName = profile.name || displayName;
-    } else {
-      // If profile fetch fails, use metadata as fallback
-      role = role || 'sales_rep';
-      displayName = displayName || user.email?.split('@')[0] || 'User';
-    }
-  } catch (error) {
-    console.error('Error fetching user profile:', error);
-    // Fallback to metadata or defaults
-    role = role || 'sales_rep';
-    displayName = displayName || user.email?.split('@')[0] || 'User';
-  }
-
-  // Ensure we have a valid role before rendering
-  if (!role || !['owner', 'manager', 'sales_rep'].includes(role)) {
-    console.error('Invalid or missing user role:', role);
-    return redirect('/login');
-  }
-
   // If user is owner, return just the children without the dashboard layout
   // Owner pages handle their own layout with OwnerPageWrapper
-  if (role === 'owner') {
+  if (user.role === 'owner') {
     return (
       <DataProvider>
         <ToastProvider>
@@ -77,30 +41,33 @@ export default async function DashboardLayout({
     );
   }
 
-  // Add cache-busting key to prevent stale content
-  const layoutKey = `dashboard-${role}-${Date.now()}`;
-
+  // For managers and sales reps, use the dashboard layout
   return (
-    <div key={layoutKey}>
-      <DataProvider>
-        <ToastProvider>
-          <ShiftProvider>
-            <DashboardLayoutClient 
-              user={user}
-              displayName={displayName}
-              role={role}
-            >
-              {/* Offline Sync Indicator */}
-              <OfflineSyncIndicator />
-              
-              {/* Main Content */}
-              <main className="flex-1 min-w-0 w-full max-w-full p-4 md:p-6 lg:p-8 overflow-x-hidden">
-                {children}
-              </main>
-            </DashboardLayoutClient>
-          </ShiftProvider>
-        </ToastProvider>
-      </DataProvider>
-    </div>
+    <DataProvider>
+      <ToastProvider>
+        <ShiftProvider>
+          <DashboardLayoutClient 
+            user={{
+              id: user.id,
+              email: user.email,
+              user_metadata: {
+                name: user.name,
+                role: user.role
+              }
+            }}
+            displayName={user.name}
+            role={user.role}
+          >
+            {/* Offline Sync Indicator */}
+            <OfflineSyncIndicator />
+            
+            {/* Main Content */}
+            <main className="flex-1 min-w-0 w-full max-w-full p-4 md:p-6 lg:p-8 overflow-x-hidden">
+              {children}
+            </main>
+          </DashboardLayoutClient>
+        </ShiftProvider>
+      </ToastProvider>
+    </DataProvider>
   );
-} 
+}

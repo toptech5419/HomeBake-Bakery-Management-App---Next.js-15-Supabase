@@ -57,7 +57,9 @@
       "Bash(psql:*)",
       "Bash(timeout:*)",
       "Bash(start http://localhost:3003)",
-      "Bash(supabase:*)"
+      "Bash(supabase:*)",
+      "Bash(mv:*)",
+      "Bash(set NODE_ENV=development)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

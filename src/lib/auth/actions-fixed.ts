@@ -176,5 +176,3 @@ export async function getCurrentUser() {
     profile
   }
 }
-
-// getUsers function moved to user-actions.ts to avoid duplication 
