@@ -6,18 +6,22 @@ import { login } from '@/lib/auth/actions';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { useToast } from '@/hooks/use-toast';
 import { LogIn, Mail, Lock } from 'lucide-react';
+import { ForgotPasswordModal } from '@/components/auth/forgot-password-modal';
 
 const LoginPage = memo(function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const searchParams = useSearchParams();
   const toast = useToast();
 
-  // Handle error messages from URL parameters
+  // Handle error messages and success messages from URL parameters
   useEffect(() => {
     const urlError = searchParams.get('error');
+    const urlMessage = searchParams.get('message');
+    
     if (urlError) {
       let errorMessage = '';
       switch (urlError) {
@@ -35,6 +39,10 @@ const LoginPage = memo(function LoginPage() {
       }
       setError(errorMessage);
       toast.loginError(errorMessage);
+    }
+    
+    if (urlMessage === 'password-reset-success') {
+      toast.success('Password reset successfully! You can now log in with your new password.');
     }
   }, [searchParams, toast]);
 
@@ -107,9 +115,19 @@ const LoginPage = memo(function LoginPage() {
           </div>
           
           <div className="text-left">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-orange-600 hover:text-orange-500 font-medium hover:underline transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1 rounded px-1 py-0.5"
+                disabled={isPending}
+              >
+                Forgot password?
+              </button>
+            </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input 
@@ -150,6 +168,12 @@ const LoginPage = memo(function LoginPage() {
           <p className="mt-2">Need access? Contact your bakery owner for an invite.</p>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal 
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+      />
     </main>
   );
 });

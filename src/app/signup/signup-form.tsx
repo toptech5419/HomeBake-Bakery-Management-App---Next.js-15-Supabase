@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface SignupState {
   error?: { 
@@ -20,6 +22,82 @@ interface SignupState {
 }
 
 const initialState: SignupState = {};
+
+/**
+ * Production-grade password input with visibility toggle
+ * Features: Perfect positioning, accessibility, clean design
+ */
+interface PasswordInputProps {
+  id: string;
+  name: string;
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+  autoComplete?: string;
+  error?: string;
+}
+
+function PasswordInput({ 
+  id, 
+  name, 
+  placeholder, 
+  required, 
+  className, 
+  autoComplete,
+  error 
+}: PasswordInputProps) {
+  const [showPassword, setShowPassword] = React.useState(false);
+  
+  const togglePasswordVisibility = React.useCallback(() => {
+    setShowPassword(prev => !prev);
+  }, []);
+
+  return (
+    <div className="relative">
+      <Input
+        id={id}
+        name={name}
+        type={showPassword ? 'text' : 'password'}
+        placeholder={placeholder}
+        required={required}
+        className={cn(
+          "pr-12", // Add right padding for icon
+          className
+        )}
+        autoComplete={autoComplete}
+        aria-describedby={error ? `${id}-error` : undefined}
+        aria-invalid={error ? 'true' : 'false'}
+      />
+      <button
+        type="button"
+        className={cn(
+          // Perfect positioning: absolute right with proper spacing
+          "absolute right-3 top-1/2 -translate-y-1/2",
+          // Interactive styling
+          "flex items-center justify-center",
+          "w-8 h-8 rounded-md",
+          "text-muted-foreground hover:text-foreground",
+          "hover:bg-muted/50 transition-colors",
+          // Accessibility
+          "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+          // Touch target (44px minimum for mobile)
+          "touch-manipulation"
+        )}
+        onClick={togglePasswordVisibility}
+        tabIndex={0}
+        aria-label={showPassword ? 'Hide password' : 'Show password'}
+        aria-pressed={showPassword}
+        data-testid="password-visibility-toggle"
+      >
+        {showPassword ? (
+          <EyeOff className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <Eye className="h-4 w-4" aria-hidden="true" />
+        )}
+      </button>
+    </div>
+  );
+}
 
 export default function SignupForm() {
   const [state, formAction, isPending] = React.useActionState(
@@ -103,17 +181,19 @@ export default function SignupForm() {
 
         <div>
           <Label htmlFor="password" className="text-sm md:text-base font-medium">Password</Label>
-          <Input 
-            id="password" 
-            name="password" 
-            type="password" 
-            required 
-            className="min-h-[44px] text-sm md:text-base mt-1"
-            autoComplete="new-password"
-            placeholder="Create a strong password"
-          />
+          <div className="mt-1">
+            <PasswordInput
+              id="password"
+              name="password"
+              required
+              className="min-h-[44px] text-sm md:text-base"
+              autoComplete="new-password"
+              placeholder="Create a strong password"
+              error={state?.error && typeof state.error === 'object' && 'password' in state.error && Array.isArray(state.error.password) && state.error.password[0] ? state.error.password[0] : undefined}
+            />
+          </div>
           {state?.error && typeof state.error === 'object' && 'password' in state.error && Array.isArray(state.error.password) && state.error.password[0] && (
-            <p className="text-sm text-destructive mt-1">{state.error.password[0]}</p>
+            <p id="password-error" className="text-sm text-destructive mt-1">{state.error.password[0]}</p>
           )}
         </div>
 
