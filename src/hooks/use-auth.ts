@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 import type { UserRole } from '@/types';
 
@@ -26,7 +26,7 @@ export function useAuth() {
     error: null
   });
 
-  const supabase = createClient();
+  // Use the configured supabase client directly
 
   useEffect(() => {
     let mounted = true;

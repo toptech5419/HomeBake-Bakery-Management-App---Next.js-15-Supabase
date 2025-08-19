@@ -59,7 +59,9 @@
       "Bash(start http://localhost:3003)",
       "Bash(supabase:*)",
       "Bash(mv:*)",
-      "Bash(set NODE_ENV=development)"
+      "Bash(set NODE_ENV=development)",
+      "Bash(for pid in 25204 31640 24404 15628 28096 24792 16372 27572 4040 13908 34064)",
+      "Bash(do taskkill //PID $pid //F)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
