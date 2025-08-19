@@ -423,11 +423,9 @@ export default function ManagerDashboardClient({
             <Download size={24} className="text-green-500" />
             <span className="text-sm font-medium text-gray-900">Export All</span>
           </button>
-          <Link href="/dashboard/reports" legacyBehavior>
-            <a className="bg-white rounded-xl p-4 shadow-sm flex flex-col items-center gap-2">
-              <FileText size={24} className="text-purple-500" />
-              <span className="text-sm font-medium text-gray-900">Reports</span>
-            </a>
+          <Link href="/dashboard/reports" className="bg-white rounded-xl p-4 shadow-sm flex flex-col items-center gap-2">
+            <FileText size={24} className="text-purple-500" />
+            <span className="text-sm font-medium text-gray-900">Reports</span>
           </Link>
         </div>
 
