@@ -8,19 +8,21 @@ export default function SignupConfirmPage() {
   const router = useRouter();
   const [countdown, setCountdown] = useState(10);
 
+  // Separate useEffect for countdown
   useEffect(() => {
     const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          router.push('/login');
-          return 0;
-        }
-        return prev - 1;
-      });
+      setCountdown((prev) => prev - 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [router]);
+  }, []);
+
+  // Separate useEffect for navigation when countdown reaches 0
+  useEffect(() => {
+    if (countdown <= 0) {
+      router.push('/login');
+    }
+  }, [countdown, router]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background">
