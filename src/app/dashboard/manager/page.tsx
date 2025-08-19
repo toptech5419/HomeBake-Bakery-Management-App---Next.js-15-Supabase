@@ -39,22 +39,47 @@ export default async function ManagerDashboardPage() {
 
     if (activeBatchesError) {
       console.error('Error fetching active batches:', activeBatchesError);
+      // Return empty state on database error
+      return (
+        <ManagerDashboardClient
+          userName={profile.name}
+          userId={profile.id}
+          shiftStartTime={null}
+          activeBatchesCount={0}
+          recentBatches={[]}
+          totalBatches={0}
+          progressPercentage={0}
+        />
+      );
     }
 
     // Get bread type names for batches
     let breadTypeMap: Record<string, string> = {};
     if (activeBatches && activeBatches.length > 0) {
-      const breadTypeIds = [...new Set(activeBatches.map(b => b.bread_type_id))];
-      const { data: breadTypes, error: breadError } = await supabase
-        .from('bread_types')
-        .select('id, name')
-        .in('id', breadTypeIds);
+      try {
+        const breadTypeIds = [...new Set(activeBatches
+          .filter(b => b && b.bread_type_id) // Filter out invalid entries
+          .map(b => b.bread_type_id)
+        )];
+        
+        if (breadTypeIds.length > 0) {
+          const { data: breadTypes, error: breadError } = await supabase
+            .from('bread_types')
+            .select('id, name')
+            .in('id', breadTypeIds);
 
-      if (!breadError && breadTypes) {
-        breadTypeMap = breadTypes.reduce((acc, bt) => {
-          acc[bt.id] = bt.name;
-          return acc;
-        }, {} as Record<string, string>);
+          if (!breadError && breadTypes) {
+            breadTypeMap = breadTypes.reduce((acc, bt) => {
+              if (bt && bt.id && bt.name) {
+                acc[bt.id] = bt.name;
+              }
+              return acc;
+            }, {} as Record<string, string>);
+          }
+        }
+      } catch (breadTypeError) {
+        console.error('Error fetching bread types:', breadTypeError);
+        // Continue with empty breadTypeMap
       }
     }
 
@@ -62,15 +87,33 @@ export default async function ManagerDashboardPage() {
     const activeBatchesCount = activeBatches?.length || 0;
 
     // --- Recent Batches - Provide initial data (client will filter) ---
-    const recentActiveBatches = (activeBatches || []).slice(0, 5).map(b => ({
-      id: b.id,
-      product: breadTypeMap[b.bread_type_id] || 'Unknown',
-      quantity: b.actual_quantity || 0,
-      status: b.status,
-      time: getRelativeTime(b.created_at),
-      batchNumber: b.batch_number || 'N/A',
-      shift: b.shift, // Include shift info for client filtering
-    }));
+    const recentActiveBatches = (activeBatches || [])
+      .filter(b => b && b.id && b.created_at) // Filter out invalid batches
+      .slice(0, 5)
+      .map(b => {
+        try {
+          return {
+            id: b.id,
+            product: breadTypeMap[b.bread_type_id] || 'Unknown',
+            quantity: b.actual_quantity || 0,
+            status: b.status || 'active',
+            time: b.created_at ? getRelativeTime(b.created_at) : 'Unknown time',
+            batchNumber: b.batch_number || 'N/A',
+            shift: (b.shift as 'morning' | 'night') || 'morning', // Include shift info for client filtering
+          };
+        } catch (error) {
+          console.error('Error processing batch:', error, b);
+          return {
+            id: b.id || 'unknown',
+            product: 'Unknown',
+            quantity: 0,
+            status: 'active',
+            time: 'Unknown time',
+            batchNumber: 'N/A',
+            shift: 'morning' as 'morning' | 'night',
+          };
+        }
+      });
 
     // --- Initial progress data ---
     const progressPercentage = Math.min(100, Math.max(0, (activeBatchesCount * 15)));
