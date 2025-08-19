@@ -1,6 +1,6 @@
 'use server';
 
-import { createServer } from '@/lib/supabase/server';
+import { createServer, createServiceRoleClient } from '@/lib/supabase/server';
 import { validateQRInvite, markQRInviteAsUsed } from './qr';
 import { z } from 'zod';
 import { logAccountCreatedActivity } from '@/lib/activities/server-activity-service';
@@ -61,10 +61,11 @@ export async function signup(prevState: { error?: { _form?: string } }, formData
     // Mark the QR invite as used
     await markQRInviteAsUsed(token);
 
-    // Create user entry in users table
+    // Create user entry in users table using service role to bypass RLS
     console.log('Creating users table entry...');
     
-    const { error: userInsertError } = await supabase
+    const serviceSupabase = createServiceRoleClient();
+    const { error: userInsertError } = await serviceSupabase
       .from('users')
       .insert({
         id: user.id,
@@ -155,10 +156,11 @@ export async function signupWithToken(token: string, formData: FormData) {
     // Mark the QR invite as used
     await markQRInviteAsUsed(token);
 
-    // Create user entry in users table
+    // Create user entry in users table using service role to bypass RLS
     console.log('Creating users table entry...');
     
-    const { error: userInsertError } = await supabase
+    const serviceSupabase = createServiceRoleClient();
+    const { error: userInsertError } = await serviceSupabase
       .from('users')
       .insert({
         id: user.id,
