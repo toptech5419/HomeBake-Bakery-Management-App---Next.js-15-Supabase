@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserRole } from '@/types';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 
 interface SidebarProps {
   role: UserRole;
@@ -72,6 +73,7 @@ const navigationItems: NavigationItem[] = [
 
 export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarProps) {
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -111,6 +113,27 @@ export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarPr
     }
   };
 
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    onMobileClose?.(); // Close mobile menu first
+    
+    try {
+      // Use the professional logout action that handles sessions
+      const { logoutUser } = await import('@/lib/auth/logout-action');
+      const result = await logoutUser();
+      
+      if (result.success) {
+        window.location.href = '/login';
+      } else {
+        console.error('Logout failed:', result.error);
+        setIsSigningOut(false);
+      }
+    } catch (error) {
+      console.error('Error signing out:', error);
+      setIsSigningOut(false);
+    }
+  };
+
   return (
     <>
       {/* Mobile overlay */}
@@ -131,30 +154,34 @@ export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarPr
       )}
 
       {/* Sidebar */}
-      <div
+      <motion.div
+        initial={false}
+        animate={{ x: isMobileOpen ? 0 : '-100%' }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0
-          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+          fixed inset-y-0 left-0 z-50 w-64 glass backdrop-blur-xl border-r border-border/50 shadow-2xl lg:translate-x-0 lg:static lg:inset-0 lg:shadow-none
+          ${isMobileOpen ? '' : 'lg:translate-x-0'}
         `}
       >
         <div className="flex flex-col h-full pt-16 lg:pt-0">
           {/* Sidebar header */}
-          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
+          <div className="flex items-center justify-between h-16 px-4 sm:px-6 border-b border-border/50">
+            <h2 className="text-base sm:text-lg font-display font-bold gradient-text">Navigation</h2>
             <button
               onClick={onMobileClose}
-              className="lg:hidden p-2 hover:bg-gray-50 rounded-md transition-colors"
+              className="lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-accent/50 active:bg-accent/70 rounded-xl transition-all duration-200 hover-scale focus-ring"
+              aria-label="Close navigation"
             >
               <svg
-                className="h-6 w-6"
+                className="h-5 w-5 text-foreground"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                strokeWidth={2}
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
                   d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
@@ -162,39 +189,89 @@ export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarPr
           </div>
 
           {/* Navigation menu */}
-          <nav className="flex-1 px-4 py-6 space-y-2">
-            {filteredNavigation.map((item) => {
+          <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 sm:space-y-2 overflow-y-auto">
+            {filteredNavigation.map((item, index) => {
               const isActive = isActiveLink(item.href);
               return (
-                <Link
+                <motion.div
                   key={item.href}
-                  href={item.href}
-                  onClick={(e) => handleNavigation(e, item.href)}
-                  className={`
-                    flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
-                    ${
-                      isActive
-                        ? 'bg-blue-100 text-blue-900 border-r-2 border-blue-500'
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    }
-                    ${isNavigating ? 'pointer-events-none opacity-50' : ''}
-                  `}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
                 >
-                  <span className="mr-3 text-lg">{item.icon}</span>
-                  {item.name}
-                </Link>
+                  <Link
+                    href={item.href}
+                    onClick={(e) => handleNavigation(e, item.href)}
+                    className={`
+                      flex items-center min-h-[48px] px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover-scale focus-ring
+                      ${
+                        isActive
+                          ? 'bg-gradient-to-r from-primary/10 to-primary/5 text-primary border-r-4 border-primary shadow-sm'
+                          : 'text-foreground hover:bg-accent/50 active:bg-accent/70 hover:text-primary'
+                      }
+                      ${isNavigating || isSigningOut ? 'pointer-events-none opacity-50' : ''}
+                    `}
+                  >
+                    <span className="mr-3 text-lg">{item.icon}</span>
+                    <span className="font-display">{item.name}</span>
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeTab"
+                        className="ml-auto w-2 h-2 rounded-full bg-primary"
+                        initial={false}
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                  </Link>
+                </motion.div>
               );
             })}
           </nav>
 
-          {/* Sidebar footer */}
-          <div className="p-4 border-t border-gray-200">
-            <div className="text-xs text-gray-500">
-              <p>Role: {role}</p>
+          {/* Sidebar footer with logout for manager/sales_rep */}
+          <div className="border-t border-border/50 bg-background/50 backdrop-blur-sm">
+            {/* Role indicator */}
+            <div className="px-3 sm:px-4 py-3 border-b border-border/30">
+              <div className="text-xs text-muted-foreground font-medium">
+                <span className="text-foreground font-display">Role:</span> {role.replace('_', ' ')}
+              </div>
             </div>
+
+            {/* Logout button for manager/sales_rep only */}
+            {(role === 'manager' || role === 'sales_rep') && (
+              <div className="p-3 sm:p-4">
+                <motion.button
+                  onClick={handleSignOut}
+                  disabled={isSigningOut || isNavigating}
+                  className="w-full flex items-center justify-center min-h-[48px] px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground bg-accent/30 hover:bg-accent/50 active:bg-accent/70 rounded-xl transition-all duration-200 disabled:opacity-50 hover-scale focus-ring group"
+                  whileTap={{ scale: 0.95 }}
+                  aria-label="Sign out"
+                >
+                  {isSigningOut ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2"></div>
+                      <span className="font-display">Signing out...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg 
+                        className="w-4 h-4 mr-2 transition-colors group-hover:text-red-500" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24" 
+                        strokeWidth="2"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      <span className="font-display">Sign Out</span>
+                    </>
+                  )}
+                </motion.button>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      </motion.div>
     </>
   );
 } 

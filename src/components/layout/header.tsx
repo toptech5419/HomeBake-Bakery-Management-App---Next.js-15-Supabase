@@ -2,11 +2,17 @@
 
 import { useState } from 'react';
 import { UserRole } from '@/types';
-import { supabase } from '@/lib/supabase/client';
 import { ConnectionStatus } from '@/components/ui/connection-status';
 
 interface HeaderProps {
-  user: any;
+  user: {
+    id: string;
+    email?: string;
+    user_metadata?: {
+      name: string;
+      role: UserRole;
+    };
+  };
   displayName: string;
   role: UserRole;
   onMobileMenuToggle?: () => void;
@@ -113,75 +119,66 @@ export function Header({ displayName, role, onMobileMenuToggle, isMobileMenuOpen
             <ConnectionStatus showDetails={false} />
           </div>
 
-          {/* Right side: User info and actions */}
-          <div className="flex items-center space-x-3">
+          {/* Right side: User info (logout moved to sidebar for manager/sales_rep) */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
             {/* Desktop User Info */}
-            <div className="hidden md:flex items-center space-x-4">
+            <div className="hidden sm:flex items-center space-x-3 lg:space-x-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-foreground truncate max-w-32 font-display">
+                <p className="text-sm font-medium text-foreground truncate max-w-28 lg:max-w-32 font-display">
                   {displayName}
                 </p>
-                <span className={`inline-block px-3 py-1 text-xs rounded-full border font-medium ${getRoleColor(role)}`}>
+                <span className={`inline-block px-2 lg:px-3 py-1 text-xs rounded-full border font-medium ${getRoleColor(role)}`}>
                   {getRoleLabel(role)}
                 </span>
               </div>
               
               {/* Enhanced User Avatar */}
-              <div className="h-10 w-10 rounded-xl gradient-primary flex items-center justify-center shadow-md hover-scale transition-all duration-200">
+              <div className="h-9 w-9 lg:h-10 lg:w-10 rounded-xl gradient-primary flex items-center justify-center shadow-md hover-scale transition-all duration-200">
                 <span className="text-sm font-bold text-white font-display">
                   {displayName.charAt(0).toUpperCase()}
                 </span>
               </div>
             </div>
 
-            {/* Mobile User Info - Enhanced */}
-            <div className="md:hidden flex items-center space-x-2">
+            {/* Mobile User Info - More spacious */}
+            <div className="sm:hidden flex items-center space-x-2">
               <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center shadow-sm">
                 <span className="text-xs font-bold text-white font-display">
                   {displayName.charAt(0).toUpperCase()}
                 </span>
               </div>
-              <span className={`inline-block px-2 py-1 text-xs rounded-full border font-medium ${getRoleColor(role)}`}>
-                {getRoleLabel(role)}
-              </span>
+              <div className="flex flex-col">
+                <span className="text-xs font-medium text-foreground font-display truncate max-w-20">
+                  {displayName}
+                </span>
+                <span className={`inline-block px-2 py-0.5 text-xs rounded-full border font-medium ${getRoleColor(role)} leading-tight`}>
+                  {getRoleLabel(role)}
+                </span>
+              </div>
             </div>
 
-            {/* Enhanced Sign Out Button - Desktop */}
-            <button
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="hidden md:flex items-center space-x-2 text-muted-foreground hover:text-foreground hover:bg-accent/50 px-4 py-2 rounded-xl transition-all duration-200 disabled:opacity-50 hover-scale focus-ring group"
-            >
-              {isSigningOut ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  <span className="font-medium">Signing out...</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 transition-colors group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span className="font-medium">Sign out</span>
-                </>
-              )}
-            </button>
-
-            {/* Enhanced Sign Out Button - Mobile */}
-            <button
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="md:hidden min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/50 active:bg-accent/70 rounded-xl transition-all duration-200 disabled:opacity-50 hover-scale focus-ring group"
-              aria-label="Sign out"
-            >
-              {isSigningOut ? (
-                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <svg className="w-5 h-5 transition-colors group-hover:text-red-500 group-active:scale-95" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              )}
-            </button>
+            {/* Sign Out Button - Desktop only, hidden for manager/sales_rep on mobile */}
+            {role === 'owner' && (
+              <button
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className="hidden md:flex items-center space-x-2 text-muted-foreground hover:text-foreground hover:bg-accent/50 px-3 lg:px-4 py-2 rounded-xl transition-all duration-200 disabled:opacity-50 hover-scale focus-ring group"
+              >
+                {isSigningOut ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <span className="font-medium">Signing out...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 transition-colors group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span className="font-medium">Sign out</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
