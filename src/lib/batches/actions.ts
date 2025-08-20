@@ -516,17 +516,47 @@ export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<voi
 
   console.log(`✅ Successfully deleted ${count || 'unknown number of'} ${shift || 'all'} shift batches for current user (${user.id}) (ALL DATES)`);
   
-  // Verify deletion by counting remaining batches
-  const { data: remainingBatches, error: verifyError } = await countQuery;
-  if (!verifyError) {
-    console.log(`🔍 Verification: ${remainingBatches?.length || 0} batches remain for current user - ${shift || 'all'} shift`);
-    if (remainingBatches && remainingBatches.length > 0) {
-      console.warn('⚠️ Some batches were not deleted:');
-      remainingBatches.forEach(batch => {
-        console.warn(`   - Still exists: ${batch.batch_number} (${batch.shift} shift) - ${batch.created_at}`);
-      });
+  // PRODUCTION-READY: Additional verification with retry
+  let verificationAttempts = 0;
+  const maxVerificationAttempts = 3;
+  
+  while (verificationAttempts < maxVerificationAttempts) {
+    const { data: remainingBatches, error: verifyError } = await countQuery;
+    
+    if (verifyError) {
+      console.warn(`⚠️ Verification attempt ${verificationAttempts + 1} failed:`, verifyError);
+      verificationAttempts++;
+      if (verificationAttempts < maxVerificationAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms before retry
+        continue;
+      }
+      break;
+    }
+    
+    if (remainingBatches && remainingBatches.length === 0) {
+      console.log(`🔍 Verification PASSED: No ${shift || 'all'} shift batches remain for user ${user.id}`);
+      break;
+    } else {
+      console.warn(`⚠️ Verification attempt ${verificationAttempts + 1}: ${remainingBatches?.length || 0} batches still exist`);
+      if (remainingBatches && remainingBatches.length > 0) {
+        remainingBatches.forEach(batch => {
+          console.warn(`   - Still exists: ${batch.batch_number} (${batch.shift} shift) - ${batch.created_at}`);
+        });
+      }
+    }
+    
+    verificationAttempts++;
+    if (verificationAttempts < maxVerificationAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retry
     }
   }
+  
+  if (verificationAttempts >= maxVerificationAttempts) {
+    console.error(`❌ Verification failed after ${maxVerificationAttempts} attempts`);
+    throw new Error(`Batch deletion verification failed after ${maxVerificationAttempts} attempts`);
+  }
+  
+  // Enhanced verification logic is handled above
   
   // Invalidate all relevant paths and caches
   revalidatePath('/dashboard');

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { scheduleIdleWork } from './utils/performance-scheduler';
 
 // Service Worker registration and management
 export class ServiceWorkerManager {
@@ -74,18 +75,21 @@ export class ServiceWorkerManager {
     navigator.serviceWorker.addEventListener('message', (event) => {
       console.log('Message from Service Worker:', event.data);
       
-      switch (event.data.type) {
-        case 'BACKGROUND_SYNC':
-          this.handleBackgroundSync(event.data);
-          break;
-          
-        case 'CACHE_UPDATE':
-          this.handleCacheUpdate(event.data);
-          break;
-          
-        default:
-          console.log('Unknown message from Service Worker:', event.data);
-      }
+      // Schedule heavy operations when browser is idle to prevent blocking
+      scheduleIdleWork(async () => {
+        switch (event.data.type) {
+          case 'BACKGROUND_SYNC':
+            await this.handleBackgroundSync(event.data);
+            break;
+            
+          case 'CACHE_UPDATE':
+            await this.handleCacheUpdate(event.data);
+            break;
+            
+          default:
+            console.log('Unknown message from Service Worker:', event.data);
+        }
+      }, { priority: 'normal' });
     });
   }
 

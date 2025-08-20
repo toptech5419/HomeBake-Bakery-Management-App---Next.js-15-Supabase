@@ -1,6 +1,7 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, startTransition } from 'react';
 import { toast } from 'sonner';
+// Removed unreliable performance scheduler import
 
 export type ShiftType = 'morning' | 'night';
 
@@ -28,47 +29,54 @@ function setStoredShift(shift: ShiftType) {
 
 export function ShiftProvider({ children }: { children: ReactNode }) {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isHydrated, setIsHydrated] = useState(false);
   
-  // Always provide a valid shift, preserve user's choice or default to 'morning'
-  const [currentShift, setCurrentShift] = useState<ShiftType>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = getStoredShift();
-      if (stored) {
-        console.log('✅ Retrieved stored shift:', stored);
-        return stored;
-      }
-      console.log('🔄 No stored shift found, defaulting to morning');
-    }
-    // Only set default in localStorage if we're on client side
-    if (typeof window !== 'undefined') {
+  // Start with default value for both server and client
+  const [currentShift, setCurrentShift] = useState<ShiftType>('morning');
+
+  // Hydration effect - runs only on client after mount
+  useEffect(() => {
+    const stored = getStoredShift();
+    if (stored) {
+      console.log('✅ Retrieved stored shift after hydration:', stored);
+      setCurrentShift(stored);
+    } else {
+      console.log('🔄 No stored shift found, keeping morning default');
       setStoredShift('morning');
     }
-    return 'morning';
-  });
+    setIsHydrated(true);
+// Simple timeout instead of complex scheduling
+    setTimeout(() => setIsInitialLoad(false), 100);
+  }, []);
 
-  // Keep localStorage in sync if shift changes and mark initial load as complete
+  // Keep localStorage in sync when shift changes
   useEffect(() => {
-    setStoredShift(currentShift);
-    // Set initial load to false after first render
-    if (isInitialLoad) {
-      setTimeout(() => setIsInitialLoad(false), 100);
+    if (isHydrated) {
+      setStoredShift(currentShift);
     }
-  }, [currentShift, isInitialLoad]);
+  }, [currentShift, isHydrated]);
 
   const handleSetCurrentShift = (shift: ShiftType) => {
     console.log(`🔄 Setting shift from ${currentShift} to ${shift}`);
-    setCurrentShift(shift);
-    setStoredShift(shift); // Immediately persist to localStorage
+    
+    // Use React 18 transition for non-urgent shift change UI updates
+    startTransition(() => {
+      setCurrentShift(shift);
+    });
+    
+    // Immediately persist to localStorage (critical operation)
+    setStoredShift(shift);
     console.log(`💾 Saved shift to localStorage: ${shift}`);
     
-    // Only show toast if not initial load to prevent showing notification on page load
+    // Simple toast notification
     if (!isInitialLoad) {
-      try {
-        toast.success(`Shift switched to ${shift === 'morning' ? 'Morning' : 'Night'}`);
-      } catch (error) {
-        // Fallback if toast is not available - just log
-        console.log(`Shift switched to ${shift === 'morning' ? 'Morning' : 'Night'}`);
-      }
+      setTimeout(() => {
+        try {
+          toast.success(`Shift switched to ${shift === 'morning' ? 'Morning' : 'Night'}`);
+        } catch (error) {
+          console.log(`Shift switched to ${shift === 'morning' ? 'Morning' : 'Night'}`);
+        }
+      }, 0);
     }
   };
 

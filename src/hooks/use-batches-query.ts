@@ -40,8 +40,8 @@ export function useActiveBatches(pollingInterval = 15000, shift?: 'morning' | 'n
     staleTime: 10000, // Data considered fresh for 10 seconds
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    // Enable network mode for better UX during network issues
-    networkMode: 'offlineFirst',
+// Simplified network mode for production reliability
+    networkMode: 'online',
   });
 }
 
@@ -216,9 +216,10 @@ export function useBatchMutations() {
     mutationFn: ({ batchId, data }: { batchId: string; data: any }) =>
       updateBatch(batchId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: batchQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: batchQueryKeys.active() });
-      queryClient.invalidateQueries({ queryKey: batchQueryKeys.stats() });
+// PRODUCTION-READY: Immediate cache clearing instead of invalidation
+      queryClient.removeQueries({ queryKey: batchQueryKeys.all });
+      queryClient.removeQueries({ queryKey: batchQueryKeys.active() });
+      queryClient.removeQueries({ queryKey: batchQueryKeys.stats() });
     },
   });
 
@@ -226,27 +227,30 @@ export function useBatchMutations() {
     mutationFn: ({ batchId, actualQuantity }: { batchId: string; actualQuantity: number }) =>
       completeBatch(batchId, actualQuantity),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: batchQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: batchQueryKeys.active() });
-      queryClient.invalidateQueries({ queryKey: batchQueryKeys.stats() });
+// PRODUCTION-READY: Immediate cache clearing instead of invalidation
+      queryClient.removeQueries({ queryKey: batchQueryKeys.all });
+      queryClient.removeQueries({ queryKey: batchQueryKeys.active() });
+      queryClient.removeQueries({ queryKey: batchQueryKeys.stats() });
     },
   });
 
   const cancelBatchMutation = useMutation({
     mutationFn: cancelBatch,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: batchQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: batchQueryKeys.active() });
-      queryClient.invalidateQueries({ queryKey: batchQueryKeys.stats() });
+// PRODUCTION-READY: Immediate cache clearing instead of invalidation
+      queryClient.removeQueries({ queryKey: batchQueryKeys.all });
+      queryClient.removeQueries({ queryKey: batchQueryKeys.active() });
+      queryClient.removeQueries({ queryKey: batchQueryKeys.stats() });
     },
   });
 
   const deleteBatchMutation = useMutation({
     mutationFn: deleteBatch,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: batchQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: batchQueryKeys.active() });
-      queryClient.invalidateQueries({ queryKey: batchQueryKeys.stats() });
+// PRODUCTION-READY: Immediate cache clearing instead of invalidation
+      queryClient.removeQueries({ queryKey: batchQueryKeys.all });
+      queryClient.removeQueries({ queryKey: batchQueryKeys.active() });
+      queryClient.removeQueries({ queryKey: batchQueryKeys.stats() });
     },
   });
 

@@ -61,7 +61,17 @@
       "Bash(mv:*)",
       "Bash(set NODE_ENV=development)",
       "Bash(for pid in 25204 31640 24404 15628 28096 24792 16372 27572 4040 13908 34064)",
-      "Bash(do taskkill //PID $pid //F)"
+      "Bash(do taskkill //PID $pid //F)",
+      "Bash(echo $NEXT_PUBLIC_VAPID_KEY)",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "Bash(claude mcp)",
+      "Bash(claude mcp:*)",
+      "Bash(npx playwright:*)",
+      "Bash(npx:*)",
+      "mcp__filesystem__directory_tree",
+      "mcp__filesystem__read_multiple_files",
+      "mcp__playwright__playwright_navigate"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

@@ -2,6 +2,26 @@
 // Handles push notifications with cross-browser compatibility
 
 const CACHE_NAME = 'homebake-v2.0';
+const OFFLINE_REQUEST_CACHE = 'offline-requests-v1';
+
+// PERFORMANCE OPTIMIZATION: Cache handle pooling to prevent repeated caches.open() calls
+let mainCachePromise = null;
+let offlineCachePromise = null;
+
+function getMainCache() {
+  if (!mainCachePromise) {
+    mainCachePromise = caches.open(CACHE_NAME);
+  }
+  return mainCachePromise;
+}
+
+function getOfflineCache() {
+  if (!offlineCachePromise) {
+    offlineCachePromise = caches.open(OFFLINE_REQUEST_CACHE);
+  }
+  return offlineCachePromise;
+}
+
 const ACTIVITY_ICONS = {
   sale: '🛒',
   batch: '📦', 
@@ -223,7 +243,7 @@ async function syncOfflineNotifications() {
     console.log('[SW] Syncing offline notifications');
     
     // Get any cached notification data and send when back online
-    const cache = await caches.open(CACHE_NAME);
+    const cache = await getMainCache();
     const offlineNotifications = await cache.match('/offline-notifications');
     
     if (offlineNotifications) {
@@ -250,11 +270,13 @@ self.addEventListener('unhandledrejection', (event) => {
 });
 
 // Add message handling for health checks and communication
+// PRODUCTION-READY: Use event.waitUntil() to prevent blocking main thread
 self.addEventListener('message', (event) => {
   console.log('[SW] Received message:', event.data);
   
+  // Schedule heavy operations asynchronously to prevent blocking
   if (event.data && event.data.type === 'HEALTH_CHECK') {
-    // Respond to health check
+    // Immediate response for health check - no async work needed
     if (event.ports && event.ports[0]) {
       event.ports[0].postMessage({
         type: 'HEALTH_CHECK_RESPONSE',
@@ -265,10 +287,40 @@ self.addEventListener('message', (event) => {
   }
   
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    // Force update to new service worker
-    self.skipWaiting();
+    // Schedule non-blocking skip waiting
+    event.waitUntil(
+      Promise.resolve().then(() => {
+        self.skipWaiting();
+      })
+    );
+  }
+  
+  // Handle heavy operations without blocking message handler
+  if (event.data && event.data.type === 'CACHE_OPERATION') {
+    event.waitUntil(handleCacheOperation(event.data));
   }
 });
+
+// Separate function for heavy cache operations
+async function handleCacheOperation(data) {
+  try {
+    // Yield control to prevent blocking
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    switch (data.operation) {
+      case 'CLEAR_CACHE':
+        await clearOldCaches();
+        break;
+      case 'PRELOAD_RESOURCES':
+        await preloadCriticalResources();
+        break;
+      default:
+        console.log('[SW] Unknown cache operation:', data.operation);
+    }
+  } catch (error) {
+    console.error('[SW] Cache operation failed:', error);
+  }
+}
 
 // Production-ready fetch handling with offline strategy
 self.addEventListener('fetch', (event) => {
@@ -297,16 +349,25 @@ self.addEventListener('fetch', (event) => {
 });
 
 // Handle API requests with network-first strategy
+// OPTIMIZED: Prevent blocking operations in fetch handler
 async function handleApiRequest(request) {
   try {
     const response = await fetch(request);
     
-    // Only cache successful GET requests
+    // Only cache successful GET requests - but don't block response
     if (request.method === 'GET' && response.status === 200) {
-      const cache = await caches.open(CACHE_NAME);
-      cache.put(request, response.clone()).catch(error => {
-        console.warn('[SW] Failed to cache API response:', error);
-      });
+      // Schedule caching operation asynchronously to prevent blocking
+      const cacheOperation = async () => {
+        try {
+          const cache = await getMainCache();
+          await cache.put(request, response.clone());
+        } catch (error) {
+          console.warn('[SW] Failed to cache API response:', error);
+        }
+      };
+      
+      // Don't await - let caching happen in background
+      cacheOperation();
     }
     
     return response;
@@ -357,7 +418,7 @@ async function handleStaticAssets(request) {
     return fetch(request);
   }
   
-  const cache = await caches.open(CACHE_NAME);
+  const cache = await getMainCache();
   const cachedResponse = await cache.match(request);
   
   if (cachedResponse) {
@@ -390,7 +451,7 @@ async function handleNavigation(request) {
     
     // Cache successful navigation responses
     if (response.status === 200) {
-      const cache = await caches.open(CACHE_NAME);
+      const cache = await getMainCache();
       cache.put(request, response.clone()).catch(error => {
         console.warn('[SW] Failed to cache navigation response:', error);
       });
@@ -474,7 +535,7 @@ async function handleNavigation(request) {
 
 // Handle other resources with stale-while-revalidate
 async function handleOtherResources(request) {
-  const cache = await caches.open(CACHE_NAME);
+  const cache = await getMainCache();
   
   // Only cache GET requests
   if (request.method !== 'GET') {
@@ -523,7 +584,7 @@ async function queueFailedRequest(request) {
     };
     
     // Store in IndexedDB or simpler storage
-    const cache = await caches.open('offline-requests');
+    const cache = await getOfflineCache();
     const queueKey = `queue-${Date.now()}-${Math.random()}`;
     
     await cache.put(
@@ -542,7 +603,7 @@ async function queueFailedRequest(request) {
 // Process queued requests when online
 async function processQueuedRequests() {
   try {
-    const cache = await caches.open('offline-requests');
+    const cache = await getOfflineCache();
     const requests = await cache.keys();
     
     for (const request of requests) {

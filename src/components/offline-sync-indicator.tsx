@@ -5,14 +5,23 @@ import { useOfflineStatus } from '@/hooks/use-offline';
 import { OfflineSync } from '@/lib/offline/sync';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { scheduleIdleWork } from '@/lib/utils/performance-scheduler';
 
 export function OfflineSyncIndicator() {
   const { isOnline } = useOfflineStatus();
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [pendingActions, setPendingActions] = useState(0);
   const [message, setMessage] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Hydration-safe mounting effect
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
+    if (!isMounted) return;
+
     // Listen to sync status changes
     const unsubscribe = OfflineSync.onStatusChange((status) => {
       if (status.isActive) {
@@ -24,8 +33,8 @@ export function OfflineSyncIndicator() {
       } else if (status.progress.completed > 0) {
         setSyncStatus('success');
         setMessage(`Synced ${status.progress.completed} items successfully`);
-        // Reset to idle after 3 seconds
-        setTimeout(() => setSyncStatus('idle'), 3000);
+        // Reset to idle using performance scheduler
+        scheduleIdleWork(() => setSyncStatus('idle'), { priority: 'low', timeout: 3000 });
       }
     });
 
@@ -42,7 +51,12 @@ export function OfflineSyncIndicator() {
       unsubscribe();
       clearInterval(interval);
     };
-  }, []);
+  }, [isMounted]);
+
+  // Don't render until mounted to prevent hydration mismatch
+  if (!isMounted) {
+    return null;
+  }
 
   // Don't show anything if online and no pending actions
   if (isOnline && syncStatus === 'idle' && pendingActions === 0) {

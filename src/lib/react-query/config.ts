@@ -34,8 +34,8 @@ export const PRODUCTION_QUERY_CONFIG = {
       refetchOnReconnect: true,
       refetchOnMount: true,
       
-      // Network mode - work offline when possible
-      networkMode: 'offlineFirst',
+      // Network mode - prioritize online reliability
+      networkMode: 'online' as const,
       
       // Error handling
       throwOnError: false,
@@ -59,16 +59,16 @@ export const PRODUCTION_QUERY_CONFIG = {
       retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 10000),
       
       // Network mode
-      networkMode: 'offlineFirst',
+      networkMode: 'online' as const,
     },
   },
 };
 
 // Specific configurations for different data types
 export const BATCH_QUERY_CONFIG = {
-  // Active batches need frequent updates
-  staleTime: 15000, // 15 seconds
-  refetchInterval: 30000, // Refetch every 30 seconds
+  // Active batches with reliable polling
+  staleTime: 10000, // 10 seconds
+  refetchInterval: 20000, // More frequent for active data
   refetchIntervalInBackground: false,
 };
 

@@ -14,6 +14,7 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { useOptimizedToast } from '@/components/ui/toast-optimized';
 import { useQueryClient } from '@tanstack/react-query';
+// Removed unreliable performance scheduler imports
 
 interface RecentBatch {
   id: string;
@@ -133,16 +134,61 @@ export default function ManagerDashboardClient({
     }
   };
 
-  // Handler for confirming End Shift
+  // PRODUCTION-READY: Simple, reliable End Shift handler
   const handleConfirmEndShift = async () => {
     setIsDeletingBatches(true);
-    console.log(`Deleting batches for ${currentShift} shift...`);
+    console.log(`🔥 Starting End Shift for ${currentShift} shift...`);
     
     try {
-      // Use the server action to delete batches for current shift only
+      // 1. Delete batches from database (with built-in verification)
+      console.log(`📡 Deleting ${currentShift} shift batches from database...`);
       await deleteAllBatches(currentShift);
+      console.log(`✅ Database deletion completed for ${currentShift} shift`);
       
-      // Log end shift activity
+      // 2. IMMEDIATELY clear React Query cache - no scheduling, no delays
+      console.log(`🧹 Clearing React Query cache for ${currentShift} shift...`);
+      
+      // Clear specific batch queries for this shift
+      queryClient.removeQueries({ 
+        queryKey: ['batches', 'active', currentShift],
+        exact: true 
+      });
+      
+      queryClient.removeQueries({ 
+        queryKey: ['batches', 'stats', currentShift],
+        exact: true 
+      });
+      
+      // Set empty data immediately in cache
+      queryClient.setQueryData(['batches', 'active', currentShift], []);
+      queryClient.setQueryData(['batches', 'stats', currentShift], {
+        activeBatches: 0,
+        completedBatches: 0,
+        totalActualQuantity: 0
+      });
+      
+      console.log(`✅ Cache cleared for ${currentShift} shift`);
+      
+      // 3. Verify database deletion completed
+      try {
+        console.log(`🔍 Verifying ${currentShift} shift deletion...`);
+        const response = await fetch(`/api/batches?shift=${currentShift}&status=active`);
+        if (response.ok) {
+          const result = await response.json();
+          const remainingBatches = result.data || [];
+          
+          if (remainingBatches.length > 0) {
+            console.warn(`⚠️ ${remainingBatches.length} batches still exist after deletion!`);
+            throw new Error(`Deletion verification failed - ${remainingBatches.length} batches remain`);
+          }
+          console.log(`✅ Deletion verified - no ${currentShift} shift batches remain`);
+        }
+      } catch (verificationError) {
+        console.error('❌ Deletion verification failed:', verificationError);
+        // Continue anyway - database deletion already completed
+      }
+      
+      // 4. Log activity (non-blocking)
       try {
         await logEndShiftActivity({
           user_id: userId,
@@ -151,68 +197,26 @@ export default function ManagerDashboardClient({
           shift: currentShift as 'morning' | 'night'
         });
       } catch (activityError) {
-        console.error('Failed to log end shift activity:', activityError);
+        console.error('⚠️ Activity logging failed (non-critical):', activityError);
       }
       
-      console.log(`End shift confirmed for ${currentShift} shift`);
-      console.log(`${currentShift} shift batches deleted`);
-      
+      // 5. Show success message
       toast({
         title: 'Success',
         description: `${currentShift} shift ended successfully`,
         type: 'success'
       });
       
-      console.log('🧹 Refreshing batch data after successful deletion...');
+      console.log(`🎉 End shift completed successfully for ${currentShift} shift`);
       
-      // PRODUCTION-READY: Invalidate and refetch only batch-related queries
-      try {
-        // 1. Invalidate specific batch queries for current shift
-        console.log(`📊 Invalidating batch queries for ${currentShift} shift...`);
-        
-        await Promise.all([
-          queryClient.invalidateQueries({ 
-            queryKey: ['batches', 'active', currentShift],
-            refetchType: 'all'
-          }),
-          queryClient.invalidateQueries({ 
-            queryKey: ['batches', 'stats', currentShift],
-            refetchType: 'all'
-          }),
-          queryClient.invalidateQueries({ 
-            queryKey: ['batches'],
-            refetchType: 'all'
-          })
-        ]);
-        
-        // 2. Wait for fresh data to load (with timeout)
-        console.log('⏳ Waiting for fresh batch data to load...');
-        
-        await Promise.race([
-          Promise.all([
-            queryClient.refetchQueries({ queryKey: ['batches', 'active', currentShift] }),
-            queryClient.refetchQueries({ queryKey: ['batches', 'stats', currentShift] })
-          ]),
-          // Timeout after 5 seconds to prevent hanging
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Data refresh timeout')), 5000)
-          )
-        ]);
-        
-        console.log('✅ Batch data refreshed successfully - UI should now show empty batches');
-        
-      } catch (refreshError) {
-        console.warn('⚠️ Data refresh timeout or error, forcing minimal reload...', refreshError);
-        
-        // Fallback: Only clear batch-related cache and refresh current page
-        queryClient.removeQueries({ queryKey: ['batches'] });
-        
-        // Minimal page refresh without full reload
+      // 6. Force UI refresh with simple reload after short delay
+      setTimeout(() => {
+        console.log('🔄 Forcing page refresh to ensure UI sync...');
         window.location.reload();
-      }
+      }, 500);
       
     } catch (err) {
-      console.error('Error ending shift:', err);
+      console.error('❌ End shift failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to end shift. Please try again.';
       toast({
         title: 'Error',
