@@ -220,9 +220,9 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
     // Note: Low stock tracking is now handled by useLowStockTracker hook
     // No need for manual available_stock subscription
 
-    // Activities subscription for staff online count (login events)
+    // Enhanced Activities subscription for immediate staff online updates
     const activitiesSubscription = supabase
-      .channel('owner_dashboard_activities')
+      .channel('owner_dashboard_activities_enhanced')
       .on(
         'postgres_changes',
         {
@@ -231,22 +231,26 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
           table: 'activities',
           filter: 'activity_type=eq.login'
         },
-        () => {
-          // Refetch staff counts when new login activity occurs
-          getStaffOnlineCount().then(counts => {
-            const safeCounts = counts && typeof counts === 'object' && 'online' in counts 
-              ? counts 
-              : { online: 0, total: 0 };
-            
-            setStats(prev => ({
-              ...prev,
-              staffOnline: safeCounts.online || 0,
-              staffTotal: safeCounts.total || 0,
-              lastUpdate: new Date().toISOString()
-            }));
-          }).catch(err => {
-            console.warn('Failed to fetch staff counts on login activity:', err);
-          });
+        (payload) => {
+          console.log('🔄 Real-time login detected:', payload);
+          // Immediate staff count update with small delay to ensure data consistency
+          setTimeout(() => {
+            getStaffOnlineCount().then(counts => {
+              const safeCounts = counts && typeof counts === 'object' && 'online' in counts 
+                ? counts 
+                : { online: 0, total: 0 };
+              
+              console.log('📊 Real-time staff update:', safeCounts);
+              setStats(prev => ({
+                ...prev,
+                staffOnline: safeCounts.online || 0,
+                staffTotal: safeCounts.total || 0,
+                lastUpdate: new Date().toISOString()
+              }));
+            }).catch(err => {
+              console.warn('Failed to fetch staff counts on login activity:', err);
+            });
+          }, 500); // 500ms delay for data consistency
         }
       )
       .subscribe();
@@ -258,11 +262,11 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
     };
   }, []);
 
-  // Periodic refresh every 5 minutes for accuracy
+  // More frequent refresh every 30 seconds for staff online accuracy
   useEffect(() => {
     const interval = setInterval(() => {
       fetchStats();
-    }, 5 * 60 * 1000);
+    }, 30 * 1000); // 30 seconds instead of 5 minutes
 
     return () => clearInterval(interval);
   }, [fetchStats]);

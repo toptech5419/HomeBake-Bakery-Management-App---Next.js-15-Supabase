@@ -94,13 +94,14 @@ export async function getTodayBatchCount(): Promise<number> {
 
 /**
  * Get staff online count using recent login activities (Server Action)
- * Considers staff "online" if they have login activity in the last 4 hours
+ * FIXED: Uses activity-based tracking since sessions table is not populated
+ * Considers staff "online" if they have login activity in the last 2 hours (more accurate)
  */
 export async function getStaffOnlineCount(): Promise<{ online: number; total: number }> {
   const supabase = await createServer();
   
   try {
-    // Get total staff count (excluding owners)
+    // Get total active staff count (excluding owners)
     const { data: allStaff, error: staffError } = await supabase
       .from('users')
       .select('id')
@@ -109,28 +110,38 @@ export async function getStaffOnlineCount(): Promise<{ online: number; total: nu
 
     if (staffError) throw staffError;
 
-    // Get recent login activities (within the last 4 hours)
-    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+    const totalStaff = allStaff?.length || 0;
+
+    // Use activity-based tracking with more accurate time window (2 hours instead of 4)
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     
     const { data: recentLoginActivities, error: activitiesError } = await supabase
       .from('activities')
       .select('user_id')
       .eq('activity_type', 'login')
-      .gte('created_at', fourHoursAgo);
+      .gte('created_at', twoHoursAgo);
 
-    if (activitiesError) throw activitiesError;
+    if (activitiesError) {
+      console.error('Error fetching login activities:', activitiesError);
+      return { online: 0, total: totalStaff };
+    }
 
-    const totalStaff = allStaff?.length || 0;
-    
-    // Get unique user IDs from recent login activities
-    const uniqueOnlineUsers = new Set(
-      recentLoginActivities?.map(activity => activity.user_id) || []
+    // FIXED: Filter activities to only include actual staff members
+    const staffIds = new Set(allStaff?.map(staff => staff.id) || []);
+    const uniqueOnlineStaff = new Set(
+      recentLoginActivities?.filter(activity => 
+        staffIds.has(activity.user_id)
+      ).map(activity => activity.user_id) || []
     );
-    
-    const onlineStaff = uniqueOnlineUsers.size;
+
+    console.log(`Staff online debug: ${uniqueOnlineStaff.size}/${totalStaff}`, {
+      staffIds: Array.from(staffIds),
+      recentLogins: recentLoginActivities?.map(a => a.user_id) || [],
+      onlineStaff: Array.from(uniqueOnlineStaff)
+    });
 
     return {
-      online: Math.min(onlineStaff, totalStaff), // Cap at total staff
+      online: uniqueOnlineStaff.size,
       total: totalStaff
     };
   } catch (error) {

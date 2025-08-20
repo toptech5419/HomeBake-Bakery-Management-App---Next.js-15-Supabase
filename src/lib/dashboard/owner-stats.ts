@@ -90,13 +90,15 @@ export const getTodayBatchCount = async (): Promise<number> => {
 };
 
 /**
- * Get staff online count using sessions table
+ * Get staff online count using recent login activities (Client-side)
+ * FIXED: Uses activity-based tracking since sessions table is not populated
+ * Matches server-actions.ts implementation for consistency
  */
 export const getStaffOnlineCount = async (): Promise<{ online: number; total: number }> => {
   const supabaseClient = supabase;
   
   try {
-    // Get total staff count (excluding owners)
+    // Get total active staff count (excluding owners)
     const { data: allStaff, error: staffError } = await supabaseClient
       .from('users')
       .select('id')
@@ -105,19 +107,32 @@ export const getStaffOnlineCount = async (): Promise<{ online: number; total: nu
 
     if (staffError) throw staffError;
 
-    // Get active sessions count
-    const { data: activeSessions, error: sessionsError } = await supabaseClient
-      .from('sessions')
-      .select('user_id')
-      .gt('expires_at', new Date().toISOString());
-
-    if (sessionsError) throw sessionsError;
-
     const totalStaff = allStaff?.length || 0;
-    const onlineStaff = activeSessions?.length || 0;
+
+    // Use activity-based tracking with 2 hour window
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    
+    const { data: recentLoginActivities, error: activitiesError } = await supabaseClient
+      .from('activities')
+      .select('user_id')
+      .eq('activity_type', 'login')
+      .gte('created_at', twoHoursAgo);
+
+    if (activitiesError) {
+      console.error('Error fetching login activities:', activitiesError);
+      return { online: 0, total: totalStaff };
+    }
+
+    // FIXED: Filter activities to only include actual staff members
+    const staffIds = new Set(allStaff?.map(staff => staff.id) || []);
+    const uniqueOnlineStaff = new Set(
+      recentLoginActivities?.filter(activity => 
+        staffIds.has(activity.user_id)
+      ).map(activity => activity.user_id) || []
+    );
 
     return {
-      online: Math.min(onlineStaff, totalStaff), // Cap at total staff
+      online: uniqueOnlineStaff.size,
       total: totalStaff
     };
   } catch (error) {
