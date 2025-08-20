@@ -62,9 +62,17 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
   const handleSignOut = async () => {
     setIsSigningOut(true);
     try {
-      await supabase.auth.signOut();
-      onMobileClose?.();
-      window.location.href = '/login';
+      // Use the professional logout action that handles sessions
+      const { logoutUser } = await import('@/lib/auth/logout-action');
+      const result = await logoutUser();
+      
+      if (result.success) {
+        onMobileClose?.();
+        window.location.href = '/login';
+      } else {
+        console.error('Logout failed:', result.error);
+        setIsSigningOut(false);
+      }
     } catch (error) {
       console.error('Error signing out:', error);
       setIsSigningOut(false);

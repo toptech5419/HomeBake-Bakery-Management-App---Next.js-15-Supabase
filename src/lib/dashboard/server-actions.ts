@@ -93,56 +93,17 @@ export async function getTodayBatchCount(): Promise<number> {
 }
 
 /**
- * Get staff online count using recent login activities (Server Action)
- * FIXED: Uses activity-based tracking since sessions table is not populated
- * Considers staff "online" if they have login activity in the last 2 hours (more accurate)
+ * Get staff online count using PROFESSIONAL sessions-based approach
+ * Uses the sessions table - PRODUCTION STANDARD
  */
 export async function getStaffOnlineCount(): Promise<{ online: number; total: number }> {
-  const supabase = await createServer();
+  const { getStaffOnlineCountFromSessions } = await import('@/lib/auth/session-management');
   
   try {
-    // Get total active staff count (excluding owners)
-    const { data: allStaff, error: staffError } = await supabase
-      .from('users')
-      .select('id')
-      .neq('role', 'owner')
-      .eq('is_active', true);
-
-    if (staffError) throw staffError;
-
-    const totalStaff = allStaff?.length || 0;
-
-    // Use activity-based tracking with more accurate time window (2 hours instead of 4)
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-    
-    const { data: recentLoginActivities, error: activitiesError } = await supabase
-      .from('activities')
-      .select('user_id')
-      .eq('activity_type', 'login')
-      .gte('created_at', twoHoursAgo);
-
-    if (activitiesError) {
-      console.error('Error fetching login activities:', activitiesError);
-      return { online: 0, total: totalStaff };
-    }
-
-    // FIXED: Filter activities to only include actual staff members
-    const staffIds = new Set(allStaff?.map(staff => staff.id) || []);
-    const uniqueOnlineStaff = new Set(
-      recentLoginActivities?.filter(activity => 
-        staffIds.has(activity.user_id)
-      ).map(activity => activity.user_id) || []
-    );
-
-    console.log(`Staff online debug: ${uniqueOnlineStaff.size}/${totalStaff}`, {
-      staffIds: Array.from(staffIds),
-      recentLogins: recentLoginActivities?.map(a => a.user_id) || [],
-      onlineStaff: Array.from(uniqueOnlineStaff)
-    });
-
+    const result = await getStaffOnlineCountFromSessions();
     return {
-      online: uniqueOnlineStaff.size,
-      total: totalStaff
+      online: result.online,
+      total: result.total
     };
   } catch (error) {
     console.error('Error fetching staff online count:', error);

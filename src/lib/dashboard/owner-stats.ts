@@ -109,30 +109,46 @@ export const getStaffOnlineCount = async (): Promise<{ online: number; total: nu
 
     const totalStaff = allStaff?.length || 0;
 
-    // Use activity-based tracking with 2 hour window
+    // FIXED: Track both login and logout activities for accurate online status
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     
-    const { data: recentLoginActivities, error: activitiesError } = await supabaseClient
+    // Get recent login and logout activities
+    const { data: recentActivities, error: activitiesError } = await supabaseClient
       .from('activities')
-      .select('user_id')
-      .eq('activity_type', 'login')
-      .gte('created_at', twoHoursAgo);
+      .select('user_id, activity_type, created_at')
+      .in('activity_type', ['login', 'end_shift']) // end_shift = logout
+      .gte('created_at', twoHoursAgo)
+      .order('created_at', { ascending: false }); // Most recent first
 
     if (activitiesError) {
-      console.error('Error fetching login activities:', activitiesError);
+      console.error('Error fetching activities:', activitiesError);
       return { online: 0, total: totalStaff };
     }
 
-    // FIXED: Filter activities to only include actual staff members
+    // Filter activities to only include actual staff members
     const staffIds = new Set(allStaff?.map(staff => staff.id) || []);
-    const uniqueOnlineStaff = new Set(
-      recentLoginActivities?.filter(activity => 
-        staffIds.has(activity.user_id)
-      ).map(activity => activity.user_id) || []
-    );
+    const staffActivities = recentActivities?.filter(activity => 
+      staffIds.has(activity.user_id)
+    ) || [];
+
+    // Determine who is online by checking latest activity per user
+    const onlineStaff = new Set<string>();
+    const userLastActivity = new Map<string, string>();
+    
+    // Process activities from most recent to oldest
+    for (const activity of staffActivities) {
+      if (!userLastActivity.has(activity.user_id)) {
+        userLastActivity.set(activity.user_id, activity.activity_type);
+        
+        // User is online if their last activity was login (not logout/end_shift)
+        if (activity.activity_type === 'login') {
+          onlineStaff.add(activity.user_id);
+        }
+      }
+    }
 
     return {
-      online: uniqueOnlineStaff.size,
+      online: onlineStaff.size,
       total: totalStaff
     };
   } catch (error) {

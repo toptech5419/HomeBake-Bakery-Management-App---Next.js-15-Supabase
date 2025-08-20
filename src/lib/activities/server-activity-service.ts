@@ -81,6 +81,23 @@ async function logActivity(data: ActivityData): Promise<void> {
 }
 
 /**
+ * Log when a user logs out
+ */
+export async function logLogoutActivity(data: {
+  user_id: string;
+  user_name: string;
+  user_role: 'manager' | 'sales_rep';
+}): Promise<void> {
+  await logActivity({
+    user_id: data.user_id,
+    user_name: data.user_name,
+    user_role: data.user_role,
+    activity_type: 'end_shift', // Using 'end_shift' as closest to logout
+    message: `${data.user_name} logged out`
+  });
+}
+
+/**
  * Log when a sales rep records a sale
  */
 export async function logSaleActivity(data: {

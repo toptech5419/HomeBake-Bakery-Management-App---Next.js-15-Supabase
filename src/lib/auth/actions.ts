@@ -3,7 +3,8 @@
 import { createServer } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { UserRole } from '@/types'
-import { logLoginActivity } from '@/lib/activities/server-activity-service'
+import { logLoginActivity, logLogoutActivity } from '@/lib/activities/server-activity-service'
+import { createUserSession, deleteUserSession } from './session-management'
 
 export async function login(prevState: { error?: string }, formData: FormData) {
   const supabase = await createServer()
@@ -106,17 +107,24 @@ export async function login(prevState: { error?: string }, formData: FormData) {
       displayName = profile.name || displayName;
     }
 
-    // Log login activity for non-owners
+    // Create session for staff online tracking (PROFESSIONAL APPROACH)
     if (userRole !== 'owner') {
       try {
+        // Create session in sessions table
+        const sessionResult = await createUserSession(authData.user.id);
+        if (!sessionResult.success) {
+          console.error('Failed to create session:', sessionResult.error);
+        }
+
+        // Log login activity for notifications/history
         await logLoginActivity({
           user_id: authData.user.id,
           user_name: displayName,
           user_role: userRole as 'manager' | 'sales_rep'
         });
-      } catch (activityError) {
-        // Don't fail login if activity logging fails
-        console.error('Failed to log login activity:', activityError);
+      } catch (error) {
+        // Don't fail login if session/activity logging fails
+        console.error('Failed to create session or log activity:', error);
       }
     }
 
@@ -139,9 +147,38 @@ export async function login(prevState: { error?: string }, formData: FormData) {
 }
 
 export async function logout() {
-  const supabase = await createServer()
-  await supabase.auth.signOut()
-  return redirect('/login')
+  const supabase = await createServer();
+  
+  // Get user info before logout for activity logging
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (user && !error) {
+      // Get user role and name for activity logging
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role, name')
+        .eq('id', user.id)
+        .single();
+        
+      // Log logout activity for non-owners
+      if (profile && profile.role !== 'owner') {
+        await logLogoutActivity({
+          user_id: user.id,
+          user_name: profile.name || user.email?.split('@')[0] || 'User',
+          user_role: profile.role as 'manager' | 'sales_rep'
+        }).catch(err => {
+          console.error('Failed to log logout activity:', err);
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error during logout activity logging:', error);
+    // Continue with logout even if activity logging fails
+  }
+  
+  await supabase.auth.signOut();
+  return redirect('/login');
 }
 
 export async function logoutWithoutRedirect() {

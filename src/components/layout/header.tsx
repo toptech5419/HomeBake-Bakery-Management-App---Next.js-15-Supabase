@@ -19,8 +19,16 @@ export function Header({ displayName, role, onMobileMenuToggle, isMobileMenuOpen
   const handleSignOut = async () => {
     setIsSigningOut(true);
     try {
-      await supabase.auth.signOut();
-      window.location.href = '/login';
+      // Use the professional logout action that handles sessions
+      const { logoutUser } = await import('@/lib/auth/logout-action');
+      const result = await logoutUser();
+      
+      if (result.success) {
+        window.location.href = '/login';
+      } else {
+        console.error('Logout failed:', result.error);
+        setIsSigningOut(false);
+      }
     } catch (error) {
       console.error('Error signing out:', error);
       setIsSigningOut(false);
