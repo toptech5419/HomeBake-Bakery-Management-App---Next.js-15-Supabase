@@ -926,17 +926,24 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
               {isAdditionalSalesOpen && (
                 <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-3 sm:space-y-4 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2">
                   {quickRecordItems.map((item) => (
-                    <div key={item.breadType.id} className="flex items-center gap-4 p-4 border rounded-xl bg-white/80 backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:bg-white min-h-[68px]">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-base truncate">{item.breadType.name}</p>
+                    <div key={item.breadType.id} className="p-4 border rounded-xl bg-white/80 backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:bg-white space-y-3">
+                      {/* Bread Type Info - Full Width */}
+                      <div className="w-full">
+                        <p className="font-medium text-base leading-tight mb-1" style={{ wordBreak: 'break-word' }}>
+                          {item.breadType.name}
+                        </p>
                         <p className="text-sm text-gray-600">{formatCurrencyNGN(item.breadType.unit_price)} each</p>
                       </div>
-                      <SimpleQuantityInput
-                        itemId={item.breadType.id}
-                        initialValue={item.quantity}
-                        variant="blue"
-                        onChange={handleQuickRecordQuantityChange}
-                      />
+                      
+                      {/* Quantity Input - Centered */}
+                      <div className="flex justify-center pt-2">
+                        <SimpleQuantityInput
+                          itemId={item.breadType.id}
+                          initialValue={item.quantity}
+                          variant="blue"
+                          onChange={handleQuickRecordQuantityChange}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -989,17 +996,24 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
               {isRemainingBreadOpen && (
                 <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-3 sm:space-y-4 transition-all duration-300 ease-in-out animate-in slide-in-from-top-2">
                   {quickRemainingItems.map((item) => (
-                    <div key={item.breadType.id} className="flex items-center gap-4 p-4 border rounded-xl bg-gradient-to-r from-yellow-50/80 to-amber-50/80 backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:from-yellow-100/80 hover:to-amber-100/80 min-h-[68px]">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-base truncate">{item.breadType.name}</p>
+                    <div key={item.breadType.id} className="p-4 border rounded-xl bg-gradient-to-r from-yellow-50/80 to-amber-50/80 backdrop-blur-sm hover:shadow-md transition-all duration-200 hover:from-yellow-100/80 hover:to-amber-100/80 space-y-3">
+                      {/* Bread Type Info - Full Width */}
+                      <div className="w-full">
+                        <p className="font-medium text-base leading-tight mb-1" style={{ wordBreak: 'break-word' }}>
+                          {item.breadType.name}
+                        </p>
                         <p className="text-sm text-gray-600">Remaining quantity</p>
                       </div>
-                      <SimpleQuantityInput
-                        itemId={item.breadType.id}
-                        initialValue={item.quantity}
-                        variant="amber"
-                        onChange={handleRemainingQuantityChange}
-                      />
+                      
+                      {/* Quantity Input - Centered */}
+                      <div className="flex justify-center pt-2">
+                        <SimpleQuantityInput
+                          itemId={item.breadType.id}
+                          initialValue={item.quantity}
+                          variant="amber"
+                          onChange={handleRemainingQuantityChange}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
