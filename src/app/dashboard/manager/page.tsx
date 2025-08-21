@@ -33,19 +33,21 @@ export default async function ManagerDashboardPage() {
   let breadTypeMap: Record<string, string> = {};
 
   try {
-    // --- Active Batches - Get minimal data (client will handle shift filtering) ---
+    // --- Active Batches - CRITICAL FIX: Filter by current user like the API does ---
     const { data: activeBatches, error: activeBatchesError } = await supabase
       .from('batches')
       .select('id, bread_type_id, actual_quantity, status, created_at, batch_number, shift')
       .eq('status', 'active')
+      .eq('created_by', user.id) // CRITICAL FIX: Filter by current user
       .order('created_at', { ascending: false })
-      .limit(10); // Limit for performance, client will filter and manage data
+      .limit(10);
 
     if (activeBatchesError) {
-      console.error('Error fetching active batches:', activeBatchesError);
+      console.error('Error fetching active batches for user:', user.id, activeBatchesError);
     } else {
       // Use fetched data if successful
       safeBatches = activeBatches || [];
+      console.log(`📊 Manager dashboard server: Found ${safeBatches.length} batches for user ${user.id}`);
     }
 
     // Get bread type names for batches with safe error handling
