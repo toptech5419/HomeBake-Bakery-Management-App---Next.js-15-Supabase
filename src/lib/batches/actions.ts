@@ -250,148 +250,130 @@ export async function deleteBatch(batchId: string): Promise<void> {
   revalidatePath('/dashboard');
 }
 
-// Check if batches are already saved to all_batches
+// PRODUCTION-READY: Save batches to all_batches with proper duplicate checking
 export async function checkAndSaveBatchesToAllBatches(shift?: 'morning' | 'night'): Promise<{ needsSaving: boolean; savedCount?: number }> {
   const supabase = await createServer();
   
   try {
-    // Get current user
+    // Authentication check
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       throw new Error('Authentication required');
     }
 
-    console.log('🔍 Starting batch check and save process...');
+    console.log(`🔍 Starting batch save process for ${shift || 'all'} shift...`);
 
-    // Get current date for filtering (TODAY ONLY)
+    // Get today's date range for filtering
     const today = new Date().toISOString().split('T')[0];
-    console.log(`📅 Checking batches for TODAY: ${today}`);
+    const dateStart = `${today}T00:00:00.000Z`;
+    const dateEnd = `${today}T23:59:59.999Z`;
 
-    // Build the query to get batches for current user TODAY ONLY
+    // Query batches from current user for today with optional shift filter
     let batchesQuery = supabase
       .from('batches')
       .select('*')
-      .eq('created_by', user.id) // Filter by current user
-      .gte('created_at', `${today}T00:00:00`)
-      .lt('created_at', `${today}T23:59:59`);
+      .eq('created_by', user.id)
+      .gte('created_at', dateStart)
+      .lte('created_at', dateEnd);
 
-    // If shift is specified, filter by shift
     if (shift) {
       batchesQuery = batchesQuery.eq('shift', shift);
-      console.log(`🎯 Filtering by current user and shift: ${shift}`);
-    } else {
-      console.log('⚠️ No shift specified, will check all shifts for current user today');
     }
 
-    // Get batches from batches table for today (and specific shift if provided)
     const { data: batches, error: batchesError } = await batchesQuery;
-
+    
     if (batchesError) {
       console.error('Error fetching batches:', batchesError);
       throw new Error('Failed to fetch batches');
     }
 
-    console.log(`📊 Found ${batches?.length || 0} batches in batches table for current user - ${shift || 'all shifts'} TODAY`);
-
     if (!batches || batches.length === 0) {
-      console.log(`ℹ️ No batches found for current user - ${shift || 'all shifts'} TODAY, nothing to save`);
+      console.log(`ℹ️ No batches found for ${shift || 'all'} shift today`);
       return { needsSaving: false };
     }
 
-    // Get all existing batch UUIDs from all_batches table for current user TODAY (and specific shift if provided)
-    let existingBatchesQuery = supabase
-      .from('all_batches')
-      .select('id, created_at')
-      .eq('created_by', user.id) // Filter by current user
-      .gte('created_at', `${today}T00:00:00`)
-      .lt('created_at', `${today}T23:59:59`);
+    console.log(`📊 Found ${batches.length} batches for ${shift || 'all'} shift`);
 
-    // If shift is specified, filter existing batches by shift too
-    if (shift) {
-      existingBatchesQuery = existingBatchesQuery.eq('shift', shift);
-    }
+    // Check for existing batches in all_batches using BUSINESS LOGIC (not just UUID)
+    // Query by bread_type_id + batch_number + shift + created_by + date
+    const existingBatchChecks = await Promise.all(
+      batches.map(async (batch) => {
+        const { data: existing } = await supabase
+          .from('all_batches')
+          .select('id')
+          .eq('bread_type_id', batch.bread_type_id)
+          .eq('batch_number', batch.batch_number)
+          .eq('shift', batch.shift)
+          .eq('created_by', batch.created_by)
+          .gte('created_at', dateStart)
+          .lte('created_at', dateEnd)
+          .single();
+        
+        return {
+          batch,
+          exists: !!existing
+        };
+      })
+    );
 
-    const { data: existingBatches, error: existingError } = await existingBatchesQuery;
-
-    if (existingError) {
-      console.error('Error fetching existing batches:', existingError);
-      throw new Error('Failed to check existing batches');
-    }
-
-    console.log(`📋 Found ${existingBatches?.length || 0} existing batches in all_batches table for current user - ${shift || 'all shifts'} TODAY`);
-
-    // Create a set of existing batch UUIDs for fast lookup
-    const existingBatchIds = new Set();
-    if (existingBatches) {
-      existingBatches.forEach(batch => {
-        existingBatchIds.add(batch.id);
-      });
-    }
-
-    // Filter batches that need to be saved (those not in all_batches)
-    const batchesToSave = batches.filter(batch => {
-      return !existingBatchIds.has(batch.id);
-    });
-
-    console.log(`💾 Found ${batchesToSave.length} batches that need to be saved to all_batches for current user - ${shift || 'all shifts'} TODAY`);
+    // Filter out batches that already exist by business logic
+    const batchesToSave = existingBatchChecks
+      .filter(({ exists }) => !exists)
+      .map(({ batch }) => batch);
 
     if (batchesToSave.length === 0) {
-      console.log(`✅ All batches for current user - ${shift || 'all shifts'} are already saved to all_batches TODAY`);
+      console.log(`✅ All ${shift || 'all'} shift batches already saved to reports`);
       return { needsSaving: false };
     }
 
-    // Log details of batches that will be saved
-    batchesToSave.forEach(batch => {
-      console.log(`📝 Will save batch: ${batch.id} (${batch.batch_number}) - ${(batch as Batch & { shift?: string }).shift} shift`);
-    });
+    console.log(`💾 Saving ${batchesToSave.length} new batches to reports...`);
 
-    // Validate batch data before insertion
-    const validBatchesToInsert = batchesToSave.map(batch => {
-      // Ensure all required fields are present
-      if (!batch.bread_type_id || !batch.batch_number || !batch.actual_quantity) {
-        console.warn(`⚠️ Skipping invalid batch: ${batch.id} - missing required fields`);
-        return null;
-      }
-
-      return {
-        id: batch.id, // Preserve the original UUID
+    // Prepare batches for insertion with data validation
+    const validBatches = batchesToSave
+      .filter(batch => {
+        const isValid = batch.bread_type_id && 
+                       batch.batch_number && 
+                       batch.shift && 
+                       batch.created_by;
+        
+        if (!isValid) {
+          console.warn(`⚠️ Skipping invalid batch: ${batch.id}`);
+        }
+        return isValid;
+      })
+      .map(batch => ({
+        id: batch.id,
         bread_type_id: batch.bread_type_id,
         batch_number: batch.batch_number,
         start_time: batch.start_time,
         end_time: batch.end_time,
         actual_quantity: batch.actual_quantity || 0,
         status: batch.status || 'active',
-        shift: (batch as Batch & { shift?: string }).shift || 'morning',
+        shift: batch.shift,
         notes: batch.notes,
         created_by: batch.created_by,
         created_at: batch.created_at,
-        updated_at: batch.updated_at
-      };
-    }).filter(batch => batch !== null);
+        updated_at: batch.updated_at || new Date().toISOString()
+      }));
 
-    if (validBatchesToInsert.length === 0) {
+    if (validBatches.length === 0) {
       console.log('⚠️ No valid batches to save after validation');
       return { needsSaving: false };
     }
 
-    console.log(`🚀 Saving ${validBatchesToInsert.length} valid batches to all_batches table for current user - ${shift || 'all shifts'} TODAY...`);
-
-    // Save batches to all_batches table in bulk with ON CONFLICT handling
-    const { error: saveError } = await supabase
+    // Insert batches to all_batches table
+    const { error: insertError } = await supabase
       .from('all_batches')
-      .upsert(validBatchesToInsert, { 
-        onConflict: 'id',
-        ignoreDuplicates: true 
-      });
+      .insert(validBatches);
 
-    if (saveError) {
-      console.error('Error saving batches to all_batches:', saveError);
-      throw new Error('Failed to save batches to all_batches');
+    if (insertError) {
+      console.error('❌ Error saving batches:', insertError);
+      throw new Error(`Failed to save batches: ${insertError.message}`);
     }
 
-    console.log(`✅ Successfully saved ${validBatchesToInsert.length} batches to all_batches table for current user - ${shift || 'all shifts'} TODAY`);
-    
-    // Log activity for saving batches to all_batches
+    console.log(`✅ Successfully saved ${validBatches.length} batches to reports`);
+
+    // Log activity (non-blocking)
     try {
       const { data: userData } = await supabase
         .from('users')
@@ -405,14 +387,14 @@ export async function checkAndSaveBatchesToAllBatches(shift?: 'morning' | 'night
           user_name: userData.name,
           user_role: userData.role as 'manager' | 'sales_rep',
           shift: shift as 'morning' | 'night',
-          report_type: `${validBatchesToInsert.length} batch${validBatchesToInsert.length !== 1 ? 'es' : ''} saved to reports`
+          report_type: `${validBatches.length} batch${validBatches.length !== 1 ? 'es' : ''} saved to reports`
         });
       }
     } catch (activityError) {
-      console.error('Failed to log batch save activity:', activityError);
+      console.error('Failed to log activity:', activityError);
     }
-    
-    return { needsSaving: true, savedCount: validBatchesToInsert.length };
+
+    return { needsSaving: true, savedCount: validBatches.length };
 
   } catch (error) {
     console.error('❌ Error in checkAndSaveBatchesToAllBatches:', error);
@@ -420,139 +402,63 @@ export async function checkAndSaveBatchesToAllBatches(shift?: 'morning' | 'night
   }
 }
 
-// Delete all batches for current user's shift (for managers/owners only)
-// PRODUCTION-READY FIX: Use regular client with proper RLS authentication (like sales rep end shift)
+// PRODUCTION-READY: Delete all batches for current user and shift
 export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<void> {
-  // ✅ USE REGULAR CLIENT - Same approach as sales rep end shift
   const supabase = await createServer();
   
-  // Get current user with proper authentication context
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  
-  if (authError || !user) {
-    throw new Error('Authentication required');
-  }
-
-  // Check user role with proper authentication context (not service role)
-  const { data: userData, error: userError } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  if (userError || !userData) {
-    throw new Error('User not found');
-  }
-
-  // Only managers and owners can delete batches
-  if (userData.role !== 'manager' && userData.role !== 'owner') {
-    throw new Error('Unauthorized: Only managers and owners can delete batches');
-  }
-
-  console.log(`🧹 Starting batch deletion for current user (${user.id}) - ${shift || 'all'} shift (ALL DATES) with PROPER AUTHENTICATION`);
-
-  // First, check how many batches will be deleted using authenticated client
-  let countQuery = supabase
-    .from('batches')
-    .select('id, batch_number, shift, created_at')
-    .eq('created_by', user.id); // Filter by current user ONLY
-
-  // If shift is specified, filter by shift
-  if (shift) {
-    countQuery = countQuery.eq('shift', shift);
-    console.log(`🎯 Counting ALL batches for current user and shift: ${shift} with AUTHENTICATED CLIENT`);
-  } else {
-    console.log('⚠️ No shift specified, counting ALL batches for current user with AUTHENTICATED CLIENT');
-  }
-
-  const { data: batchesToDelete, error: countError } = await countQuery;
-  
-  if (countError) {
-    console.error('Error counting batches to delete:', countError);
-  } else {
-    console.log(`📊 Found ${batchesToDelete?.length || 0} batches to delete for current user - ${shift || 'all'} shift (ALL DATES)`);
-    if (batchesToDelete && batchesToDelete.length > 0) {
-      batchesToDelete.forEach(batch => {
-        console.log(`   - Batch ${batch.batch_number} (${batch.shift} shift) - ${batch.created_at}`);
-      });
+  try {
+    // Authentication check
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new Error('Authentication required');
     }
-  }
 
-  // ✅ BUILD DELETE QUERY WITH AUTHENTICATED CLIENT - This will work with RLS
-  let deleteQuery = supabase
-    .from('batches')
-    .delete()
-    .eq('created_by', user.id); // Filter by current user ONLY
+    // Role authorization check
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-  // If shift is specified, filter by shift
-  if (shift) {
-    deleteQuery = deleteQuery.eq('shift', shift);
-    console.log(`🗑️ Deleting ALL batches for current user and shift: ${shift} with AUTHENTICATED CLIENT`);
-  } else {
-    console.log('🗑️ Deleting ALL batches for current user with AUTHENTICATED CLIENT');
-  }
-
-  const { error, count } = await deleteQuery;
-
-  if (error) {
-    console.error('❌ Error deleting batches with authenticated client:', error);
-    console.error('❌ Error code:', error.code);
-    console.error('❌ Error message:', error.message);
-    console.error('❌ Error details:', error.details);
-    console.error('❌ Error hint:', error.hint);
-    throw new Error(`Failed to delete ${shift || 'all'} shift batches: ${error.message}`);
-  }
-
-  console.log(`✅ Successfully deleted ${count || 'unknown number of'} ${shift || 'all'} shift batches for current user (${user.id}) with AUTHENTICATED CLIENT`);
-  
-  // PRODUCTION-READY: Additional verification with retry using authenticated client
-  let verificationAttempts = 0;
-  const maxVerificationAttempts = 3;
-  
-  while (verificationAttempts < maxVerificationAttempts) {
-    const { data: remainingBatches, error: verifyError } = await countQuery;
-    
-    if (verifyError) {
-      console.warn(`⚠️ Verification attempt ${verificationAttempts + 1} failed:`, verifyError);
-      verificationAttempts++;
-      if (verificationAttempts < maxVerificationAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms before retry
-        continue;
-      }
-      break;
+    if (userError || !userData) {
+      throw new Error('User not found');
     }
-    
-    if (remainingBatches && remainingBatches.length === 0) {
-      console.log(`🔍 Verification PASSED: No ${shift || 'all'} shift batches remain for user ${user.id}`);
-      break;
-    } else {
-      console.warn(`⚠️ Verification attempt ${verificationAttempts + 1}: ${remainingBatches?.length || 0} batches still exist`);
-      if (remainingBatches && remainingBatches.length > 0) {
-        remainingBatches.forEach(batch => {
-          console.warn(`   - Still exists: ${batch.batch_number} (${batch.shift} shift) - ${batch.created_at}`);
-        });
-      }
+
+    if (userData.role !== 'manager' && userData.role !== 'owner') {
+      throw new Error('Unauthorized: Only managers and owners can delete batches');
     }
-    
-    verificationAttempts++;
-    if (verificationAttempts < maxVerificationAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retry
+
+    console.log(`🗑️ Deleting ${shift || 'all'} shift batches for current user...`);
+
+    // Build delete query for current user with optional shift filter
+    let deleteQuery = supabase
+      .from('batches')
+      .delete()
+      .eq('created_by', user.id);
+
+    if (shift) {
+      deleteQuery = deleteQuery.eq('shift', shift);
     }
+
+    // Execute deletion
+    const { error: deleteError, count } = await deleteQuery;
+
+    if (deleteError) {
+      console.error('❌ Delete error:', deleteError);
+      throw new Error(`Failed to delete batches: ${deleteError.message}`);
+    }
+
+    console.log(`✅ Successfully deleted ${count || 0} batches`);
+
+    // Invalidate relevant caches
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/manager');
+    revalidatePath('/api/batches');
+
+  } catch (error) {
+    console.error('❌ Error in deleteAllBatches:', error);
+    throw error;
   }
-  
-  if (verificationAttempts >= maxVerificationAttempts) {
-    console.error(`❌ Verification failed after ${maxVerificationAttempts} attempts`);
-    throw new Error(`Batch deletion verification failed after ${maxVerificationAttempts} attempts`);
-  }
-  
-  console.log(`🎉 AUTHENTICATED CLIENT APPROACH: Batch deletion completed successfully for ${shift || 'all'} shift`);
-  
-  // Invalidate all relevant paths and caches
-  revalidatePath('/dashboard');
-  revalidatePath('/dashboard/manager');
-  revalidatePath('/dashboard/production');
-  revalidatePath('/api/batches');
-  revalidatePath('/api/batches/stats');
 }
 
 // Get batch statistics

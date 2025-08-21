@@ -134,64 +134,32 @@ export default function ManagerDashboardClient({
     }
   };
 
-  // PRODUCTION-READY: Simple, reliable End Shift handler
+  // PRODUCTION-READY: Clean, efficient End Shift handler
   const handleConfirmEndShift = async () => {
     setIsDeletingBatches(true);
-    console.log(`🔥 Starting End Shift for ${currentShift} shift...`);
     
     try {
-      // 1. Delete batches from database (with built-in verification)
-      console.log(`📡 Deleting ${currentShift} shift batches from database...`);
+      console.log(`🔥 Starting End Shift for ${currentShift} shift...`);
+      
+      // 1. Delete batches from database
       await deleteAllBatches(currentShift);
-      console.log(`✅ Database deletion completed for ${currentShift} shift`);
       
-      // 2. IMMEDIATELY clear React Query cache - no scheduling, no delays
-      console.log(`🧹 Clearing React Query cache for ${currentShift} shift...`);
-      
-      // Clear specific batch queries for this shift
+      // 2. Clear React Query cache immediately
       queryClient.removeQueries({ 
-        queryKey: ['batches', 'active', currentShift],
-        exact: true 
+        queryKey: ['batches'],
+        type: 'all'
       });
       
-      queryClient.removeQueries({ 
-        queryKey: ['batches', 'stats', currentShift],
-        exact: true 
-      });
-      
-      // Set empty data immediately in cache
+      // Set empty state in cache
       queryClient.setQueryData(['batches', 'active', currentShift], []);
-      queryClient.setQueryData(['batches', 'stats', currentShift], {
-        activeBatches: 0,
-        completedBatches: 0,
-        totalActualQuantity: 0
+      queryClient.setQueryData(['manager-dashboard'], {
+        activeBatchesCount: 0,
+        recentBatches: [],
+        totalBatches: 0,
+        progressPercentage: 0
       });
       
-      console.log(`✅ Cache cleared for ${currentShift} shift`);
-      
-      // 3. Verify database deletion completed (now checks current user's batches only)
-      try {
-        console.log(`🔍 Verifying ${currentShift} shift deletion for current user...`);
-        const response = await fetch(`/api/batches?shift=${currentShift}&status=active`);
-        if (response.ok) {
-          const result = await response.json();
-          const remainingBatches = result.data || [];
-          
-          if (remainingBatches.length > 0) {
-            console.warn(`⚠️ ${remainingBatches.length} batches still exist after deletion for current user!`);
-            remainingBatches.forEach(batch => {
-              console.warn(`   - Still exists: ${batch.batch_number} (${batch.shift} shift) - ${batch.created_at}`);
-            });
-            throw new Error(`Deletion verification failed - ${remainingBatches.length} batches remain for current user`);
-          }
-          console.log(`✅ Deletion verified - no ${currentShift} shift batches remain for current user`);
-        }
-      } catch (verificationError) {
-        console.error('❌ Deletion verification failed:', verificationError);
-        // Continue anyway - database deletion already completed
-      }
-      
-      // 4. Log activity (non-blocking)
+      // 3. Log activity (non-blocking)
       try {
         await logEndShiftActivity({
           user_id: userId,
@@ -200,23 +168,17 @@ export default function ManagerDashboardClient({
           shift: currentShift as 'morning' | 'night'
         });
       } catch (activityError) {
-        console.error('⚠️ Activity logging failed (non-critical):', activityError);
+        console.error('Activity logging failed:', activityError);
       }
       
-      // 5. Show success message
+      // 4. Show success message
       toast({
         title: 'Success',
         description: `${currentShift} shift ended successfully`,
         type: 'success'
       });
       
-      console.log(`🎉 End shift completed successfully for ${currentShift} shift`);
-      
-      // 6. Force UI refresh with simple reload after short delay
-      setTimeout(() => {
-        console.log('🔄 Forcing page refresh to ensure UI sync...');
-        window.location.reload();
-      }, 500);
+      console.log(`✅ End shift completed for ${currentShift} shift`);
       
     } catch (err) {
       console.error('❌ End shift failed:', err);
