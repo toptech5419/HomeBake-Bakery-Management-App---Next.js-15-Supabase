@@ -421,30 +421,19 @@ export async function checkAndSaveBatchesToAllBatches(shift?: 'morning' | 'night
 }
 
 // Delete all batches for current user's shift (for managers/owners only)
+// PRODUCTION-READY FIX: Use regular client with proper RLS authentication (like sales rep end shift)
 export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<void> {
-  // Use service role client to bypass RLS for batch deletion
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    }
-  );
-
-  // Get current user from regular client for permission check
-  const regularSupabase = await createServer();
+  // ✅ USE REGULAR CLIENT - Same approach as sales rep end shift
+  const supabase = await createServer();
   
-  // First, get the current user to check permissions
-  const { data: { user }, error: authError } = await regularSupabase.auth.getUser();
+  // Get current user with proper authentication context
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
   
   if (authError || !user) {
     throw new Error('Authentication required');
   }
 
-  // Get user role from users table using service role client
+  // Check user role with proper authentication context (not service role)
   const { data: userData, error: userError } = await supabase
     .from('users')
     .select('role')
@@ -460,20 +449,20 @@ export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<voi
     throw new Error('Unauthorized: Only managers and owners can delete batches');
   }
 
-  console.log(`🧹 Starting batch deletion for current user (${user.id}) - ${shift || 'all'} shift (ALL DATES)`);
+  console.log(`🧹 Starting batch deletion for current user (${user.id}) - ${shift || 'all'} shift with PROPER AUTHENTICATION`);
 
-  // First, check how many batches will be deleted
+  // First, check how many batches will be deleted using authenticated client
   let countQuery = supabase
     .from('batches')
     .select('id, batch_number, shift, created_at')
-    .eq('created_by', user.id); // Filter by current user
+    .eq('created_by', user.id); // This now works with RLS properly
 
   // If shift is specified, filter by shift
   if (shift) {
     countQuery = countQuery.eq('shift', shift);
-    console.log(`🎯 Counting batches for current user and shift: ${shift} (ALL DATES)`);
+    console.log(`🎯 Counting batches for current user and shift: ${shift} with AUTHENTICATED CLIENT`);
   } else {
-    console.log('⚠️ No shift specified, counting all batches for current user (ALL DATES)');
+    console.log('⚠️ No shift specified, counting all batches for current user with AUTHENTICATED CLIENT');
   }
 
   const { data: batchesToDelete, error: countError } = await countQuery;
@@ -489,24 +478,24 @@ export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<voi
     }
   }
 
-  // Build the delete query with user and shift filtering (no date restriction)
+  // ✅ BUILD DELETE QUERY WITH AUTHENTICATED CLIENT - This will work with RLS
   let deleteQuery = supabase
     .from('batches')
     .delete()
-    .eq('created_by', user.id); // Filter by current user
+    .eq('created_by', user.id); // Now works properly with authenticated context
 
   // If shift is specified, filter by shift
   if (shift) {
     deleteQuery = deleteQuery.eq('shift', shift);
-    console.log(`🗑️ Deleting batches for current user and shift: ${shift} (ALL DATES)`);
+    console.log(`🗑️ Deleting batches for current user and shift: ${shift} with AUTHENTICATED CLIENT`);
   } else {
-    console.log('🗑️ Deleting all batches for current user (ALL DATES)');
+    console.log('🗑️ Deleting all batches for current user with AUTHENTICATED CLIENT');
   }
 
   const { error, count } = await deleteQuery;
 
   if (error) {
-    console.error('❌ Error deleting batches:', error);
+    console.error('❌ Error deleting batches with authenticated client:', error);
     console.error('❌ Error code:', error.code);
     console.error('❌ Error message:', error.message);
     console.error('❌ Error details:', error.details);
@@ -514,9 +503,9 @@ export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<voi
     throw new Error(`Failed to delete ${shift || 'all'} shift batches: ${error.message}`);
   }
 
-  console.log(`✅ Successfully deleted ${count || 'unknown number of'} ${shift || 'all'} shift batches for current user (${user.id}) (ALL DATES)`);
+  console.log(`✅ Successfully deleted ${count || 'unknown number of'} ${shift || 'all'} shift batches for current user (${user.id}) with AUTHENTICATED CLIENT`);
   
-  // PRODUCTION-READY: Additional verification with retry
+  // PRODUCTION-READY: Additional verification with retry using authenticated client
   let verificationAttempts = 0;
   const maxVerificationAttempts = 3;
   
@@ -556,7 +545,7 @@ export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<voi
     throw new Error(`Batch deletion verification failed after ${maxVerificationAttempts} attempts`);
   }
   
-  // Enhanced verification logic is handled above
+  console.log(`🎉 AUTHENTICATED CLIENT APPROACH: Batch deletion completed successfully for ${shift || 'all'} shift`);
   
   // Invalidate all relevant paths and caches
   revalidatePath('/dashboard');

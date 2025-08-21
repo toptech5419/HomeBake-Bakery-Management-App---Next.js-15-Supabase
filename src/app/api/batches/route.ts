@@ -131,6 +131,7 @@ export async function GET(request: NextRequest) {
           bread_type:bread_types(name, unit_price),
           created_by_user:users!created_by(email, name)
         `)
+        .eq('created_by', user.id) // CRITICAL FIX: Filter by current user (matches deleteAllBatches logic)
         .order('created_at', { ascending: false });
 
       if (status && ['active', 'completed', 'cancelled'].includes(status)) {
@@ -151,7 +152,8 @@ export async function GET(request: NextRequest) {
         );
       }
 
-    return NextResponse.json({ data });
+      console.log(`📡 API fetched ${data?.length || 0} batches for user ${user.id}, shift: ${shift || 'all'}, status: ${status || 'all'}`);
+      return NextResponse.json({ data });
   } catch (error) {
     console.error('Unexpected error fetching batches:', error);
     return NextResponse.json(

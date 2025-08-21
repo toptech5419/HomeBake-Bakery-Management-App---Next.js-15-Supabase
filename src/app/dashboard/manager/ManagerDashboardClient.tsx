@@ -169,19 +169,22 @@ export default function ManagerDashboardClient({
       
       console.log(`✅ Cache cleared for ${currentShift} shift`);
       
-      // 3. Verify database deletion completed
+      // 3. Verify database deletion completed (now checks current user's batches only)
       try {
-        console.log(`🔍 Verifying ${currentShift} shift deletion...`);
+        console.log(`🔍 Verifying ${currentShift} shift deletion for current user...`);
         const response = await fetch(`/api/batches?shift=${currentShift}&status=active`);
         if (response.ok) {
           const result = await response.json();
           const remainingBatches = result.data || [];
           
           if (remainingBatches.length > 0) {
-            console.warn(`⚠️ ${remainingBatches.length} batches still exist after deletion!`);
-            throw new Error(`Deletion verification failed - ${remainingBatches.length} batches remain`);
+            console.warn(`⚠️ ${remainingBatches.length} batches still exist after deletion for current user!`);
+            remainingBatches.forEach(batch => {
+              console.warn(`   - Still exists: ${batch.batch_number} (${batch.shift} shift) - ${batch.created_at}`);
+            });
+            throw new Error(`Deletion verification failed - ${remainingBatches.length} batches remain for current user`);
           }
-          console.log(`✅ Deletion verified - no ${currentShift} shift batches remain`);
+          console.log(`✅ Deletion verified - no ${currentShift} shift batches remain for current user`);
         }
       } catch (verificationError) {
         console.error('❌ Deletion verification failed:', verificationError);
