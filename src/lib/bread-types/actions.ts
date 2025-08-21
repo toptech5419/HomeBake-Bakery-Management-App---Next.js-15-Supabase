@@ -72,17 +72,49 @@ export async function createBreadType(currentUser: User, input: BreadTypeInput) 
 }
 
 export async function updateBreadType(currentUser: User, id: string, input: BreadTypeInput) {
-  if (!isOwner(currentUser) && !isManager(currentUser)) throw new Error('Unauthorized');
+  if (!isOwner(currentUser) && !isManager(currentUser)) {
+    throw new Error('Unauthorized: Only owners and managers can update bread types');
+  }
+  
   const parsed = breadTypeSchema.safeParse(input);
-  if (!parsed.success) throw parsed.error;
+  if (!parsed.success) {
+    console.error('Bread type validation error:', parsed.error);
+    throw new Error('Invalid bread type data');
+  }
   
   const supabase = await createServer();
+  
+  // Get the current bread type data for comparison
+  const { data: currentBreadType, error: fetchError } = await supabase
+    .from('bread_types')
+    .select('id, name, size, unit_price')
+    .eq('id', id)
+    .single();
+    
+  if (fetchError || !currentBreadType) {
+    throw new Error('Bread type not found');
+  }
+  
+  // Perform the update - the database trigger will handle name synchronization
   const { error } = await supabase.from('bread_types').update({
     name: parsed.data.name,
     size: parsed.data.size,
     unit_price: parsed.data.unit_price
   }).eq('id', id);
-  if (error) throw error;
+  
+  if (error) {
+    console.error('Bread type update error:', error);
+    throw new Error(`Failed to update bread type: ${error.message}`);
+  }
+  
+  // Log the update operation for audit trail
+  const nameChanged = currentBreadType.name !== parsed.data.name;
+  console.log(`Bread type updated: ${currentBreadType.name} -> ${parsed.data.name} (ID: ${id})`);
+  
+  if (nameChanged) {
+    console.log(`Name synchronization triggered automatically by database trigger for: ${parsed.data.name}`);
+  }
+  
   return true;
 }
 

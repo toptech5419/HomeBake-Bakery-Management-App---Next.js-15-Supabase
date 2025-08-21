@@ -48,7 +48,7 @@ export interface BreadTypeDB {
 export interface AvailableStock {
   id: string
   bread_type_id: string
-  bread_type_name: string
+  bread_type_name: string // Auto-synced with bread_types.name via database trigger
   quantity: number
   unit_price: number
   last_updated: string
@@ -90,6 +90,51 @@ export interface SalesLog {
 // Sales Log with joined bread type
 export interface SalesLogWithBreadType extends SalesLog {
   bread_types: BreadType
+}
+
+// Bread Type Synchronization Types
+export interface BreadTypeSyncLog {
+  id: string
+  bread_type_id: string
+  old_name?: string | null
+  new_name?: string | null
+  tables_affected?: string[] | null
+  total_rows_updated: number
+  error_message?: string | null
+  sync_timestamp: string
+}
+
+export interface ConsistencyCheckResult {
+  total_stock_records: number
+  inconsistent_records: number
+  consistency_percentage: number
+  is_consistent: boolean
+  checked_at: string
+}
+
+export interface BatchFixResult {
+  bread_types_processed: number
+  errors: number
+  timestamp: string
+}
+
+export interface SyncValidationResult {
+  isValid: boolean
+  details: {
+    bread_type_name: string
+    available_stock_synced: boolean
+    last_sync_timestamp?: string
+  }
+}
+
+export interface SyncSystemHealth {
+  status: 'healthy' | 'degraded' | 'unhealthy'
+  checks: {
+    trigger_exists: boolean
+    consistency_check: boolean
+    recent_sync_logs: boolean
+  }
+  message: string
 }
 
 // Production log interfaces

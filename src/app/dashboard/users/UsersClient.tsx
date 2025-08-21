@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Users, MoreVertical, Edit, CheckCircle, XCircle, Trash2, Loader2, UserCheck, UserX, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { updateUserRoleAction, deactivateUserAction, reactivateUserAction, deleteUserAction, refetchUsersAction } from './actions';
+import { useRouter } from 'next/navigation';
 
 interface User {
   id: string;
@@ -22,6 +23,18 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   const toast = useToast();
+  const router = useRouter();
+
+  // Clear browser cache and force refresh
+  const clearCacheAndRefresh = () => {
+    // Clear localStorage cache if any
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user-cache');
+      localStorage.removeItem('dashboard-cache');
+      // Force router refresh
+      router.refresh();
+    }
+  };
 
   const refetchUsers = async () => {
     try {
@@ -48,21 +61,73 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
   const handleEdit = async (target: User) => {
     setLoadingId(target.id);
     setLoadingAction('edit');
-    const newRole = prompt('Enter new role (owner, manager, sales_rep):', target.role);
+    
+    // Enhanced role selection with validation
+    const validRoles = ['manager', 'sales_rep'];
+    const roleOptions = validRoles.map(role => `${role} (${role.replace('_', ' ').toUpperCase()})`).join('\n');
+    
+    const newRole = prompt(
+      `Change role for ${target.name || target.email}:\n\nCurrent role: ${target.role.replace('_', ' ').toUpperCase()}\n\nEnter new role:\n${roleOptions}\n\nType exactly: manager OR sales_rep`,
+      target.role === 'manager' ? 'sales_rep' : 'manager'
+    );
+    
     if (!newRole) {
       setLoadingId(null);
       setLoadingAction(null);
       return;
     }
+
+    // Validate role input
+    if (!validRoles.includes(newRole.trim())) {
+      toast.error('Invalid role. Please enter exactly: manager or sales_rep');
+      setLoadingId(null);
+      setLoadingAction(null);
+      return;
+    }
+
+    // Confirm role change
+    const confirmChange = window.confirm(
+      `⚠️ IMPORTANT: Changing role will immediately log out the user!\n\n` +
+      `User: ${target.name || target.email}\n` +
+      `Current role: ${target.role.replace('_', ' ').toUpperCase()}\n` +
+      `New role: ${newRole.trim().replace('_', ' ').toUpperCase()}\n\n` +
+      `The user will need to log in again with their new permissions.\n\n` +
+      `Continue with role change?`
+    );
+
+    if (!confirmChange) {
+      setLoadingId(null);
+      setLoadingAction(null);
+      return;
+    }
+
     try {
-      const result = await updateUserRoleAction(user, target.id, newRole);
+      const result = await updateUserRoleAction(user, target.id, newRole.trim() as 'owner' | 'manager' | 'sales_rep');
+      
       if (result.success) {
-        toast.success('Role updated successfully!');
+        const details = result.details;
+        
+        // Enhanced success message
+        let successMessage = `✅ Role updated successfully!\n\n`;
+        successMessage += `User: ${target.name || target.email}\n`;
+        successMessage += `New role: ${newRole.replace('_', ' ').toUpperCase()}\n`;
+        
+        if (details && 'sessionsInvalidated' in details && details.sessionsInvalidated) {
+          successMessage += `\n🔒 User sessions invalidated - they must log in again`;
+        } else if (details && 'sessionInvalidationRequired' in details && details.sessionInvalidationRequired) {
+          successMessage += `\n⚠️ User should log out and log back in for role change to take effect`;
+        }
+        
+        toast.success(successMessage);
+        
+        // Clear cache and refresh
+        clearCacheAndRefresh();
         await refetchUsers();
       } else {
         toast.error(result.error || 'Failed to update user role.');
       }
-    } catch {
+    } catch (error) {
+      console.error('Error updating role:', error);
       toast.error('An unexpected error occurred while updating the role.');
     } finally {
       setLoadingId(null);
@@ -71,17 +136,46 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
   };
 
   const handleDeactivate = async (target: User) => {
+    const confirmDeactivate = window.confirm(
+      `Deactivate user account?\n\n` +
+      `User: ${target.name || target.email}\n` +
+      `Role: ${target.role.replace('_', ' ').toUpperCase()}\n\n` +
+      `This will:\n` +
+      `🔒 Log them out immediately\n` +
+      `❌ Prevent them from logging in\n` +
+      `📊 Preserve all their data\n\n` +
+      `You can reactivate them later.`
+    );
+
+    if (!confirmDeactivate) return;
+
     setLoadingId(target.id);
     setLoadingAction('deactivate');
+    
     try {
       const result = await deactivateUserAction(user, target.id);
+      
       if (result.success) {
-        toast.success('User deactivated successfully!');
+        const details = result.details;
+        
+        let successMessage = `✅ User deactivated successfully!\n\n`;
+        const deactivatedUser = details && 'deactivatedUser' in details ? details.deactivatedUser as { name: string; role: string; email?: string } : null;
+        successMessage += `👤 Deactivated: ${deactivatedUser?.name || target.name}\n`;
+        
+        if (details && 'sessionsInvalidated' in details && details.sessionsInvalidated) {
+          successMessage += `🔒 User logged out and access blocked`;
+        }
+        
+        toast.success(successMessage);
+        
+        // Clear cache and refresh
+        clearCacheAndRefresh();
         await refetchUsers();
       } else {
         toast.error(result.error || 'Failed to deactivate user.');
       }
-    } catch {
+    } catch (error) {
+      console.error('Error deactivating user:', error);
       toast.error('An unexpected error occurred while deactivating the user.');
     } finally {
       setLoadingId(null);
@@ -90,17 +184,39 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
   };
 
   const handleReactivate = async (target: User) => {
+    const confirmReactivate = window.confirm(
+      `Reactivate user account?\n\n` +
+      `User: ${target.name || target.email}\n` +
+      `Role: ${target.role.replace('_', ' ').toUpperCase()}\n\n` +
+      `This will allow them to log in again with their original permissions.`
+    );
+
+    if (!confirmReactivate) return;
+
     setLoadingId(target.id);
     setLoadingAction('reactivate');
+    
     try {
       const result = await reactivateUserAction(user, target.id);
+      
       if (result.success) {
-        toast.success('User reactivated successfully!');
+        const details = result.details;
+        
+        let successMessage = `✅ User reactivated successfully!\n\n`;
+        const reactivatedUser = details && 'reactivatedUser' in details ? details.reactivatedUser as { name: string; role: string; email?: string } : null;
+        successMessage += `👤 Reactivated: ${reactivatedUser?.name || target.name}\n`;
+        successMessage += `🔓 They can now log in again`;
+        
+        toast.success(successMessage);
+        
+        // Clear cache and refresh
+        clearCacheAndRefresh();
         await refetchUsers();
       } else {
         toast.error(result.error || 'Failed to reactivate user.');
       }
-    } catch {
+    } catch (error) {
+      console.error('Error reactivating user:', error);
       toast.error('An unexpected error occurred while reactivating the user.');
     } finally {
       setLoadingId(null);
@@ -109,18 +225,67 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
   };
 
   const handleDelete = async (target: User) => {
-    if (!window.confirm('Delete this user? This will permanently remove their access.')) return;
+    // Enhanced deletion confirmation with dependency info
+    const confirmDelete = window.confirm(
+      `⚠️ PERMANENT DELETION WARNING ⚠️\n\n` +
+      `This will permanently delete:\n` +
+      `👤 User: ${target.name || target.email}\n` +
+      `🏷️ Role: ${target.role.replace('_', ' ').toUpperCase()}\n\n` +
+      `📊 This user's data in batches, sales, reports, and activities ` +
+      `will be preserved but their user reference will be removed.\n\n` +
+      `🔒 Their authentication and access will be completely removed.\n\n` +
+      `❌ This action CANNOT be undone!\n\n` +
+      `Type 'DELETE' and press OK to continue.`
+    );
+
+    if (!confirmDelete) return;
+
+    // Double confirmation for safety
+    const finalConfirm = prompt(
+      `Final confirmation required.\n\n` +
+      `To permanently delete ${target.name || target.email}, type: DELETE`
+    );
+
+    if (finalConfirm !== 'DELETE') {
+      toast.error('Deletion cancelled - confirmation text did not match.');
+      return;
+    }
+
     setLoadingId(target.id);
     setLoadingAction('delete');
+    
     try {
       const result = await deleteUserAction(user, target.id);
+      
       if (result.success) {
-        toast.success('User deleted and access removed successfully!');
+        const details = result.details;
+        
+        let successMessage = `✅ User deleted successfully!\n\n`;
+        const deletedUser = details && 'deletedUser' in details ? details.deletedUser as { name: string; role: string; email?: string } : null;
+        successMessage += `👤 Deleted: ${deletedUser?.name || target.name}\n`;
+        successMessage += `🏷️ Role: ${deletedUser?.role?.replace('_', ' ').toUpperCase()}\n`;
+        
+        if (details && 'dependenciesAffected' in details && details.dependenciesAffected) {
+          const deps = details.dependenciesAffected as Record<string, number>;
+          successMessage += `\n📊 Dependencies handled:\n`;
+          if (deps.activities > 0) successMessage += `   • ${deps.activities} activities\n`;
+          if (deps.batches > 0) successMessage += `   • ${deps.batches} batches\n`;
+          if (deps.sales > 0) successMessage += `   • ${deps.sales} sales records\n`;
+          if (deps.reports > 0) successMessage += `   • ${deps.reports} reports\n`;
+        }
+        
+        successMessage += `\n🔒 Authentication completely removed`;
+        
+        toast.success(successMessage);
+        
+        // Clear cache and refresh
+        clearCacheAndRefresh();
         await refetchUsers();
       } else {
         toast.error(result.error || 'Failed to delete user.');
       }
-    } catch {
+    } catch (error) {
+      console.error('Error deleting user:', error);
       toast.error('An unexpected error occurred while deleting the user.');
     } finally {
       setLoadingId(null);

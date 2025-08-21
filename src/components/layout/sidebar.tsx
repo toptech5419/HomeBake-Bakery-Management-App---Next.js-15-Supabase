@@ -243,19 +243,19 @@ export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarPr
                 <motion.button
                   onClick={handleSignOut}
                   disabled={isSigningOut || isNavigating}
-                  className="w-full flex items-center justify-center min-h-[48px] px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground bg-accent/30 hover:bg-accent/50 active:bg-accent/70 rounded-xl transition-all duration-200 disabled:opacity-50 hover-scale focus-ring group"
+                  className="w-full flex items-center justify-center min-h-[48px] px-4 py-3 text-sm font-medium bg-gradient-to-r from-red-50 to-orange-50 text-red-700 hover:from-red-100 hover:to-orange-100 hover:text-red-800 active:from-red-200 active:to-orange-200 border border-red-200 hover:border-red-300 rounded-xl transition-all duration-200 disabled:opacity-50 hover-scale focus-ring shadow-sm hover:shadow-md group"
                   whileTap={{ scale: 0.95 }}
                   aria-label="Sign out"
                 >
                   {isSigningOut ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2"></div>
+                      <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin mr-2"></div>
                       <span className="font-display">Signing out...</span>
                     </>
                   ) : (
                     <>
                       <svg 
-                        className="w-4 h-4 mr-2 transition-colors group-hover:text-red-500" 
+                        className="w-4 h-4 mr-2 transition-colors group-hover:text-red-600" 
                         fill="none" 
                         stroke="currentColor" 
                         viewBox="0 0 24 24" 
