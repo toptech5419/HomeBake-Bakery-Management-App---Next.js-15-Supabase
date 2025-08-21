@@ -449,20 +449,20 @@ export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<voi
     throw new Error('Unauthorized: Only managers and owners can delete batches');
   }
 
-  console.log(`🧹 Starting batch deletion for current user (${user.id}) - ${shift || 'all'} shift with PROPER AUTHENTICATION`);
+  console.log(`🧹 Starting batch deletion for current user (${user.id}) - ${shift || 'all'} shift (ALL DATES) with PROPER AUTHENTICATION`);
 
   // First, check how many batches will be deleted using authenticated client
   let countQuery = supabase
     .from('batches')
     .select('id, batch_number, shift, created_at')
-    .eq('created_by', user.id); // This now works with RLS properly
+    .eq('created_by', user.id); // Filter by current user ONLY
 
   // If shift is specified, filter by shift
   if (shift) {
     countQuery = countQuery.eq('shift', shift);
-    console.log(`🎯 Counting batches for current user and shift: ${shift} with AUTHENTICATED CLIENT`);
+    console.log(`🎯 Counting ALL batches for current user and shift: ${shift} with AUTHENTICATED CLIENT`);
   } else {
-    console.log('⚠️ No shift specified, counting all batches for current user with AUTHENTICATED CLIENT');
+    console.log('⚠️ No shift specified, counting ALL batches for current user with AUTHENTICATED CLIENT');
   }
 
   const { data: batchesToDelete, error: countError } = await countQuery;
@@ -470,7 +470,7 @@ export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<voi
   if (countError) {
     console.error('Error counting batches to delete:', countError);
   } else {
-    console.log(`📊 Found ${batchesToDelete?.length || 0} batches to delete for current user - ${shift || 'all'} shift`);
+    console.log(`📊 Found ${batchesToDelete?.length || 0} batches to delete for current user - ${shift || 'all'} shift (ALL DATES)`);
     if (batchesToDelete && batchesToDelete.length > 0) {
       batchesToDelete.forEach(batch => {
         console.log(`   - Batch ${batch.batch_number} (${batch.shift} shift) - ${batch.created_at}`);
@@ -482,14 +482,14 @@ export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<voi
   let deleteQuery = supabase
     .from('batches')
     .delete()
-    .eq('created_by', user.id); // Now works properly with authenticated context
+    .eq('created_by', user.id); // Filter by current user ONLY
 
   // If shift is specified, filter by shift
   if (shift) {
     deleteQuery = deleteQuery.eq('shift', shift);
-    console.log(`🗑️ Deleting batches for current user and shift: ${shift} with AUTHENTICATED CLIENT`);
+    console.log(`🗑️ Deleting ALL batches for current user and shift: ${shift} with AUTHENTICATED CLIENT`);
   } else {
-    console.log('🗑️ Deleting all batches for current user with AUTHENTICATED CLIENT');
+    console.log('🗑️ Deleting ALL batches for current user with AUTHENTICATED CLIENT');
   }
 
   const { error, count } = await deleteQuery;
