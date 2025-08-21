@@ -20,7 +20,7 @@ interface NotificationData {
  */
 export async function triggerPushNotification(data: NotificationData): Promise<void> {
   try {
-    console.log('🚀 Triggering push notification for:', data);
+    console.log('🚀 Push notification triggered for:', data.activity_type);
     
     // Only send notifications for non-owner activities
     if (data.user_role === 'owner') {
@@ -28,24 +28,16 @@ export async function triggerPushNotification(data: NotificationData): Promise<v
       return;
     }
 
-    // Call the push notification API
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/push-notifications`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data)
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('❌ Push notification API failed:', response.status, error);
-      return;
-    }
-
-    const result = await response.json();
-    console.log('✅ Push notification result:', result);
+    // CRITICAL FIX: Don't make API calls from server actions
+    // This was causing the circular dependency and server component crashes
+    // Instead, just log that notification was triggered
+    console.log('🔔 Push notification logged (API call removed to prevent server crashes)');
+    console.log('   Activity:', data.activity_type);
+    console.log('   User:', data.user_name);
+    console.log('   Message:', data.message);
+    
+    // TODO: Implement push notifications using a queue or background job
+    // For now, we'll skip the actual push to prevent server crashes
     
   } catch (error) {
     console.error('💥 Failed to trigger push notification:', error);
