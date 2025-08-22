@@ -1,6 +1,6 @@
 'use client';
 
-import { useMobileNotifications, NotificationHelpers } from './mobile-notifications-enhanced';
+import { useMobileNotifications, NotificationHelpers } from './mobile-notifications-fixed';
 
 /**
  * Toast API compatibility layer for existing components
