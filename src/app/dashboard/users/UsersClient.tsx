@@ -282,11 +282,28 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
         clearCacheAndRefresh();
         await refetchUsers();
       } else {
-        toast.error(result.error || 'Failed to delete user.');
+        // Enhanced error message with mobile consideration
+        const isMobile = window.innerWidth < 640;
+        let errorMessage = result.error || 'Failed to delete user.';
+        
+        if (errorMessage.includes('foreign key') || errorMessage.includes('23503')) {
+          errorMessage = isMobile 
+            ? '❌ Database error. Run fix script first.' 
+            : '❌ Database constraint error. Run the "fix-user-deletion-URGENT.sql" script in Supabase.';
+        }
+        
+        toast.error(errorMessage, 'Deletion Failed', 8000);
       }
     } catch (error) {
       console.error('Error deleting user:', error);
-      toast.error('An unexpected error occurred while deleting the user.');
+      
+      // Mobile-friendly error message
+      const isMobile = window.innerWidth < 640;
+      const errorMessage = isMobile 
+        ? '❌ Deletion failed. Check database constraints.' 
+        : 'An unexpected error occurred while deleting the user. Check console for details.';
+      
+      toast.error(errorMessage, 'Deletion Error', 8000); // Longer duration for mobile
     } finally {
       setLoadingId(null);
       setLoadingAction(null);

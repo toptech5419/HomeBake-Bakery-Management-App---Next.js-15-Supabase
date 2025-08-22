@@ -77,22 +77,30 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       
       if (result?.success) {
         const message = createUserMessages.breadTypes.deleteSuccess(breadType.name);
-        toast.success(message.message, message.title, message.duration);
+        toast.success(message.message, message.title, 8000); // Longer duration for success
         await refetchBreadTypes(false); // Don't show success message for auto-refresh
       } else {
+        // Enhanced error handling for mobile visibility
         const message = createUserMessages.breadTypes.deleteError(breadType.name, result?.error);
+        const errorTitle = "Cannot Delete Bread Type";
+        const errorDuration = 12000; // 12 seconds for error messages to be fully read
+        
         if (message.type === 'warning') {
-          toast.warning(message.message, message.title, message.duration);
+          toast.warning(message.message, errorTitle, errorDuration);
         } else {
-          toast.error(message.message, message.title, message.duration);
+          toast.error(message.message, errorTitle, errorDuration);
         }
       }
     } catch (error) {
+      // Enhanced error handling for mobile visibility
       const message = createUserMessages.breadTypes.deleteError(breadType.name, error);
+      const errorTitle = "Deletion Failed";
+      const errorDuration = 12000; // 12 seconds for error messages
+      
       if (message.type === 'warning') {
-        toast.warning(message.message, message.title, message.duration);
+        toast.warning(message.message, errorTitle, errorDuration);
       } else {
-        toast.error(message.message, message.title, message.duration);
+        toast.error(message.message, errorTitle, errorDuration);
       }
     } finally {
       setLoadingId(null);

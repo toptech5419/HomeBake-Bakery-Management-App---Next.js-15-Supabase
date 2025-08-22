@@ -560,24 +560,46 @@ export async function deleteUserAction(
     // The database will handle most foreign key references automatically
     
     // Step 1: Delete from profiles table first (has auth.users FK)
+    console.log(`🗑️ Deleting user ${targetUser.name} from profiles table...`);
     const { error: profilesError } = await supabaseAdmin
       .from('profiles')
       .delete()
       .eq('id', targetId);
 
     if (profilesError) {
+      console.error('❌ Profiles table deletion error:', profilesError);
       throw new Error(`Failed to delete user profile: ${profilesError.message}`);
     }
+    
+    console.log(`✅ Successfully deleted user ${targetUser.name} from profiles table`);
 
     // Step 2: Delete from users table (this will CASCADE or SET NULL for most dependencies)
+    console.log(`🗑️ Deleting user ${targetUser.name} from users table...`);
     const { error: usersError } = await supabaseAdmin
       .from('users')
       .delete()
       .eq('id', targetId);
 
     if (usersError) {
-      throw new Error(`Failed to delete user from users table: ${usersError.message}`);
+      console.error('❌ Users table deletion error:', usersError);
+      console.error('❌ Error details:', {
+        message: usersError.message,
+        details: usersError.details,
+        hint: usersError.hint,
+        code: usersError.code
+      });
+      
+      // Enhanced error message with specific guidance
+      let errorMessage = `Failed to delete user from users table: ${usersError.message}`;
+      
+      if (usersError.code === '23503') {
+        errorMessage += '\n\n🔧 SOLUTION: Run the database fix script "fix-user-deletion-URGENT.sql" to update foreign key constraints.';
+      }
+      
+      throw new Error(errorMessage);
     }
+    
+    console.log(`✅ Successfully deleted user ${targetUser.name} from users table`);
 
     // Step 3: Delete from auth.users (this will CASCADE delete push notifications)
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(targetId);

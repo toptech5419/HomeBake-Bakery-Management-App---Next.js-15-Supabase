@@ -15,9 +15,10 @@ interface ToastProps {
   onClose: () => void;
   title?: string;
   duration?: number;
+  variant?: "mobile" | "desktop";
 }
 
-export function Toast({ message, type, onClose, title, duration = 4000 }: ToastProps) {
+export function Toast({ message, type, onClose, title, duration = 4000, variant = "desktop" }: ToastProps) {
   React.useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
@@ -27,22 +28,30 @@ export function Toast({ message, type, onClose, title, duration = 4000 }: ToastP
   }, [duration, onClose]);
 
   const getIcon = () => {
+    const iconSize = variant === "mobile" ? "w-6 h-6" : "w-5 h-5";
+    const iconClass = `${iconSize} flex-shrink-0`;
+    
     switch (type) {
       case "success":
-        return <CheckCircle className="w-5 h-5 flex-shrink-0" />;
+        return <CheckCircle className={iconClass} />;
       case "error":
-        return <AlertCircle className="w-5 h-5 flex-shrink-0" />;
+        return <AlertCircle className={iconClass} />;
       case "warning":
-        return <AlertTriangle className="w-5 h-5 flex-shrink-0" />;
+        return <AlertTriangle className={iconClass} />;
       case "info":
-        return <Info className="w-5 h-5 flex-shrink-0" />;
+        return <Info className={iconClass} />;
       default:
-        return <Info className="w-5 h-5 flex-shrink-0" />;
+        return <Info className={iconClass} />;
     }
   };
 
   const getStyles = () => {
-    const baseStyles = "fixed z-50 flex items-start gap-3 p-4 rounded-lg shadow-lg border transition-all duration-300 ease-in-out transform";
+    // Mobile-first responsive sizing and positioning
+    const mobileStyles = variant === "mobile" 
+      ? "p-5 rounded-2xl text-base min-h-[80px] toast-shadow-mobile" 
+      : "p-4 rounded-lg text-sm";
+    
+    const baseStyles = `relative w-full flex items-start gap-4 ${mobileStyles} shadow-lg border transition-all duration-300 ease-in-out transform toast-no-select`;
     
     switch (type) {
       case "success":
@@ -58,30 +67,50 @@ export function Toast({ message, type, onClose, title, duration = 4000 }: ToastP
     }
   };
 
+  const getAnimation = () => {
+    return variant === "mobile" ? "animate-slide-in-right" : "animate-slide-in-right";
+  };
+
+  const getCloseButtonSize = () => {
+    return variant === "mobile" ? "w-6 h-6" : "w-4 h-4";
+  };
+
+  const getCloseButtonPadding = () => {
+    return variant === "mobile" ? "p-2" : "p-1";
+  };
+
+  const getTitleStyles = () => {
+    return variant === "mobile" ? "font-semibold text-base mb-2" : "font-medium text-sm mb-1";
+  };
+
+  const getMessageStyles = () => {
+    return variant === "mobile" ? "text-base leading-relaxed" : "text-sm leading-relaxed";
+  };
+
   return (
     <div
-      className={`${getStyles()} animate-slide-in-right`}
+      className={`${getStyles()} ${getAnimation()}`}
       role="alert"
       aria-live="assertive"
       aria-atomic="true"
     >
-      <div className="flex-shrink-0 mt-0.5">
+      <div className={`flex-shrink-0 ${variant === "mobile" ? "mt-1" : "mt-0.5"}`}>
         {getIcon()}
       </div>
       
       <div className="flex-1 min-w-0">
         {title && (
-          <div className="font-medium text-sm mb-1">{title}</div>
+          <div className={getTitleStyles()}>{title}</div>
         )}
-        <div className="text-sm leading-relaxed">{message}</div>
+        <div className={getMessageStyles()}>{message}</div>
       </div>
       
       <button
         onClick={onClose}
-        className="flex-shrink-0 ml-2 p-1 rounded-md hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-current transition-colors"
+        className={`flex-shrink-0 ml-2 ${getCloseButtonPadding()} rounded-md hover:bg-black/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-current transition-colors toast-close-button`}
         aria-label="Dismiss notification"
       >
-        <X className="w-4 h-4" />
+        <X className={getCloseButtonSize()} />
       </button>
     </div>
   );

@@ -57,18 +57,46 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
-      {/* Mobile-first positioning: bottom on mobile, top-right on desktop */}
-      <div className="fixed z-50 bottom-4 left-4 right-4 sm:bottom-auto sm:top-4 sm:right-4 sm:left-auto flex flex-col gap-3 max-w-sm">
-        {toasts.map((toast) => (
-          <Toast
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            title={toast.title}
-            duration={toast.duration}
-            onClose={() => removeToast(toast.id)}
-          />
-        ))}
+      {/* Mobile-First Toast Container with Safe Area Support */}
+      <div className="toast-container fixed z-[10000] safe-area-inset">
+        {/* Mobile: Bottom positioned, full width with margin */}
+        <div className="sm:hidden fixed inset-x-4 bottom-4 space-y-3 pointer-events-none">
+          {toasts.map((toast, index) => (
+            <div 
+              key={toast.id}
+              className="pointer-events-auto"
+              style={{
+                transform: `translateY(-${index * 8}px)`,
+                zIndex: 10000 - index
+              }}
+            >
+              <Toast
+                message={toast.message}
+                type={toast.type}
+                title={toast.title}
+                duration={toast.duration}
+                onClose={() => removeToast(toast.id)}
+                variant="mobile"
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop: Top-right positioned, stacked */}
+        <div className="hidden sm:flex fixed top-4 right-4 flex-col gap-3 max-w-sm pointer-events-none">
+          {toasts.map((toast) => (
+            <div key={toast.id} className="pointer-events-auto">
+              <Toast
+                message={toast.message}
+                type={toast.type}
+                title={toast.title}
+                duration={toast.duration}
+                onClose={() => removeToast(toast.id)}
+                variant="desktop"
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </ToastContext.Provider>
   );
