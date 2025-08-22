@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { BreadTypeForm } from '@/components/bread-type-form';
-import { useToast } from '@/components/ui/ToastProvider';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
 import { createBreadTypeAction, updateBreadTypeAction } from './actions';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -19,7 +19,7 @@ interface User {
 
 export default function BreadTypeNewClient({ initialValues, user }: { initialValues: Partial<BreadTypeFormData> | null; user: User }) {
   const [formLoading, setFormLoading] = useState(false);
-  const toast = useToast();
+  const { showNotification } = useMobileNotifications();
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
@@ -29,15 +29,15 @@ export default function BreadTypeNewClient({ initialValues, user }: { initialVal
     try {
       if (id) {
         await updateBreadTypeAction(user, id, data);
-        toast.success('Bread type updated!');
+        showNotification(NotificationHelpers.success('Success', 'Bread type updated!'));
       } else {
         await createBreadTypeAction(user, data);
-        toast.success('Bread type created!');
+        showNotification(NotificationHelpers.success('Success', 'Bread type created!'));
       }
       router.push('/dashboard/bread-types');
     } catch (err: unknown) {
       const error = err as Error;
-      toast.error(error.message);
+      showNotification(NotificationHelpers.error('Error', error.message));
     } finally {
       setFormLoading(false);
     }

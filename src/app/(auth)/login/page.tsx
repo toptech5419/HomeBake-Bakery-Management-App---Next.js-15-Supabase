@@ -44,7 +44,7 @@ const LoginPage = memo(function LoginPage() {
     if (urlMessage === 'password-reset-success') {
       showNotification(NotificationHelpers.success('Password Reset', 'Password reset successfully! You can now log in with your new password.'));
     }
-  }, [searchParams, toast]);
+  }, [searchParams, showNotification]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

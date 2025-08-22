@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/components/ui/ToastProvider';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
 import { 
   deleteBreadTypeAction, 
   deactivateBreadTypeAction,
@@ -32,7 +32,7 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const router = useRouter();
-  const toast = useToast();
+  const { showNotification } = useMobileNotifications();
 
   const refetchBreadTypes = async (showSuccessMessage: boolean = false, includeInactive: boolean = showInactive) => {
     try {
@@ -46,11 +46,11 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       setBreadTypes(updated);
       
       if (showSuccessMessage) {
-        toast.success('Bread types refreshed successfully!');
+        showNotification(NotificationHelpers.success('Success', 'Bread types refreshed successfully!'));
       }
     } catch (error) {
       console.error('REFRESH ERROR:', error);
-      toast.error('Failed to refresh bread types. Please try again.');
+      showNotification(NotificationHelpers.error('Error', 'Failed to refresh bread types. Please try again.'));
     } finally {
       setLoadingId(null);
       setIsRefreshing(false);
@@ -75,14 +75,14 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       }, 2, 1500);
       
       if (result?.success) {
-        toast.success(`"${breadType.name}" deactivated successfully!`);
+        showNotification(NotificationHelpers.success('Success', `"${breadType.name}" deactivated successfully!`));
         await refetchBreadTypes(false);
       } else {
-        toast.error(result?.error || `Failed to deactivate "${breadType.name}". Please try again.`);
+        showNotification(NotificationHelpers.error('Error', result?.error || `Failed to deactivate "${breadType.name}". Please try again.`));
       }
     } catch (error) {
       console.error('DEACTIVATE ERROR:', error);
-      toast.error(`Failed to deactivate "${breadType.name}". Please try again.`);
+      showNotification(NotificationHelpers.error('Error', `Failed to deactivate "${breadType.name}". Please try again.`));
     } finally {
       setLoadingId(null);
       setLoadingAction(null);
@@ -103,14 +103,14 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       }, 2, 1500);
       
       if (result?.success) {
-        toast.success(`"${breadType.name}" reactivated successfully!`);
+        showNotification(NotificationHelpers.success('Success', `"${breadType.name}" reactivated successfully!`));
         await refetchBreadTypes(false);
       } else {
-        toast.error(result?.error || `Failed to reactivate "${breadType.name}". Please try again.`);
+        showNotification(NotificationHelpers.error('Error', result?.error || `Failed to reactivate "${breadType.name}". Please try again.`));
       }
     } catch (error) {
       console.error('REACTIVATE ERROR:', error);
-      toast.error(`Failed to reactivate "${breadType.name}". Please try again.`);
+      showNotification(NotificationHelpers.error('Error', `Failed to reactivate "${breadType.name}". Please try again.`));
     } finally {
       setLoadingId(null);
       setLoadingAction(null);
@@ -142,14 +142,14 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       }, 2, 1500);
       
       if (result?.success) {
-        toast.success(`"${breadType.name}" permanently deleted successfully!`);
+        showNotification(NotificationHelpers.success('Success', `"${breadType.name}" permanently deleted successfully!`));
         await refetchBreadTypes(false);
       } else {
-        toast.error(result?.error || `Failed to delete "${breadType.name}". Please try again.`);
+        showNotification(NotificationHelpers.error('Error', result?.error || `Failed to delete "${breadType.name}". Please try again.`));
       }
     } catch (error) {
       console.error('DELETE ERROR:', error);
-      toast.error(`Failed to delete "${breadType.name}". Please try again.`);
+      showNotification(NotificationHelpers.error('Error', `Failed to delete "${breadType.name}". Please try again.`));
     } finally {
       setLoadingId(null);
       setLoadingAction(null);
