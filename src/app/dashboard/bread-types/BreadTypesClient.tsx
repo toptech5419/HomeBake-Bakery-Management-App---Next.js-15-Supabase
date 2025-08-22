@@ -39,13 +39,14 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
     ? allBreadTypes 
     : allBreadTypes.filter(bt => bt.is_active !== false);
 
-  const refetchBreadTypes = async (showSuccessMessage: boolean = false, includeInactive: boolean = showInactive) => {
+  const refetchBreadTypes = async (showSuccessMessage: boolean = false) => {
     try {
       setIsRefreshing(true);
       setLoadingId('refetch');
       
+      // Always fetch ALL bread types (active AND inactive) to maintain complete dataset
       const updated = await withRetry(async () => {
-        return await refetchBreadTypesAction(includeInactive);
+        return await refetchBreadTypesAction(true); // Always include inactive
       }, 3, 1000);
       
       setAllBreadTypes(updated);
@@ -411,14 +412,20 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
                   </Button>
                 </motion.div>
                 
-                {inactiveBreadTypes > 0 && (
+                {(inactiveBreadTypes > 0 || (loadingAction === 'deactivate' && !showInactive)) && (
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                     <Button
                       variant="outline"
                       onClick={toggleShowInactive}
+                      disabled={!!loadingId && loadingAction === 'deactivate'}
                       className="bg-white/50 backdrop-blur border-white/30 hover:bg-white/70 transition-all duration-300 shadow-lg min-h-[44px]"
                     >
-                      {showInactive ? (
+                      {loadingAction === 'deactivate' && !showInactive ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : showInactive ? (
                         <>
                           <EyeOff className="w-4 h-4 mr-2" />
                           Hide Inactive

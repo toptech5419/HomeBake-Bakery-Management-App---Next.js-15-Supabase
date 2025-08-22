@@ -26,23 +26,72 @@ export function PushNotificationToggle({
     clearError
   } = usePushNotifications(userId);
 
-  // Show not supported message
+  // Get detailed support information
+  const supportDetails = isSupported ? null : {
+    isSupported: false,
+    reason: 'Push notifications are not supported in this browser',
+    browserType: 'unknown',
+    browserVersion: 'unknown',
+    isSecureContext: typeof window !== 'undefined' ? 
+      ('isSecureContext' in window ? window.isSecureContext : location.protocol === 'https:') : false,
+    hasServiceWorker: typeof window !== 'undefined' ? 'serviceWorker' in navigator : false,
+    hasPushManager: typeof window !== 'undefined' ? 'PushManager' in window : false,
+    hasNotification: typeof window !== 'undefined' ? 'Notification' in window : false
+  };
+
+  // Show not supported message with detailed info
   if (!isSupported) {
+    const getHelpText = () => {
+      if (!supportDetails?.isSecureContext) {
+        return 'This site must be accessed via HTTPS for push notifications to work.';
+      }
+      if (!supportDetails?.hasServiceWorker) {
+        return 'Your browser doesn\'t support Service Workers, which are required for push notifications.';
+      }
+      if (!supportDetails?.hasPushManager) {
+        return 'Your browser doesn\'t support the Push API.';
+      }
+      if (!supportDetails?.hasNotification) {
+        return 'Your browser doesn\'t support the Notifications API.';
+      }
+      return 'Push notifications aren\'t available in this browser version. Please update to a newer version.';
+    };
+
     return (
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className={`bg-white rounded-2xl shadow-lg border border-gray-100 p-6 ${className}`}
       >
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-red-50 rounded-xl">
+        <div className="flex items-start space-x-3">
+          <div className="p-2 bg-red-50 rounded-xl flex-shrink-0">
             <AlertCircle className="h-5 w-5 text-red-500" />
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Not Supported</h3>
-            <p className="text-sm text-gray-600">
-              Push notifications aren't available in this browser
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-900 mb-1">Push Notifications Not Available</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              {getHelpText()}
             </p>
+            
+            {/* Technical details for debugging */}
+            <details className="text-xs text-gray-500">
+              <summary className="cursor-pointer hover:text-gray-700">Technical Details</summary>
+              <div className="mt-2 space-y-1 font-mono">
+                <div>HTTPS: {supportDetails?.isSecureContext ? '✅' : '❌'}</div>
+                <div>Service Worker: {supportDetails?.hasServiceWorker ? '✅' : '❌'}</div>
+                <div>Push Manager: {supportDetails?.hasPushManager ? '✅' : '❌'}</div>
+                <div>Notifications: {supportDetails?.hasNotification ? '✅' : '❌'}</div>
+                <div>User Agent: {typeof window !== 'undefined' ? window.navigator.userAgent.substring(0, 50) + '...' : 'N/A'}</div>
+              </div>
+            </details>
+            
+            {!supportDetails?.isSecureContext && (
+              <div className="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-700">
+                  💡 <strong>Tip:</strong> Try accessing this page using <code className="bg-blue-100 px-1 rounded">https://</code> instead of <code className="bg-blue-100 px-1 rounded">http://</code>
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </motion.div>
@@ -60,13 +109,23 @@ export function PushNotificationToggle({
   const getStatusText = () => {
     if (permission === 'denied') return 'Permission denied';
     if (isLoading) return isEnabled ? 'Disabling...' : 'Enabling...';
-    return isEnabled ? 'Active' : 'Inactive';
+    if (error) return 'Error occurred';
+    return isEnabled ? 'Active & Ready' : 'Tap to Enable';
   };
 
   const getStatusColor = () => {
     if (permission === 'denied') return 'text-red-600';
+    if (error) return 'text-orange-600';
     if (isEnabled) return 'text-green-600';
     return 'text-gray-500';
+  };
+  
+  const getStatusIcon = () => {
+    if (isLoading) return <Loader2 className="h-4 w-4 animate-spin" />;
+    if (permission === 'denied') return <X className="h-4 w-4" />;
+    if (error) return <AlertCircle className="h-4 w-4" />;
+    if (isEnabled) return <CheckCircle className="h-4 w-4" />;
+    return null;
   };
 
   return (
@@ -96,13 +155,20 @@ export function PushNotificationToggle({
               )}
             </motion.div>
             
-            <div>
+            <div className="flex-1">
               <h3 className="font-semibold text-gray-900 text-lg">
                 Push Notifications
               </h3>
-              <p className={`text-sm font-medium ${getStatusColor()}`}>
-                {getStatusText()}
-              </p>
+              <div className="flex items-center space-x-2">
+                <p className={`text-sm font-medium ${getStatusColor()}`}>
+                  {getStatusText()}
+                </p>
+                {getStatusIcon() && (
+                  <span className={getStatusColor()}>
+                    {getStatusIcon()}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

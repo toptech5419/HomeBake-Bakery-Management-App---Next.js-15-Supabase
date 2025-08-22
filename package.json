@@ -61,6 +61,10 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.0",
     "web-push": "^3.6.7",
+    "workbox-precaching": "^7.3.0",
+    "workbox-routing": "^7.3.0",
+    "workbox-strategies": "^7.3.0",
+    "workbox-window": "^7.3.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

@@ -25,23 +25,185 @@ class SimplePushNotifications {
   private initPromise: Promise<boolean> | null = null;
 
   /**
-   * Check if push notifications are supported in this browser
+   * Enhanced browser support detection with comprehensive compatibility checks
    */
   isSupported(): boolean {
     if (typeof window === 'undefined') return false;
     
-    return !!(
+    // Basic feature detection
+    const hasBasicFeatures = !!(
       'serviceWorker' in navigator &&
       'PushManager' in window &&
       'Notification' in window
     );
+    
+    if (!hasBasicFeatures) return false;
+    
+    // Enhanced browser-specific checks
+    const userAgent = navigator.userAgent.toLowerCase();
+    
+    // Safari iOS requires 16.4+
+    if (userAgent.includes('safari') && userAgent.includes('mobile')) {
+      const match = userAgent.match(/version\/(\d+)\.(\d+)/);
+      if (match) {
+        const major = parseInt(match[1]);
+        const minor = parseInt(match[2]);
+        if (major < 16 || (major === 16 && minor < 4)) {
+          Logger.debug('Safari iOS version too old for push notifications');
+          return false;
+        }
+      }
+    }
+    
+    // Check for secure context (HTTPS required)
+    const isSecureContext = 'isSecureContext' in window ? 
+      window.isSecureContext : 
+      (location.protocol === 'https:' || location.hostname === 'localhost');
+      
+    if (!isSecureContext) {
+      Logger.debug('Push notifications require secure context (HTTPS)');
+      return false;
+    }
+    
+    // Check for private browsing mode (where notifications are often blocked)
+    if (this.isPrivateBrowsingMode()) {
+      Logger.debug('Push notifications may be disabled in private browsing');
+      return false; // Be conservative in private mode
+    }
+    
+    return true;
+  }
+  
+  /**
+   * Detect private browsing mode
+   */
+  private isPrivateBrowsingMode(): boolean {
+    try {
+      // Firefox private browsing detection
+      if ('MozAppearance' in document.documentElement.style) {
+        const db = indexedDB.open('test');
+        return new Promise((resolve) => {
+          db.onerror = () => resolve(true);
+          db.onsuccess = () => resolve(false);
+        });
+      }
+      
+      // Safari private browsing detection
+      if (navigator.userAgent.includes('Safari')) {
+        try {
+          localStorage.setItem('test', '1');
+          localStorage.removeItem('test');
+          return false;
+        } catch {
+          return true;
+        }
+      }
+      
+      // Chrome incognito detection (limited)
+      if ('webkitRequestFileSystem' in window) {
+        return new Promise((resolve) => {
+          (window as any).webkitRequestFileSystem(
+            (window as any).TEMPORARY, 1,
+            () => resolve(false),
+            () => resolve(true)
+          );
+        });
+      }
+      
+      return false;
+    } catch {
+      return false; // If detection fails, assume not private
+    }
   }
 
   /**
-   * Get current notification permission status
+   * Get current notification permission status with enhanced context
    */
   getPermission(): NotificationPermission {
-    return 'Notification' in window ? Notification.permission : 'default';
+    if (!('Notification' in window)) return 'default';
+    
+    const permission = Notification.permission;
+    
+    // Log permission state for debugging
+    Logger.debug('Notification permission status:', permission);
+    
+    return permission;
+  }
+  
+  /**
+   * Get detailed browser and permission info for debugging
+   */
+  getDetailedSupport(): {
+    isSupported: boolean;
+    permission: NotificationPermission;
+    browserType: string;
+    browserVersion: string;
+    isSecureContext: boolean;
+    hasServiceWorker: boolean;
+    hasPushManager: boolean;
+    hasNotification: boolean;
+    reason?: string;
+  } {
+    const userAgent = navigator.userAgent;
+    const isSecureContext = 'isSecureContext' in window ? 
+      window.isSecureContext : 
+      (location.protocol === 'https:' || location.hostname === 'localhost');
+    
+    let browserType = 'unknown';
+    let browserVersion = '';
+    
+    if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) {
+      browserType = 'chrome';
+      const match = userAgent.match(/Chrome\/(\d+\.\d+)/);
+      browserVersion = match ? match[1] : 'unknown';
+    } else if (userAgent.includes('Firefox')) {
+      browserType = 'firefox';
+      const match = userAgent.match(/Firefox\/(\d+\.\d+)/);
+      browserVersion = match ? match[1] : 'unknown';
+    } else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
+      browserType = 'safari';
+      const match = userAgent.match(/Version\/(\d+\.\d+)/);
+      browserVersion = match ? match[1] : 'unknown';
+    } else if (userAgent.includes('Edg')) {
+      browserType = 'edge';
+      const match = userAgent.match(/Edg\/(\d+\.\d+)/);
+      browserVersion = match ? match[1] : 'unknown';
+    }
+    
+    const hasServiceWorker = 'serviceWorker' in navigator;
+    const hasPushManager = 'PushManager' in window;
+    const hasNotification = 'Notification' in window;
+    
+    let reason: string | undefined;
+    let isSupported = hasServiceWorker && hasPushManager && hasNotification && isSecureContext;
+    
+    if (!hasServiceWorker) reason = 'Service Worker not supported';
+    else if (!hasPushManager) reason = 'Push Manager not supported';
+    else if (!hasNotification) reason = 'Notifications not supported';
+    else if (!isSecureContext) reason = 'Requires HTTPS (secure context)';
+    else if (browserType === 'safari' && userAgent.includes('Mobile')) {
+      const match = userAgent.match(/Version\/(\d+)\.(\d+)/);
+      if (match) {
+        const major = parseInt(match[1]);
+        const minor = parseInt(match[2]);
+        if (major < 16 || (major === 16 && minor < 4)) {
+          isSupported = false;
+          reason = 'Safari iOS requires version 16.4+';
+        }
+      }
+    }
+    
+    return {
+      isSupported,
+      permission: this.getPermission(),
+      browserType,
+      browserVersion,
+      isSecureContext,
+      hasServiceWorker,
+      hasPushManager,
+      hasNotification,
+      reason
+    };
   }
 
   /**
@@ -109,80 +271,213 @@ class SimplePushNotifications {
   }
 
   /**
-   * Request notification permission from user
+   * Request notification permission with enhanced error handling
    */
   async requestPermission(): Promise<NotificationPermission> {
     if (!('Notification' in window)) {
-      throw new Error('Notifications not supported');
+      throw new Error('Notifications not supported in this browser');
     }
 
     if (Notification.permission === 'granted') {
+      Logger.debug('Notification permission already granted');
       return 'granted';
     }
 
     if (Notification.permission === 'denied') {
-      throw new Error('Notification permission denied. Please enable in browser settings.');
+      const errorMsg = 'Notification permission has been denied. To enable notifications:\n\n' +
+        '1. Click the lock icon in your browser address bar\n' +
+        '2. Allow notifications for this site\n' +
+        '3. Refresh the page and try again';
+      throw new Error(errorMsg);
     }
 
     try {
-      const permission = await Notification.requestPermission();
+      Logger.debug('Requesting notification permission...');
+      
+      // Handle both callback and promise-based permission requests
+      let permission: NotificationPermission;
+      
+      if (typeof Notification.requestPermission === 'function') {
+        const result = Notification.requestPermission();
+        
+        // Check if it returns a promise (modern browsers)
+        if (result && typeof result.then === 'function') {
+          permission = await result;
+        } else {
+          // Fallback for older browsers that use callbacks
+          permission = await new Promise((resolve) => {
+            Notification.requestPermission(resolve);
+          });
+        }
+      } else {
+        throw new Error('Permission request method not available');
+      }
+      
+      Logger.debug('Permission request result:', permission);
+      
+      if (permission === 'denied') {
+        throw new Error('User denied notification permission');
+      }
+      
       return permission;
     } catch (error) {
       Logger.error('Failed to request permission', error);
-      throw new Error('Failed to request notification permission');
+      
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMsg.includes('denied')) {
+        throw new Error('Notifications were blocked. Please check your browser settings.');
+      }
+      
+      throw new Error(`Failed to request notification permission: ${errorMsg}`);
     }
   }
 
   /**
-   * Subscribe to push notifications
+   * Subscribe to push notifications with comprehensive error handling
    */
   async subscribe(): Promise<PushSubscriptionData> {
+    Logger.debug('Starting push notification subscription process');
+    
+    // Validate support before proceeding
+    if (!this.isSupported()) {
+      const details = this.getDetailedSupport();
+      throw new Error(`Push notifications not supported: ${details.reason || 'Unknown reason'}`);
+    }
+    
     await this.initialize();
 
     if (!this.registration) {
-      throw new Error('Service worker not available');
+      throw new Error('Service worker registration failed');
     }
 
-    // Request permission first
+    // Request permission with retries
     const permission = await this.requestPermission();
     if (permission !== 'granted') {
-      throw new Error('Notification permission required');
+      throw new Error(`Permission ${permission}: Cannot subscribe without notification permission`);
     }
 
     try {
+      Logger.debug('Checking for existing subscription...');
+      
       // Check for existing subscription
       let subscription = await this.registration.pushManager.getSubscription();
 
+      if (subscription) {
+        Logger.debug('Found existing subscription');
+        
+        // Validate existing subscription
+        try {
+          // Test if subscription is still valid
+          const testResponse = await fetch('/api/push/validate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: subscription.endpoint })
+          }).catch(() => null);
+          
+          if (testResponse?.ok) {
+            Logger.debug('Existing subscription is valid');
+          } else {
+            Logger.debug('Existing subscription invalid, creating new one');
+            await subscription.unsubscribe();
+            subscription = null;
+          }
+        } catch {
+          // If validation fails, create new subscription
+          Logger.debug('Subscription validation failed, creating new');
+          await subscription.unsubscribe();
+          subscription = null;
+        }
+      }
+
       if (!subscription) {
-        // Create new subscription
+        Logger.debug('Creating new subscription...');
+        
+        // Get VAPID key with validation
         const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
         if (!vapidKey) {
-          throw new Error('VAPID key not configured');
+          throw new Error('VAPID key not configured. Please contact support.');
         }
 
         const applicationServerKey = this.urlBase64ToUint8Array(vapidKey);
-        subscription = await this.registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey
-        });
+        
+        // Subscribe with retry logic
+        const maxRetries = 3;
+        let lastError: Error | null = null;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            Logger.debug(`Subscription attempt ${attempt}/${maxRetries}`);
+            
+            subscription = await this.registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey
+            });
+            
+            Logger.success('Successfully created push subscription');
+            break;
+            
+          } catch (error) {
+            lastError = error as Error;
+            Logger.warn(`Subscription attempt ${attempt} failed:`, error);
+            
+            if (attempt === maxRetries) {
+              throw lastError;
+            }
+            
+            // Wait before retry with exponential backoff
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
       }
 
-      // Convert to our format
+      if (!subscription) {
+        throw new Error('Failed to create subscription after all retries');
+      }
+
+      // Convert and validate subscription data
       const subscriptionJson = subscription.toJSON();
+      if (!subscriptionJson.endpoint) {
+        throw new Error('Invalid subscription: missing endpoint');
+      }
+      
       if (!subscriptionJson.keys?.p256dh || !subscriptionJson.keys?.auth) {
-        throw new Error('Invalid subscription keys');
+        throw new Error('Invalid subscription: missing encryption keys');
       }
 
-      return {
-        endpoint: subscription.endpoint,
+      const subscriptionData = {
+        endpoint: subscriptionJson.endpoint,
         keys: {
           p256dh: subscriptionJson.keys.p256dh,
           auth: subscriptionJson.keys.auth
         }
       };
+      
+      Logger.success('Push subscription created successfully', {
+        endpoint: subscriptionData.endpoint.substring(0, 50) + '...',
+        hasKeys: !!(subscriptionData.keys.p256dh && subscriptionData.keys.auth)
+      });
+      
+      return subscriptionData;
+      
     } catch (error) {
       Logger.error('Failed to create subscription', error);
-      throw new Error('Failed to subscribe to push notifications');
+      
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Provide user-friendly error messages
+      if (errorMsg.includes('not supported')) {
+        throw new Error('Push notifications are not supported in this browser version');
+      } else if (errorMsg.includes('permission')) {
+        throw new Error('Notification permission is required for push notifications');
+      } else if (errorMsg.includes('VAPID')) {
+        throw new Error('Server configuration error. Please contact support.');
+      } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+        throw new Error('Network error. Please check your connection and try again.');
+      }
+      
+      throw new Error(`Failed to subscribe to push notifications: ${errorMsg}`);
     }
   }
 

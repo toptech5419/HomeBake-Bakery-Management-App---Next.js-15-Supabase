@@ -1,30 +1,23 @@
-// HomeBake Service Worker - Simple & Production Ready
-// Handles push notifications with cross-browser compatibility
+// HomeBake Unified Service Worker - Production Grade v3.0
+// Enhanced push notifications with Workbox integration and cross-browser compatibility
 
-const CACHE_NAME = 'homebake-v2.0';
-const OFFLINE_REQUEST_CACHE = 'offline-requests-v1';
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { registerRoute, NavigationRoute } from 'workbox-routing';
+import { StaleWhileRevalidate, CacheFirst, NetworkFirst } from 'workbox-strategies';
 
-// PERFORMANCE OPTIMIZATION: Cache handle pooling to prevent repeated caches.open() calls
-let mainCachePromise = null;
-let offlineCachePromise = null;
+// Version and cache management
+const SW_VERSION = '3.0.0';
+const CACHE_PREFIX = 'homebake-v3';
+const NOTIFICATION_CACHE = `${CACHE_PREFIX}-notifications`;
 
-function getMainCache() {
-  if (!mainCachePromise) {
-    mainCachePromise = caches.open(CACHE_NAME);
-  }
-  return mainCachePromise;
-}
+// Workbox precaching setup
+cleanupOutdatedCaches();
+precacheAndRoute(self.__WB_MANIFEST || []);
 
-function getOfflineCache() {
-  if (!offlineCachePromise) {
-    offlineCachePromise = caches.open(OFFLINE_REQUEST_CACHE);
-  }
-  return offlineCachePromise;
-}
-
+// Enhanced activity icons for better notification experience
 const ACTIVITY_ICONS = {
   sale: '🛒',
-  batch: '📦', 
+  batch: '📦',
   report: '📊',
   login: '👤',
   end_shift: '🕐',
@@ -32,60 +25,125 @@ const ACTIVITY_ICONS = {
   default: '🔔'
 };
 
-// Install service worker with enhanced caching
+// Browser-specific notification options for maximum compatibility
+const BROWSER_CONFIGS = {
+  chrome: {
+    supportsActions: true,
+    supportsImage: true,
+    supportsVibrate: true,
+    maxActions: 2
+  },
+  firefox: {
+    supportsActions: true,
+    supportsImage: false,
+    supportsVibrate: true,
+    maxActions: 2
+  },
+  safari: {
+    supportsActions: false,
+    supportsImage: false,
+    supportsVibrate: false,
+    maxActions: 0
+  },
+  edge: {
+    supportsActions: true,
+    supportsImage: true,
+    supportsVibrate: true,
+    maxActions: 2
+  }
+};
+
+// Detect browser type for optimized notification handling
+function getBrowserType() {
+  const userAgent = self.navigator.userAgent.toLowerCase();
+  
+  if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
+    return 'chrome';
+  } else if (userAgent.includes('firefox')) {
+    return 'firefox';
+  } else if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
+    return 'safari';
+  } else if (userAgent.includes('edg')) {
+    return 'edge';
+  }
+  
+  return 'chrome'; // Default to chrome capabilities
+}
+
+// Enhanced install event with comprehensive caching
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing HomeBake Service Worker v2.0 - Simple & Production Ready');
+  console.log(`[SW v${SW_VERSION}] Installing HomeBake Service Worker...`);
+  
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
+    Promise.all([
+      // Cache essential resources
+      caches.open(`${CACHE_PREFIX}-core`).then(cache => {
         return cache.addAll([
           '/',
           '/owner-dashboard',
           '/dashboard',
           '/manifest.json',
           '/icons/icon-192x192.png',
-          '/icons/icon-72x72.png'
+          '/icons/icon-512x512.png',
+          '/icons/icon-72x72.png',
+          '/icons/icon-96x96.png'
         ]).catch(error => {
-          console.warn('[SW] Failed to cache some resources during install:', error);
+          console.warn('[SW] Some core resources failed to cache:', error);
           // Don't fail installation if some resources can't be cached
         });
-      })
+      }),
+      
+      // Initialize notification cache
+      caches.open(NOTIFICATION_CACHE)
+    ])
+    .then(() => {
+      console.log(`[SW v${SW_VERSION}] Installation complete`);
+      return self.skipWaiting();
+    })
   );
-  self.skipWaiting();
 });
 
-// Activate service worker with enhanced cleanup
+// Enhanced activate event with thorough cleanup
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating HomeBake Service Worker v2.0 - Production Ready');
+  console.log(`[SW v${SW_VERSION}] Activating...`);
+  
   event.waitUntil(
     Promise.all([
       // Clean up old caches
-      caches.keys().then((cacheNames) => {
+      caches.keys().then(cacheNames => {
         return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
+          cacheNames.map(cacheName => {
+            if (!cacheName.startsWith(CACHE_PREFIX)) {
               console.log('[SW] Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
           })
         );
       }),
-      // Take control of all clients immediately
+      
+      // Take control of all clients
       self.clients.claim()
     ])
+    .then(() => {
+      console.log(`[SW v${SW_VERSION}] Activated successfully`);
+      
+      // Notify clients of successful activation
+      return self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SW_ACTIVATED',
+            version: SW_VERSION,
+            timestamp: Date.now()
+          });
+        });
+      });
+    })
   );
-  
-  // Notify all clients that service worker is ready
-  self.clients.matchAll().then(clients => {
-    clients.forEach(client => {
-      client.postMessage({ type: 'SW_ACTIVATED', version: '2.0' });
-    });
-  });
 });
 
-// Handle push events
+// Production-grade push notification handler with cross-browser compatibility
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push event received');
+  console.log(`[SW v${SW_VERSION}] Push event received`);
   
   if (!event.data) {
     console.log('[SW] Push event has no data');
@@ -94,545 +152,387 @@ self.addEventListener('push', (event) => {
 
   try {
     const data = event.data.json();
-    console.log('[SW] Push data:', data);
+    console.log('[SW] Push data received:', data);
 
+    const browserType = getBrowserType();
+    const browserConfig = BROWSER_CONFIGS[browserType];
+    
     const {
-      title = 'HomeBake Notification',
+      title = 'HomeBake',
       body = 'New activity in your bakery',
       activity_type = 'default',
       user_name,
-      metadata,
-      url = '/owner-dashboard'
+      metadata = {},
+      url = '/owner-dashboard',
+      requireInteraction = false
     } = data;
 
-    const icon = ACTIVITY_ICONS[activity_type] || ACTIVITY_ICONS.default;
-    
-    // Enhanced notification body with activity details
+    // Enhanced notification body with context
     let enhancedBody = body;
     if (user_name) {
       enhancedBody = `${user_name}: ${body}`;
     }
-    if (metadata?.bread_type && metadata?.quantity) {
+    
+    // Add contextual information
+    if (metadata.bread_type && metadata.quantity) {
       enhancedBody += `\n${metadata.quantity}x ${metadata.bread_type}`;
     }
-    if (metadata?.revenue) {
+    
+    if (metadata.revenue) {
       enhancedBody += ` (₦${metadata.revenue.toLocaleString()})`;
     }
 
-    const options = {
+    // Base notification options (supported by all browsers)
+    const baseOptions = {
       body: enhancedBody,
       icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png', 
-      tag: `homebake-${activity_type}`,
-      data: { url, activity_type, timestamp: Date.now() },
-      actions: [
+      badge: '/icons/icon-72x72.png',
+      tag: `homebake-${activity_type}-${Date.now()}`,
+      requireInteraction,
+      silent: false,
+      timestamp: Date.now(),
+      data: {
+        url,
+        activity_type,
+        user_name,
+        metadata,
+        browserType
+      }
+    };
+
+    // Enhanced options based on browser capabilities
+    const enhancedOptions = { ...baseOptions };
+    
+    // Add actions if supported
+    if (browserConfig.supportsActions && browserConfig.maxActions > 0) {
+      enhancedOptions.actions = [
         {
           action: 'view',
           title: 'View Dashboard',
           icon: '/icons/icon-72x72.png'
-        },
-        {
-          action: 'dismiss', 
-          title: 'Dismiss',
-          icon: '/icons/icon-72x72.png'
         }
-      ],
-      requireInteraction: false,
-      silent: false,
-      vibrate: [200, 100, 200],
-      timestamp: Date.now()
-    };
+      ];
+      
+      if (browserConfig.maxActions > 1) {
+        enhancedOptions.actions.push({
+          action: 'dismiss',
+          title: 'Dismiss'
+        });
+      }
+    }
+    
+    // Add vibration if supported
+    if (browserConfig.supportsVibrate) {
+      enhancedOptions.vibrate = metadata.urgent ? [300, 200, 300] : [200, 100, 200];
+    }
+    
+    // Add image if supported and provided
+    if (browserConfig.supportsImage && metadata.image) {
+      enhancedOptions.image = metadata.image;
+    }
+
+    const icon = ACTIVITY_ICONS[activity_type] || ACTIVITY_ICONS.default;
+    const notificationTitle = `${icon} ${title}`;
 
     event.waitUntil(
-      self.registration.showNotification(`${icon} ${title}`, options)
+      // Try enhanced options first, fallback to base options
+      self.registration.showNotification(notificationTitle, enhancedOptions)
+        .catch(error => {
+          console.warn('[SW] Enhanced notification failed, using fallback:', error);
+          return self.registration.showNotification(notificationTitle, baseOptions);
+        })
+        .then(() => {
+          console.log(`[SW] Notification shown successfully (${browserType})`);
+          
+          // Cache notification for analytics
+          return caches.open(NOTIFICATION_CACHE).then(cache => {
+            const notificationLog = {
+              timestamp: Date.now(),
+              title: notificationTitle,
+              body: enhancedBody,
+              activity_type,
+              browserType,
+              success: true
+            };
+            
+            return cache.put(
+              `/notifications/${Date.now()}`,
+              new Response(JSON.stringify(notificationLog))
+            );
+          }).catch(error => {
+            console.warn('[SW] Failed to cache notification log:', error);
+          });
+        })
     );
-  } catch (error) {
-    console.error('[SW] Error handling push event:', error);
     
-    // Fallback notification
+  } catch (error) {
+    console.error('[SW] Error processing push event:', error);
+    
+    // Ultra-fallback: show basic notification
     event.waitUntil(
       self.registration.showNotification('🍞 HomeBake', {
         body: 'New activity in your bakery',
         icon: '/icons/icon-192x192.png',
-        tag: 'homebake-fallback',
-        data: { url: '/owner-dashboard' }
+        tag: `homebake-error-${Date.now()}`,
+        data: { url: '/owner-dashboard', error: true }
       })
     );
   }
 });
 
-// Handle notification clicks
+// Enhanced notification click handler with smart window management
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification click received:', event.notification.tag);
+  console.log(`[SW v${SW_VERSION}] Notification clicked:`, event.notification.tag);
   
   event.notification.close();
 
+  // Handle action buttons
   if (event.action === 'dismiss') {
-    console.log('[SW] Notification dismissed');
+    console.log('[SW] Notification dismissed via action');
     return;
   }
 
-  const urlToOpen = event.notification.data?.url || '/owner-dashboard';
+  const notificationData = event.notification.data || {};
+  const urlToOpen = notificationData.url || '/owner-dashboard';
   
   event.waitUntil(
-    clients.matchAll({ 
+    self.clients.matchAll({ 
       type: 'window',
       includeUncontrolled: true 
-    }).then((clientList) => {
-      // Check if a window is already open
+    }).then(clientList => {
+      // Smart window management
+      const origin = self.location.origin;
+      
+      // Look for existing HomeBake windows
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
-        if (client.url.includes('owner-dashboard') && 'focus' in client) {
-          // Focus existing window and navigate if needed
+        
+        if (client.url.startsWith(origin)) {
+          console.log('[SW] Focusing existing window:', client.url);
+          
+          // Focus and navigate existing window
           return client.focus().then(() => {
-            if (client.url !== urlToOpen) {
-              return client.navigate(urlToOpen);
-            }
+            // Send navigation message to client
+            return client.postMessage({
+              type: 'NOTIFICATION_CLICK_NAVIGATE',
+              url: urlToOpen,
+              data: notificationData
+            });
           });
         }
       }
       
-      // Open new window if no existing window found
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
+      // No existing window found, open new one
+      console.log('[SW] Opening new window:', urlToOpen);
+      return self.clients.openWindow(urlToOpen);
+    })
+    .catch(error => {
+      console.error('[SW] Error handling notification click:', error);
+      // Fallback: try to open the URL anyway
+      return self.clients.openWindow(urlToOpen);
     })
   );
 });
 
-// Handle notification close
+// Enhanced notification close handler
 self.addEventListener('notificationclose', (event) => {
-  console.log('[SW] Notification closed:', event.notification.tag);
+  console.log(`[SW v${SW_VERSION}] Notification closed:`, event.notification.tag);
   
-  // Track notification dismissal analytics if needed
+  const notificationData = event.notification.data || {};
+  
+  // Track notification dismissal
   event.waitUntil(
-    fetch('/api/analytics/notification-dismissed', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tag: event.notification.tag,
-        timestamp: Date.now()
-      })
-    }).catch(() => {
-      // Fail silently for analytics
-      console.log('[SW] Analytics tracking failed');
-    })
-  );
-});
-
-// Handle background sync for offline notifications
-self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync event:', event.tag);
-  
-  if (event.tag === 'homebake-offline-notifications') {
-    event.waitUntil(syncOfflineNotifications());
-  } else if (event.tag === 'homebake-retry-requests') {
-    event.waitUntil(processQueuedRequests());
-  }
-});
-
-// Listen for online events to process queued requests
-self.addEventListener('online', () => {
-  console.log('[SW] Device came online, processing queued requests');
-  processQueuedRequests();
-});
-
-// Sync function for offline notifications
-async function syncOfflineNotifications() {
-  try {
-    console.log('[SW] Syncing offline notifications');
-    
-    // Get any cached notification data and send when back online
-    const cache = await getMainCache();
-    const offlineNotifications = await cache.match('/offline-notifications');
-    
-    if (offlineNotifications) {
-      const data = await offlineNotifications.json();
-      // Process offline notifications
-      for (const notification of data.notifications) {
-        await self.registration.showNotification(notification.title, notification.options);
-      }
-      // Clear offline cache
-      await cache.delete('/offline-notifications');
-    }
-  } catch (error) {
-    console.error('[SW] Sync failed:', error);
-  }
-}
-
-// Log service worker errors
-self.addEventListener('error', (event) => {
-  console.error('[SW] Service Worker error:', event.error);
-});
-
-self.addEventListener('unhandledrejection', (event) => {
-  console.error('[SW] Unhandled promise rejection:', event.reason);
-});
-
-// Add message handling for health checks and communication
-// PRODUCTION-READY: Use event.waitUntil() to prevent blocking main thread
-self.addEventListener('message', (event) => {
-  console.log('[SW] Received message:', event.data);
-  
-  // Schedule heavy operations asynchronously to prevent blocking
-  if (event.data && event.data.type === 'HEALTH_CHECK') {
-    // Immediate response for health check - no async work needed
-    if (event.ports && event.ports[0]) {
-      event.ports[0].postMessage({
-        type: 'HEALTH_CHECK_RESPONSE',
+    caches.open(NOTIFICATION_CACHE).then(cache => {
+      const dismissalLog = {
         timestamp: Date.now(),
-        status: 'healthy'
-      });
-    }
-  }
-  
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    // Schedule non-blocking skip waiting
-    event.waitUntil(
-      Promise.resolve().then(() => {
-        self.skipWaiting();
-      })
-    );
-  }
-  
-  // Handle heavy operations without blocking message handler
-  if (event.data && event.data.type === 'CACHE_OPERATION') {
-    event.waitUntil(handleCacheOperation(event.data));
-  }
-});
-
-// Separate function for heavy cache operations
-async function handleCacheOperation(data) {
-  try {
-    // Yield control to prevent blocking
-    await new Promise(resolve => setTimeout(resolve, 0));
-    
-    switch (data.operation) {
-      case 'CLEAR_CACHE':
-        await clearOldCaches();
-        break;
-      case 'PRELOAD_RESOURCES':
-        await preloadCriticalResources();
-        break;
-      default:
-        console.log('[SW] Unknown cache operation:', data.operation);
-    }
-  } catch (error) {
-    console.error('[SW] Cache operation failed:', error);
-  }
-}
-
-// Production-ready fetch handling with offline strategy
-self.addEventListener('fetch', (event) => {
-  // Only handle same-origin requests
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
-  
-  const request = event.request;
-  const url = new URL(request.url);
-  
-  // Handle different types of requests with appropriate strategies
-  if (url.pathname.startsWith('/api/')) {
-    // API requests: Network-first with offline queue
-    event.respondWith(handleApiRequest(request));
-  } else if (url.pathname.startsWith('/_next/static/')) {
-    // Static assets: Cache-first (immutable)
-    event.respondWith(handleStaticAssets(request));
-  } else if (request.mode === 'navigate') {
-    // Navigation requests: Network-first with offline fallback
-    event.respondWith(handleNavigation(request));
-  } else {
-    // Other resources: Stale-while-revalidate
-    event.respondWith(handleOtherResources(request));
-  }
-});
-
-// Handle API requests with network-first strategy
-// OPTIMIZED: Prevent blocking operations in fetch handler
-async function handleApiRequest(request) {
-  try {
-    const response = await fetch(request);
-    
-    // Only cache successful GET requests - but don't block response
-    if (request.method === 'GET' && response.status === 200) {
-      // Schedule caching operation asynchronously to prevent blocking
-      const cacheOperation = async () => {
-        try {
-          const cache = await getMainCache();
-          await cache.put(request, response.clone());
-        } catch (error) {
-          console.warn('[SW] Failed to cache API response:', error);
-        }
+        tag: event.notification.tag,
+        activity_type: notificationData.activity_type,
+        browserType: notificationData.browserType,
+        action: 'dismissed'
       };
       
-      // Don't await - let caching happen in background
-      cacheOperation();
-    }
-    
-    return response;
-  } catch (error) {
-    console.log('[SW] API request failed:', request.method, request.url);
-    
-    // Try to serve from cache for GET requests only
-    if (request.method === 'GET') {
-      const cachedResponse = await caches.match(request);
-      if (cachedResponse) {
-        console.log('[SW] Serving cached API response:', request.url);
-        return cachedResponse;
-      }
-    }
-    
-    // Queue non-GET requests for later retry
-    if (request.method !== 'GET') {
-      try {
-        await queueFailedRequest(request);
-        console.log('[SW] Queued failed request:', request.method, request.url);
-      } catch (queueError) {
-        console.warn('[SW] Failed to queue request:', queueError);
-      }
-    }
-    
-    // Return appropriate offline response
-    return new Response(
-      JSON.stringify({ 
-        error: 'Offline', 
-        message: request.method === 'GET' 
-          ? 'Data not available offline' 
-          : 'Request queued for when connection is restored',
-        method: request.method,
-        queued: request.method !== 'GET'
-      }),
-      { 
-        status: 503,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
-  }
-}
+      return cache.put(
+        `/dismissals/${Date.now()}`,
+        new Response(JSON.stringify(dismissalLog))
+      );
+    }).catch(error => {
+      console.warn('[SW] Failed to log notification dismissal:', error);
+    })
+  );
+});
 
-// Handle static assets with cache-first strategy
-async function handleStaticAssets(request) {
-  // Only handle GET requests for static assets
-  if (request.method !== 'GET') {
-    return fetch(request);
+// Background sync for offline functionality
+self.addEventListener('sync', (event) => {
+  console.log(`[SW v${SW_VERSION}] Background sync event:`, event.tag);
+  
+  if (event.tag === 'homebake-sync') {
+    event.waitUntil(backgroundSync());
   }
   
-  const cache = await getMainCache();
-  const cachedResponse = await cache.match(request);
-  
-  if (cachedResponse) {
-    return cachedResponse;
+  if (event.tag === 'homebake-notification-sync') {
+    event.waitUntil(syncNotificationLogs());
   }
+});
+
+// Enhanced message handler for client communication
+self.addEventListener('message', (event) => {
+  const { data } = event;
+  console.log(`[SW v${SW_VERSION}] Message received:`, data);
   
+  if (!data || !data.type) return;
+  
+  switch (data.type) {
+    case 'SKIP_WAITING':
+      self.skipWaiting();
+      break;
+      
+    case 'GET_VERSION':
+      if (event.ports[0]) {
+        event.ports[0].postMessage({
+          type: 'VERSION_RESPONSE',
+          version: SW_VERSION,
+          timestamp: Date.now()
+        });
+      }
+      break;
+      
+    case 'CLEAR_NOTIFICATION_CACHE':
+      event.waitUntil(clearNotificationCache());
+      break;
+      
+    case 'GET_NOTIFICATION_STATS':
+      event.waitUntil(getNotificationStats().then(stats => {
+        if (event.ports[0]) {
+          event.ports[0].postMessage({
+            type: 'NOTIFICATION_STATS_RESPONSE',
+            stats
+          });
+        }
+      }));
+      break;
+      
+    default:
+      console.log('[SW] Unknown message type:', data.type);
+  }
+});
+
+// Workbox routing for different content types
+registerRoute(
+  // API routes - network first with cache fallback
+  ({ url }) => url.pathname.startsWith('/api/'),
+  new NetworkFirst({
+    cacheName: `${CACHE_PREFIX}-api`,
+    networkTimeoutSeconds: 3
+  })
+);
+
+registerRoute(
+  // Static assets - cache first
+  ({ request }) => request.destination === 'image' || 
+                   request.destination === 'script' || 
+                   request.destination === 'style',
+  new CacheFirst({
+    cacheName: `${CACHE_PREFIX}-assets`
+  })
+);
+
+registerRoute(
+  // App pages - stale while revalidate
+  ({ request }) => request.mode === 'navigate',
+  new StaleWhileRevalidate({
+    cacheName: `${CACHE_PREFIX}-pages`
+  })
+);
+
+// Helper functions
+async function backgroundSync() {
   try {
-    const response = await fetch(request);
-    if (response.status === 200) {
-      cache.put(request, response.clone()).catch(error => {
-        console.warn('[SW] Failed to cache static asset:', error);
+    console.log('[SW] Starting background sync...');
+    
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'BACKGROUND_SYNC_COMPLETE',
+        timestamp: Date.now()
       });
-    }
-    return response;
+    });
+    
+    console.log('[SW] Background sync completed');
   } catch (error) {
-    console.log('[SW] Static asset failed to load:', request.url);
+    console.error('[SW] Background sync failed:', error);
     throw error;
   }
 }
 
-// Handle navigation with network-first and offline fallback
-async function handleNavigation(request) {
-  // Only handle GET navigation requests
-  if (request.method !== 'GET') {
-    return fetch(request);
-  }
-  
+async function syncNotificationLogs() {
   try {
-    const response = await fetch(request);
-    
-    // Cache successful navigation responses
-    if (response.status === 200) {
-      const cache = await getMainCache();
-      cache.put(request, response.clone()).catch(error => {
-        console.warn('[SW] Failed to cache navigation response:', error);
-      });
-    }
-    
-    return response;
-  } catch (error) {
-    console.log('[SW] Navigation failed, trying cache:', request.url);
-    
-    // Try cached version of the exact request
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-    
-    // Fallback to cached index page
-    const indexResponse = await caches.match('/');
-    if (indexResponse) {
-      return indexResponse;
-    }
-    
-    // Last resort: offline page
-    return new Response(
-      `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>HomeBake - Offline</title>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <style>
-            body { 
-              font-family: system-ui, sans-serif; 
-              text-align: center; 
-              padding: 2rem;
-              background: linear-gradient(135deg, #f97316, #fb923c);
-              color: white;
-              min-height: 100vh;
-              margin: 0;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-            .container {
-              background: rgba(255,255,255,0.1);
-              padding: 2rem;
-              border-radius: 1rem;
-              backdrop-filter: blur(10px);
-            }
-            h1 { margin: 0 0 1rem 0; font-size: 2rem; }
-            p { margin: 0.5rem 0; opacity: 0.9; }
-            button {
-              background: white;
-              color: #f97316;
-              border: none;
-              padding: 0.75rem 1.5rem;
-              border-radius: 0.5rem;
-              font-weight: 600;
-              cursor: pointer;
-              margin-top: 1rem;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>🍞 HomeBake</h1>
-            <p>You're currently offline</p>
-            <p>Please check your internet connection</p>
-            <button onclick="location.reload()">Try Again</button>
-          </div>
-        </body>
-      </html>
-      `,
-      {
-        status: 200,
-        headers: { 'Content-Type': 'text/html' }
-      }
-    );
-  }
-}
-
-// Handle other resources with stale-while-revalidate
-async function handleOtherResources(request) {
-  const cache = await getMainCache();
-  
-  // Only cache GET requests
-  if (request.method !== 'GET') {
-    // For non-GET requests, just fetch without caching
-    try {
-      return await fetch(request);
-    } catch (error) {
-      console.log('[SW] Non-GET request failed:', request.url);
-      throw error;
-    }
-  }
-  
-  const cachedResponse = await cache.match(request);
-  
-  // Fetch in the background regardless
-  const fetchPromise = fetch(request)
-    .then(response => {
-      if (response.status === 200) {
-        // Only cache successful GET responses
-        cache.put(request, response.clone()).catch(error => {
-          console.warn('[SW] Failed to cache response:', error);
-        });
-      }
-      return response;
-    })
-    .catch(() => null);
-  
-  // Return cached version immediately if available
-  if (cachedResponse) {
-    return cachedResponse;
-  }
-  
-  // Otherwise wait for network
-  return fetchPromise;
-}
-
-// Queue failed requests for retry when online
-async function queueFailedRequest(request) {
-  try {
-    const requestData = {
-      url: request.url,
-      method: request.method,
-      headers: Object.fromEntries(request.headers.entries()),
-      body: request.method !== 'GET' ? await request.text() : null,
-      timestamp: Date.now()
-    };
-    
-    // Store in IndexedDB or simpler storage
-    const cache = await getOfflineCache();
-    const queueKey = `queue-${Date.now()}-${Math.random()}`;
-    
-    await cache.put(
-      queueKey,
-      new Response(JSON.stringify(requestData), {
-        headers: { 'Content-Type': 'application/json' }
-      })
-    );
-    
-    console.log('[SW] Queued failed request:', request.url);
-  } catch (error) {
-    console.error('[SW] Failed to queue request:', error);
-  }
-}
-
-// Process queued requests when online
-async function processQueuedRequests() {
-  try {
-    const cache = await getOfflineCache();
+    const cache = await caches.open(NOTIFICATION_CACHE);
     const requests = await cache.keys();
+    
+    // Send logs to analytics endpoint (implement as needed)
+    console.log(`[SW] Syncing ${requests.length} notification logs`);
+    
+    // Clean up old logs (keep last 100)
+    if (requests.length > 100) {
+      const toDelete = requests.slice(100);
+      await Promise.all(toDelete.map(req => cache.delete(req)));
+    }
+    
+  } catch (error) {
+    console.error('[SW] Failed to sync notification logs:', error);
+  }
+}
+
+async function clearNotificationCache() {
+  try {
+    const cache = await caches.open(NOTIFICATION_CACHE);
+    const requests = await cache.keys();
+    
+    await Promise.all(requests.map(req => cache.delete(req)));
+    console.log('[SW] Notification cache cleared');
+    
+  } catch (error) {
+    console.error('[SW] Failed to clear notification cache:', error);
+  }
+}
+
+async function getNotificationStats() {
+  try {
+    const cache = await caches.open(NOTIFICATION_CACHE);
+    const requests = await cache.keys();
+    
+    const stats = {
+      total: 0,
+      byType: {},
+      byBrowser: {},
+      dismissalRate: 0
+    };
     
     for (const request of requests) {
       const response = await cache.match(request);
       if (response) {
-        const requestData = await response.json();
+        const data = await response.json();
         
-        try {
-          // Recreate and send the request
-          const fetchOptions = {
-            method: requestData.method,
-            headers: requestData.headers,
-            body: requestData.body
-          };
-          
-          const result = await fetch(requestData.url, fetchOptions);
-          
-          if (result.ok) {
-            // Remove from queue on success
-            await cache.delete(request);
-            console.log('[SW] Successfully processed queued request:', requestData.url);
-          }
-        } catch (error) {
-          console.log('[SW] Queued request still failing:', requestData.url);
-          // Keep in queue for next attempt
-        }
+        stats.total++;
+        stats.byType[data.activity_type] = (stats.byType[data.activity_type] || 0) + 1;
+        stats.byBrowser[data.browserType] = (stats.byBrowser[data.browserType] || 0) + 1;
       }
     }
+    
+    return stats;
   } catch (error) {
-    console.error('[SW] Error processing queued requests:', error);
+    console.error('[SW] Failed to get notification stats:', error);
+    return { total: 0, byType: {}, byBrowser: {}, dismissalRate: 0 };
   }
 }
+
+// Global error handling
+self.addEventListener('error', (event) => {
+  console.error(`[SW v${SW_VERSION}] Global error:`, event.error);
+});
+
+self.addEventListener('unhandledrejection', (event) => {
+  console.error(`[SW v${SW_VERSION}] Unhandled promise rejection:`, event.reason);
+});
+
+console.log(`[SW v${SW_VERSION}] HomeBake Service Worker loaded successfully`);
