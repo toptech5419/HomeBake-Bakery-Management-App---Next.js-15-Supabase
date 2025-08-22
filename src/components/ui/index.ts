@@ -52,7 +52,7 @@ export {
   MobileNotificationProvider,
   useMobileNotifications,
   NotificationHelpers
-} from './mobile-notifications-enhanced';
+} from './mobile-notifications-fixed';
 
 // Performance-optimized components
 export {

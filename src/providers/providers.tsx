@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 import { QueryProvider } from './query-provider';
-import { MobileNotificationProvider } from '@/components/ui/mobile-notifications-enhanced';
+import { MobileNotificationProvider } from '@/components/ui/mobile-notifications-fixed';
 
 interface ProvidersProps {
   children: ReactNode;

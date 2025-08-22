@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-fixed';
 import { createSalesLog } from '@/lib/sales/actions';
 
 interface SalesModalProps {

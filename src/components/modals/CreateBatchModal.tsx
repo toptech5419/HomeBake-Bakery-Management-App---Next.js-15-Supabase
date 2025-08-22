@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Plus, Minus, Loader2, Sparkles, Package, Clock } from 'lucide-react';
-import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-fixed';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { BreadTypeForm } from '@/components/bread-type-form';
-import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-fixed';
 import { createBreadTypeAction, updateBreadTypeAction } from './actions';
 import { useRouter, useSearchParams } from 'next/navigation';
 

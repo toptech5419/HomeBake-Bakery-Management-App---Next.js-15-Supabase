@@ -26,7 +26,7 @@ import {
 import { CreateBatchModal } from '@/components/modals/CreateBatchModal';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-fixed';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 
 interface ProductionClientProps {

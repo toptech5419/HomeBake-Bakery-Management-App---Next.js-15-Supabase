@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useBatches } from '@/hooks/use-batches';
 import { Batch as BatchType } from '@/lib/batches/actions';
-import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-fixed';
 
 interface BatchSystemProps {
   currentShift: 'morning' | 'night';

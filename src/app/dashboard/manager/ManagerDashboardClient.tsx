@@ -12,7 +12,7 @@ import { deleteAllBatches, checkAndSaveBatchesToAllBatches } from '@/lib/batches
 import { logEndShiftActivity } from '@/lib/activities/server-activity-service';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
-import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-fixed';
 import { useQueryClient } from '@tanstack/react-query';
 // Removed unreliable performance scheduler imports
 

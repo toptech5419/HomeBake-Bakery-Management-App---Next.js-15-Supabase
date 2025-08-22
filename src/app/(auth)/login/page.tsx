@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, memo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { login } from '@/lib/auth/actions';
 import { LoadingButton } from '@/components/ui/loading-button';
-import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-fixed';
 import { LogIn, Mail, Lock } from 'lucide-react';
 import { ForgotPasswordModal } from '@/components/auth/forgot-password-modal';
 
