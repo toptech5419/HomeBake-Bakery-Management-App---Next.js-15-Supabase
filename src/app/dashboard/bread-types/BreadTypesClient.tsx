@@ -25,7 +25,7 @@ interface User {
 }
 
 export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }: { breadTypes: BreadType[]; user: User }) {
-  const [breadTypes, setBreadTypes] = useState(initialBreadTypes);
+  const [allBreadTypes, setAllBreadTypes] = useState(initialBreadTypes); // Store ALL bread types
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
@@ -33,6 +33,11 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
   const [showInactive, setShowInactive] = useState(false);
   const router = useRouter();
   const { showNotification } = useMobileNotifications();
+  
+  // Filter bread types for display based on showInactive toggle
+  const breadTypes = showInactive 
+    ? allBreadTypes 
+    : allBreadTypes.filter(bt => bt.is_active !== false);
 
   const refetchBreadTypes = async (showSuccessMessage: boolean = false, includeInactive: boolean = showInactive) => {
     try {
@@ -43,7 +48,7 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
         return await refetchBreadTypesAction(includeInactive);
       }, 3, 1000);
       
-      setBreadTypes(updated);
+      setAllBreadTypes(updated);
       
       if (showSuccessMessage) {
         showNotification(NotificationHelpers.success('Success', 'Bread types refreshed successfully!'));
@@ -75,7 +80,7 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       }, 2, 1500);
       
       if (result?.success) {
-        showNotification(NotificationHelpers.success('Success', `"${breadType.name}" deactivated successfully!`));
+        showNotification(NotificationHelpers.success('Bread Type Deactivated', `"${breadType.name}" has been deactivated and hidden from daily operations. Click "Show Inactive" to view and reactivate it.`));
         await refetchBreadTypes(false);
       } else {
         showNotification(NotificationHelpers.error('Error', result?.error || `Failed to deactivate "${breadType.name}". Please try again.`));
@@ -103,7 +108,7 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       }, 2, 1500);
       
       if (result?.success) {
-        showNotification(NotificationHelpers.success('Success', `"${breadType.name}" reactivated successfully!`));
+        showNotification(NotificationHelpers.success('Bread Type Reactivated', `"${breadType.name}" is now active and available for daily operations again!`));
         await refetchBreadTypes(false);
       } else {
         showNotification(NotificationHelpers.error('Error', result?.error || `Failed to reactivate "${breadType.name}". Please try again.`));
@@ -161,10 +166,9 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
     router.push('/dashboard/bread-types/new');
   }, [router]);
 
-  const toggleShowInactive = async () => {
-    const newShowInactive = !showInactive;
-    setShowInactive(newShowInactive);
-    await refetchBreadTypes(false, newShowInactive);
+  const toggleShowInactive = () => {
+    setShowInactive(!showInactive);
+    // No need to refetch - we already have all data and filter on frontend
   };
 
   const formatPrice = (price: number) => {
@@ -333,9 +337,10 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
     );
   };
 
-  const activeBreadTypes = breadTypes.filter(bt => bt.is_active !== false).length;
-  const inactiveBreadTypes = breadTypes.filter(bt => bt.is_active === false).length;
-  const totalRevenue = breadTypes.reduce((sum, bt) => sum + (bt.unit_price || 0), 0);
+  // Calculate stats from ALL bread types, not just the filtered display
+  const activeBreadTypes = allBreadTypes.filter(bt => bt.is_active !== false).length;
+  const inactiveBreadTypes = allBreadTypes.filter(bt => bt.is_active === false).length;
+  const totalRevenue = allBreadTypes.reduce((sum, bt) => sum + (bt.unit_price || 0), 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 p-4 md:p-6">
