@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { useToast } from '@/components/ui/ToastProvider';
+import { useOptimizedToast } from '@/components/ui/toast-optimized';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { deleteBreadTypeAction, refetchBreadTypesAction } from './actions';
@@ -23,7 +23,7 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-  const toast = useToast();
+  const { toast } = useOptimizedToast();
   const router = useRouter();
 
 
@@ -41,15 +41,21 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       
       if (showSuccessMessage) {
         const message = createUserMessages.dashboard.dataRefreshSuccess();
-        toast.success(message.message, message.title, message.duration);
+        toast({
+          title: message.title || 'Data Refreshed',
+          description: message.message,
+          type: 'success',
+          duration: message.duration || 4000
+        });
       }
     } catch (error) {
       const message = createUserMessages.breadTypes.refreshError(error);
-      if (message.type === 'error') {
-        toast.error(message.message, message.title, message.duration);
-      } else {
-        toast.warning(message.message, message.title, message.duration);
-      }
+      toast({
+        title: message.title || 'Refresh Failed',
+        description: message.message,
+        type: message.type === 'error' ? 'error' : 'warning',
+        duration: message.duration || 6000
+      });
       setRetryCount(prev => prev + 1);
     } finally {
       setLoadingId(null);
@@ -77,31 +83,32 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       
       if (result?.success) {
         const message = createUserMessages.breadTypes.deleteSuccess(breadType.name);
-        toast.success(message.message, message.title, 8000); // Longer duration for success
+        toast({
+          title: message.title || 'Bread Type Deleted',
+          description: message.message,
+          type: 'success',
+          duration: 8000
+        });
         await refetchBreadTypes(false); // Don't show success message for auto-refresh
       } else {
         // Enhanced error handling for mobile visibility
         const message = createUserMessages.breadTypes.deleteError(breadType.name, result?.error);
-        const errorTitle = "Cannot Delete Bread Type";
-        const errorDuration = 12000; // 12 seconds for error messages to be fully read
-        
-        if (message.type === 'warning') {
-          toast.warning(message.message, errorTitle, errorDuration);
-        } else {
-          toast.error(message.message, errorTitle, errorDuration);
-        }
+        toast({
+          title: "Cannot Delete Bread Type",
+          description: message.message,
+          type: message.type === 'warning' ? 'warning' : 'error',
+          duration: 12000 // 12 seconds for error messages to be fully read
+        });
       }
     } catch (error) {
       // Enhanced error handling for mobile visibility
       const message = createUserMessages.breadTypes.deleteError(breadType.name, error);
-      const errorTitle = "Deletion Failed";
-      const errorDuration = 12000; // 12 seconds for error messages
-      
-      if (message.type === 'warning') {
-        toast.warning(message.message, errorTitle, errorDuration);
-      } else {
-        toast.error(message.message, errorTitle, errorDuration);
-      }
+      toast({
+        title: "Deletion Failed",
+        description: message.message,
+        type: message.type === 'warning' ? 'warning' : 'error',
+        duration: 12000 // 12 seconds for error messages
+      });
     } finally {
       setLoadingId(null);
       setLoadingAction(null);

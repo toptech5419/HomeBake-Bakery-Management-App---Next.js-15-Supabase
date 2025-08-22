@@ -107,28 +107,24 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
       if (result.success) {
         const details = result.details;
         
-        // Enhanced success message
-        let successMessage = `✅ Role updated successfully!\n\n`;
-        successMessage += `User: ${target.name || target.email}\n`;
-        successMessage += `New role: ${newRole.replace('_', ' ').toUpperCase()}\n`;
+        // Simple success message
+        let successMessage = `✅ Role updated to ${newRole.replace('_', ' ').toUpperCase()}`;
         
         if (details && 'sessionsInvalidated' in details && details.sessionsInvalidated) {
-          successMessage += `\n🔒 User sessions invalidated - they must log in again`;
-        } else if (details && 'sessionInvalidationRequired' in details && details.sessionInvalidationRequired) {
-          successMessage += `\n⚠️ User should log out and log back in for role change to take effect`;
+          successMessage += ` - User logged out`;
         }
         
-        toast.success(successMessage);
+        toast.success(successMessage, 'Success', 4000);
         
         // Clear cache and refresh
         clearCacheAndRefresh();
         await refetchUsers();
       } else {
-        toast.error(result.error || 'Failed to update user role.');
+        toast.error(result.error || 'Failed to update role', 'Update Failed', 4000);
       }
     } catch (error) {
       console.error('Error updating role:', error);
-      toast.error('An unexpected error occurred while updating the role.');
+      toast.error('❌ Failed to update role', 'Error', 4000);
     } finally {
       setLoadingId(null);
       setLoadingAction(null);
@@ -158,25 +154,20 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
       if (result.success) {
         const details = result.details;
         
-        let successMessage = `✅ User deactivated successfully!\n\n`;
         const deactivatedUser = details && 'deactivatedUser' in details ? details.deactivatedUser as { name: string; role: string; email?: string } : null;
-        successMessage += `👤 Deactivated: ${deactivatedUser?.name || target.name}\n`;
+        const successMessage = `✅ ${deactivatedUser?.name || target.name} deactivated`;
         
-        if (details && 'sessionsInvalidated' in details && details.sessionsInvalidated) {
-          successMessage += `🔒 User logged out and access blocked`;
-        }
-        
-        toast.success(successMessage);
+        toast.success(successMessage, 'User Deactivated', 4000);
         
         // Clear cache and refresh
         clearCacheAndRefresh();
         await refetchUsers();
       } else {
-        toast.error(result.error || 'Failed to deactivate user.');
+        toast.error(result.error || 'Failed to deactivate', 'Deactivation Failed', 4000);
       }
     } catch (error) {
       console.error('Error deactivating user:', error);
-      toast.error('An unexpected error occurred while deactivating the user.');
+      toast.error('❌ Failed to deactivate user', 'Error', 4000);
     } finally {
       setLoadingId(null);
       setLoadingAction(null);
@@ -202,22 +193,20 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
       if (result.success) {
         const details = result.details;
         
-        let successMessage = `✅ User reactivated successfully!\n\n`;
         const reactivatedUser = details && 'reactivatedUser' in details ? details.reactivatedUser as { name: string; role: string; email?: string } : null;
-        successMessage += `👤 Reactivated: ${reactivatedUser?.name || target.name}\n`;
-        successMessage += `🔓 They can now log in again`;
+        const successMessage = `✅ ${reactivatedUser?.name || target.name} reactivated`;
         
-        toast.success(successMessage);
+        toast.success(successMessage, 'User Reactivated', 4000);
         
         // Clear cache and refresh
         clearCacheAndRefresh();
         await refetchUsers();
       } else {
-        toast.error(result.error || 'Failed to reactivate user.');
+        toast.error(result.error || 'Failed to reactivate', 'Reactivation Failed', 4000);
       }
     } catch (error) {
       console.error('Error reactivating user:', error);
-      toast.error('An unexpected error occurred while reactivating the user.');
+      toast.error('❌ Failed to reactivate user', 'Error', 4000);
     } finally {
       setLoadingId(null);
       setLoadingAction(null);
@@ -260,50 +249,29 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
       if (result.success) {
         const details = result.details;
         
-        let successMessage = `✅ User deleted successfully!\n\n`;
         const deletedUser = details && 'deletedUser' in details ? details.deletedUser as { name: string; role: string; email?: string } : null;
-        successMessage += `👤 Deleted: ${deletedUser?.name || target.name}\n`;
-        successMessage += `🏷️ Role: ${deletedUser?.role?.replace('_', ' ').toUpperCase()}\n`;
+        const successMessage = `✅ ${deletedUser?.name || target.name} deleted successfully`;
         
-        if (details && 'dependenciesAffected' in details && details.dependenciesAffected) {
-          const deps = details.dependenciesAffected as Record<string, number>;
-          successMessage += `\n📊 Dependencies handled:\n`;
-          if (deps.activities > 0) successMessage += `   • ${deps.activities} activities\n`;
-          if (deps.batches > 0) successMessage += `   • ${deps.batches} batches\n`;
-          if (deps.sales > 0) successMessage += `   • ${deps.sales} sales records\n`;
-          if (deps.reports > 0) successMessage += `   • ${deps.reports} reports\n`;
-        }
-        
-        successMessage += `\n🔒 Authentication completely removed`;
-        
-        toast.success(successMessage);
+        toast.success(successMessage, 'User Deleted', 4000);
         
         // Clear cache and refresh
         clearCacheAndRefresh();
         await refetchUsers();
       } else {
-        // Enhanced error message with mobile consideration
-        const isMobile = window.innerWidth < 640;
+        // Simple, clear error message for mobile
         let errorMessage = result.error || 'Failed to delete user.';
         
         if (errorMessage.includes('foreign key') || errorMessage.includes('23503')) {
-          errorMessage = isMobile 
-            ? '❌ Database error. Run fix script first.' 
-            : '❌ Database constraint error. Run the "fix-user-deletion-URGENT.sql" script in Supabase.';
+          errorMessage = '❌ Database error. Run fix script first.';
         }
         
-        toast.error(errorMessage, 'Deletion Failed', 8000);
+        toast.error(errorMessage, 'Deletion Failed', 6000);
       }
     } catch (error) {
       console.error('Error deleting user:', error);
       
-      // Mobile-friendly error message
-      const isMobile = window.innerWidth < 640;
-      const errorMessage = isMobile 
-        ? '❌ Deletion failed. Check database constraints.' 
-        : 'An unexpected error occurred while deleting the user. Check console for details.';
-      
-      toast.error(errorMessage, 'Deletion Error', 8000); // Longer duration for mobile
+      // Simple error message
+      toast.error('❌ Deletion failed. Check console for details.', 'Error', 5000);
     } finally {
       setLoadingId(null);
       setLoadingAction(null);

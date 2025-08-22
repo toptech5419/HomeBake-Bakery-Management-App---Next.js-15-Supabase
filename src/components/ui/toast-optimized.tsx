@@ -158,10 +158,10 @@ const ToastItem = React.memo(({
 
   const getStyles = () => {
     const baseStyles = cn(
-      "flex items-start gap-3 rounded-xl shadow-lg border backdrop-blur-sm transition-all duration-300 ease-in-out transform",
+      "flex items-start gap-3 rounded-xl border backdrop-blur-sm transition-all duration-300 ease-in-out transform",
       isMobile 
-        ? "p-4 min-h-[64px] touch-manipulation" 
-        : "p-4 max-w-md"
+        ? "p-5 min-h-[80px] touch-manipulation text-base shadow-2xl" 
+        : "p-4 max-w-md text-sm shadow-lg"
     );
     
     switch (toast.type) {
@@ -213,7 +213,7 @@ const ToastItem = React.memo(({
       
       <div className="flex-1 min-w-0">
         <motion.div 
-          className="font-medium text-sm mb-1"
+          className={cn("font-medium mb-1", isMobile ? "text-base" : "text-sm")}
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.15 }}
@@ -222,7 +222,7 @@ const ToastItem = React.memo(({
         </motion.div>
         {toast.description && (
           <motion.div 
-            className="text-sm leading-relaxed"
+            className={cn("leading-relaxed", isMobile ? "text-base" : "text-sm")}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
@@ -278,8 +278,8 @@ const ToastContainer = React.memo(({
 }) => {
   return (
     <>
-      {/* Mobile toasts - bottom positioned */}
-      <div className="fixed z-50 bottom-4 left-4 right-4 sm:hidden pointer-events-none">
+      {/* Mobile toasts - bottom positioned with safe area support */}
+      <div className="fixed z-50 bottom-4 left-4 right-4 sm:hidden pointer-events-none" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <AnimatePresence mode="popLayout">
           <motion.div
             className="flex flex-col gap-3"
