@@ -47,16 +47,12 @@ export {
 } from './error-boundary-enhanced';
 
 // Toast components
-export * from './ToastProvider';
+// Toast components (Enhanced Mobile Notifications)
 export { 
-  OptimizedToastProvider,
-  useOptimizedToast,
-  createToastHelpers,
-  showNetworkStatus,
-  showErrorWithRetry,
-  showSuccess,
-  showInfo
-} from './toast-optimized';
+  MobileNotificationProvider,
+  useMobileNotifications,
+  NotificationHelpers
+} from './mobile-notifications-enhanced';
 
 // Performance-optimized components
 export {

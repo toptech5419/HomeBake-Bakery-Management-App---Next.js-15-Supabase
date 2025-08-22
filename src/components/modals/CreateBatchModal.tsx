@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Plus, Minus, Loader2, Sparkles, Package, Clock } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -42,7 +42,7 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
   const { createBatch } = useBatchMutations();
   const { user } = useAuth();
   const { currentShift: contextShift } = useShift();
-  const toast = useToast();
+  const { showNotification } = useMobileNotifications();
   
   // Use prop currentShift or fallback to context
   const shift = currentShift || contextShift;
@@ -110,7 +110,7 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
       
       if (result.error) {
         console.error('❌ Error fetching bread types:', result.error);
-        toast.error('Failed to load bread types', 'Please check your connection and try again');
+        showNotification(NotificationHelpers.error('Failed to load bread types', 'Please check your connection and try again'));
         return;
       }
 
@@ -118,7 +118,7 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
       console.log('✅ Bread types loaded:', result.data?.length || 0, 'items');
     } catch (error) {
       console.error('❌ Error fetching bread types:', error);
-      toast.error('Failed to load bread types', 'Please check your connection and try again');
+      showNotification(NotificationHelpers.error('Failed to load bread types', 'Please check your connection and try again'));
     } finally {
       setLoading(false);
     }
@@ -148,14 +148,14 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
     // Validate form data
     if (!formData.breadTypeId || !formData.quantity) {
       console.error('❌ Validation failed - missing required fields');
-      toast.validationError('required fields');
+      showNotification(NotificationHelpers.error('Validation Error', 'Please fill in all required fields'));
       return;
     }
 
     const quantity = parseInt(formData.quantity);
     if (isNaN(quantity) || quantity <= 0) {
       console.error('❌ Validation failed - invalid quantity');
-      toast.validationError('quantity');
+      showNotification(NotificationHelpers.error('Validation Error', 'Please enter a valid quantity'));
       return;
     }
 
@@ -195,7 +195,7 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
       // Use the breadType variable we already found above
       const breadTypeName = breadType ? `${breadType.name}${breadType.size ? ` (${breadType.size})` : ''}` : 'bread';
       
-      toast.batchCreated(`${breadTypeName} - ${quantity} units`);
+      showNotification(NotificationHelpers.success('Batch Created', `${breadTypeName} - ${quantity} units`));
 
       // Reset form
       resetForm();
@@ -218,7 +218,7 @@ export function CreateBatchModal({ isOpen, onClose, onBatchCreated, currentShift
         errorMessage = error.message;
       }
       
-      toast.error('Failed to Create Batch', errorMessage);
+      showNotification(NotificationHelpers.error('Failed to Create Batch', errorMessage));
     } finally {
       setIsSubmitting(false);
       console.log('⏳ Setting submitting state to false');

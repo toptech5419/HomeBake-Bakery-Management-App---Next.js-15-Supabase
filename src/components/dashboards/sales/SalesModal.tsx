@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { useToast } from '@/hooks/use-toast';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
 import { createSalesLog } from '@/lib/sales/actions';
 
 interface SalesModalProps {
@@ -36,7 +36,7 @@ interface SaleForm {
 export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecorded }: SalesModalProps) {
   const [breadTypes, setBreadTypes] = useState<BreadType[]>([]);
   const [selectedBreadType, setSelectedBreadType] = useState<BreadType | null>(null);
-  const toast = useToast();
+  const { showNotification } = useMobileNotifications();
   const [formData, setFormData] = useState<SaleForm>({
     breadTypeId: '',
     breadTypeName: '',

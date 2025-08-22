@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, memo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { login } from '@/lib/auth/actions';
 import { LoadingButton } from '@/components/ui/loading-button';
-import { useToast } from '@/hooks/use-toast';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
 import { LogIn, Mail, Lock } from 'lucide-react';
 import { ForgotPasswordModal } from '@/components/auth/forgot-password-modal';
 
@@ -15,7 +15,7 @@ const LoginPage = memo(function LoginPage() {
   const [isPending, startTransition] = useTransition();
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const searchParams = useSearchParams();
-  const toast = useToast();
+  const { showNotification } = useMobileNotifications();
 
   // Handle error messages and success messages from URL parameters
   useEffect(() => {
@@ -38,11 +38,11 @@ const LoginPage = memo(function LoginPage() {
           errorMessage = 'An error occurred. Please try again.';
       }
       setError(errorMessage);
-      toast.loginError(errorMessage);
+      showNotification(NotificationHelpers.error('Login Error', errorMessage));
     }
     
     if (urlMessage === 'password-reset-success') {
-      toast.success('Password reset successfully! You can now log in with your new password.');
+      showNotification(NotificationHelpers.success('Password Reset', 'Password reset successfully! You can now log in with your new password.'));
     }
   }, [searchParams, toast]);
 
@@ -51,7 +51,7 @@ const LoginPage = memo(function LoginPage() {
     setError('');
     
     if (!email || !password) {
-      toast.validationError('email and password');
+      showNotification(NotificationHelpers.error('Validation Error', 'Please enter both email and password'));
       return;
     }
     
@@ -64,7 +64,7 @@ const LoginPage = memo(function LoginPage() {
         const result = await login({ error: undefined }, formData);
         if (result?.error) {
           setError(result.error);
-          toast.loginError(result.error);
+          showNotification(NotificationHelpers.error('Login Error', result.error));
         }
         // If no error and no result, the server action redirected successfully
         // Don't show any error message in this case
@@ -78,7 +78,7 @@ const LoginPage = memo(function LoginPage() {
         
         const errorMsg = 'An unexpected error occurred. Please try again.';
         setError(errorMsg);
-        toast.loginError(errorMsg);
+        showNotification(NotificationHelpers.error('Login Error', errorMsg));
       }
     });
   };

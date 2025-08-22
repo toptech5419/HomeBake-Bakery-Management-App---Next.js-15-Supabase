@@ -12,7 +12,7 @@ import { deleteAllBatches, checkAndSaveBatchesToAllBatches } from '@/lib/batches
 import { logEndShiftActivity } from '@/lib/activities/server-activity-service';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
-import { useOptimizedToast } from '@/components/ui/toast-optimized';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
 import { useQueryClient } from '@tanstack/react-query';
 // Removed unreliable performance scheduler imports
 
@@ -42,7 +42,7 @@ export default function ManagerDashboardClient({
   shiftStartTime,
   recentBatches: initialRecentBatches,
 }: ManagerDashboardClientProps) {
-  const { toast } = useOptimizedToast();
+  const { showNotification } = useMobileNotifications();
   const { currentShift, setCurrentShift } = useShift();
   useData();
   const queryClient = useQueryClient();
@@ -103,19 +103,11 @@ export default function ManagerDashboardClient({
       if (result.needsSaving) {
         console.log(`✅ Successfully saved ${result.savedCount} ${currentShift} shift batch reports to history`);
         // Show success toast for saving reports
-        toast({
-          title: 'Reports Saved Successfully',
-          description: `Successfully saved ${result.savedCount} ${currentShift} shift batch reports to history`,
-          type: 'success'
-        });
+        showNotification(NotificationHelpers.success('Reports Saved Successfully', `Successfully saved ${result.savedCount} ${currentShift} shift batch reports to history`));
       } else {
         console.log(`ℹ️ All ${currentShift} shift batches are already saved to all_batches`);
         // Show "saved already!" message as requested
-        toast({
-          title: 'Saved Already!',
-          description: `All ${currentShift} shift batch reports are already saved to history`,
-          type: 'success'
-        });
+        showNotification(NotificationHelpers.success('Saved Already!', `All ${currentShift} shift batch reports are already saved to history`));
       }
       
       // Now show the confirmation modal
@@ -124,11 +116,7 @@ export default function ManagerDashboardClient({
     } catch (err) {
       console.error('❌ Error checking/saving batches:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to check batch reports. Please try again.';
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        type: 'error'
-      });
+      showNotification(NotificationHelpers.error('Error', errorMessage));
     } finally {
       setIsCheckingBatches(false);
     }
@@ -172,22 +160,14 @@ export default function ManagerDashboardClient({
       }
       
       // 4. Show success message
-      toast({
-        title: 'Success',
-        description: `${currentShift} shift ended successfully`,
-        type: 'success'
-      });
+      showNotification(NotificationHelpers.success('Success', `${currentShift} shift ended successfully`));
       
       console.log(`✅ End shift completed for ${currentShift} shift`);
       
     } catch (err) {
       console.error('❌ End shift failed:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to end shift. Please try again.';
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        type: 'error'
-      });
+      showNotification(NotificationHelpers.error('Error', errorMessage));
     } finally {
       setIsDeletingBatches(false);
       setShowEndShiftModal(false);

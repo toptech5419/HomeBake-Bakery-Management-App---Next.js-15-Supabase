@@ -26,7 +26,7 @@ import {
 import { CreateBatchModal } from '@/components/modals/CreateBatchModal';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { useOptimizedToast } from '@/components/ui/toast-optimized';
+import { useMobileNotifications, NotificationHelpers } from '@/components/ui/mobile-notifications-enhanced';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 
 interface ProductionClientProps {
@@ -198,7 +198,7 @@ const EmptyState = () => (
 
 function ProductionClientInner({ }: ProductionClientProps) {
   const { currentShift } = useShift();
-  const { toast } = useOptimizedToast();
+  const { showNotification } = useMobileNotifications();
   
   const { 
     data: activeBatches = [], 
@@ -218,28 +218,16 @@ function ProductionClientInner({ }: ProductionClientProps) {
 
   const handleBatchCreated = () => {
     setIsCreateModalOpen(false);
-    toast({
-      title: '🎉 Batch Created Successfully!',
-      description: 'Your new production batch has been added to the system',
-      type: 'success'
-    });
+    showNotification(NotificationHelpers.success('🎉 Batch Created Successfully!', 'Your new production batch has been added to the system'));
   };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
       await refreshBatches();
-      toast({
-        title: '🔄 Data Refreshed',
-        description: 'Production data has been updated',
-        type: 'success'
-      });
+      showNotification(NotificationHelpers.success('🔄 Data Refreshed', 'Production data has been updated'));
     } catch {
-      toast({
-        title: '❌ Refresh Failed',
-        description: 'Unable to refresh data. Please try again.',
-        type: 'error'
-      });
+      showNotification(NotificationHelpers.error('❌ Refresh Failed', 'Unable to refresh data. Please try again.'));
     } finally {
       setIsRefreshing(false);
     }

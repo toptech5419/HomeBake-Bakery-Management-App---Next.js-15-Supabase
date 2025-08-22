@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
-import { useToast } from '@/hooks/use-toast';
+// Toast functionality handled by sonner (already imported)
 import { createSalesLog } from '@/lib/sales/actions';
 import { getBreadTypesForSalesRep } from '@/lib/dashboard/server-actions';
 import { useShift } from '@/contexts/ShiftContext';
