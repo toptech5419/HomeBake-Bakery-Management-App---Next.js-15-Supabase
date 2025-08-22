@@ -80,6 +80,7 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
       const { data, error } = await supabase
         .from('bread_types')
         .select('id, name, unit_price')
+        .eq('is_active', true)
         .order('name');
 
       console.log('Bread types response:', { data, error });
@@ -96,7 +97,8 @@ export function SalesModal({ isOpen, onClose, userId, currentShift, onSalesRecor
         // Debug: Try without ordering to see if it's an ordering issue
         const { data: debugData, error: debugError } = await supabase
           .from('bread_types')
-          .select('*');
+          .select('*')
+          .eq('is_active', true);
         
         console.log('Debug - all bread types:', { debugData, debugError });
         

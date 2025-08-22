@@ -102,6 +102,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const result = await supabase
           .from('bread_types')
           .select('*')
+          .eq('is_active', true)
           .order('name');
         
         if (result.error) throw result.error;

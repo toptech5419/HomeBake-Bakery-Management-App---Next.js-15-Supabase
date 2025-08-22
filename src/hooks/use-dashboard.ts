@@ -155,6 +155,7 @@ export function useManagerDashboardData() {
         supabase
           .from('bread_types')
           .select('id, name')
+          .eq('is_active', true)
       ]);
 
       // Create bread type map

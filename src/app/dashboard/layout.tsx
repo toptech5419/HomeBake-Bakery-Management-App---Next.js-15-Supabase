@@ -4,7 +4,7 @@ import { DashboardLayoutClient } from '@/components/layout/dashboard-layout-clie
 import { ShiftProvider } from '@/contexts/ShiftContext';
 import { OfflineSyncIndicator } from '@/components/offline-sync-indicator';
 import { DataProvider } from '@/contexts/DataContext';
-import { ToastProvider } from '@/components/ui/toast-provider';
+// ToastProvider removed - using MobileNotificationProvider from root layout
 
 // Force dynamic rendering for all dashboard pages - they require authentication and database access
 export const dynamic = 'force-dynamic';
@@ -30,13 +30,11 @@ export default async function DashboardLayout({
   if (user.role === 'owner') {
     return (
       <DataProvider>
-        <ToastProvider>
-          <ShiftProvider>
-            {/* Offline Sync Indicator */}
-            <OfflineSyncIndicator />
-            {children}
-          </ShiftProvider>
-        </ToastProvider>
+        <ShiftProvider>
+          {/* Offline Sync Indicator */}
+          <OfflineSyncIndicator />
+          {children}
+        </ShiftProvider>
       </DataProvider>
     );
   }
@@ -44,30 +42,28 @@ export default async function DashboardLayout({
   // For managers and sales reps, use the dashboard layout
   return (
     <DataProvider>
-      <ToastProvider>
-        <ShiftProvider>
-          <DashboardLayoutClient 
-            user={{
-              id: user.id,
-              email: user.email,
-              user_metadata: {
-                name: user.name,
-                role: user.role
-              }
-            }}
-            displayName={user.name}
-            role={user.role}
-          >
-            {/* Offline Sync Indicator */}
-            <OfflineSyncIndicator />
-            
-            {/* Main Content */}
-            <main className="flex-1 min-w-0 w-full max-w-full p-4 md:p-6 lg:p-8 overflow-x-hidden">
-              {children}
-            </main>
-          </DashboardLayoutClient>
-        </ShiftProvider>
-      </ToastProvider>
+      <ShiftProvider>
+        <DashboardLayoutClient 
+          user={{
+            id: user.id,
+            email: user.email,
+            user_metadata: {
+              name: user.name,
+              role: user.role
+            }
+          }}
+          displayName={user.name}
+          role={user.role}
+        >
+          {/* Offline Sync Indicator */}
+          <OfflineSyncIndicator />
+          
+          {/* Main Content */}
+          <main className="flex-1 min-w-0 w-full max-w-full p-4 md:p-6 lg:p-8 overflow-x-hidden">
+            {children}
+          </main>
+        </DashboardLayoutClient>
+      </ShiftProvider>
     </DataProvider>
   );
 }

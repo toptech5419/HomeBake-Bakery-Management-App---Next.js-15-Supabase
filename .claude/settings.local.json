@@ -72,7 +72,11 @@
       "mcp__filesystem__directory_tree",
       "mcp__filesystem__read_multiple_files",
       "mcp__playwright__playwright_navigate",
-      "Bash(start http://localhost:3003/dashboard/bread-types)"
+      "Bash(start http://localhost:3003/dashboard/bread-types)",
+      "mcp__filesystem__read_text_file",
+      "mcp__filesystem__read_text_file",
+      "mcp__filesystem__write_file",
+      "Bash(rg:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

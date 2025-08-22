@@ -82,7 +82,7 @@ export async function createBatch(data: Omit<CreateBatchData, 'batch_number'>) {
     
     const [userResult, breadTypeResult] = await Promise.all([
       supabase.from('users').select('name, role').eq('id', user.id).single(),
-      supabase.from('bread_types').select('name').eq('id', data.bread_type_id).single()
+      supabase.from('bread_types').select('name').eq('id', data.bread_type_id).eq('is_active', true).single()
     ]);
 
     console.log('   User Result:', userResult);

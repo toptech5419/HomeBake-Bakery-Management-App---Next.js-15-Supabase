@@ -6,7 +6,6 @@ import PWAWrapper from "@/components/pwa/pwa-wrapper";
 import { Providers } from "@/providers/providers";
 import { cn } from "@/lib/utils";
 import { EnhancedErrorBoundary } from "@/components/ui/error-boundary-enhanced";
-import { OptimizedToastProvider } from "@/components/ui/toast-optimized";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -100,13 +99,11 @@ export default function RootLayout({
       </head>
       <body className={cn(geistSans.variable, geistMono.variable, "font-sans antialiased")}>
         <EnhancedErrorBoundary componentName="RootLayout" showDetails={process.env.NODE_ENV === 'development'}>
-          <OptimizedToastProvider>
-            <Providers>
-              <PWAWrapper>
-                {children}
-              </PWAWrapper>
-            </Providers>
-          </OptimizedToastProvider>
+          <Providers>
+            <PWAWrapper>
+              {children}
+            </PWAWrapper>
+          </Providers>
         </EnhancedErrorBoundary>
       </body>
     </html>

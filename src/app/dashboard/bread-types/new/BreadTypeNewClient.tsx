@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BreadTypeForm } from '@/components/bread-type-form';
 import { useToast } from '@/components/ui/ToastProvider';
 import { Button } from '@/components/ui/button';

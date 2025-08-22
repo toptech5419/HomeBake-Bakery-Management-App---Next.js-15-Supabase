@@ -321,7 +321,8 @@ export async function getBreadTypesForSalesRep() {
   try {
     const { data, error } = await supabase
       .from('bread_types')
-      .select('id, name, unit_price, size')
+      .select('id, name, unit_price, size, is_active')
+      .eq('is_active', true) // CRITICAL: Only show active bread types in sales
       .order('name');
 
     if (error) throw error;

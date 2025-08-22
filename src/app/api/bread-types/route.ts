@@ -22,6 +22,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('bread_types')
       .select('id, name, size, unit_price')
+      .eq('is_active', true)
       .order('name');
 
     if (error) {

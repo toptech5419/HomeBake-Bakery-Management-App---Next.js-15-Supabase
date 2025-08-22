@@ -32,7 +32,7 @@ export default async function BreadTypesPage() {
     return <div className="p-8 text-center text-destructive">Access denied. Only owners and managers can access this page.</div>;
   }
 
-  const breadTypes = await getBreadTypes();
+  const breadTypes = await getBreadTypes(true); // Include inactive for management view
   const displayName = user.email?.split('@')[0] || 'Owner';
 
   return (

@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         
         const [userResult, breadTypeResult] = await Promise.all([
           supabase.from('users').select('name, role').eq('id', user.id).single(),
-          supabase.from('bread_types').select('name').eq('id', bread_type_id).single()
+          supabase.from('bread_types').select('name').eq('id', bread_type_id).eq('is_active', true).single()
         ]);
 
         console.log('   User Result:', userResult);

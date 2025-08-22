@@ -409,13 +409,21 @@ export async function getShiftDetails(shiftId: string): Promise<ShiftSummary | n
   return reportData.shifts.find(s => s.id === shiftId) || null;
 }
 
-export async function getBreadTypes(): Promise<BreadType[]> {
+export async function getBreadTypes(includeInactive: boolean = false): Promise<BreadType[]> {
   const supabase = await createServer();
-  const { data, error } = await supabase
+  
+  let query = supabase
     .from('bread_types')
-    .select('id, name, size, unit_price, created_by, created_at')
+    .select('id, name, size, unit_price, created_by, created_at, is_active')
     .order('name');
+    
+  // Filter out inactive bread types unless explicitly requested
+  if (!includeInactive) {
+    query = query.eq('is_active', true);
+  }
 
+  const { data, error } = await query;
+  
   if (error) {
     console.error('Error fetching bread types:', error);
     return [];
@@ -428,6 +436,6 @@ export async function getBreadTypes(): Promise<BreadType[]> {
     unit_price: item.unit_price,
     created_by: item.created_by || undefined,
     created_at: item.created_at,
-    is_active: true
+    is_active: item.is_active
   }));
 }

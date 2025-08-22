@@ -56,7 +56,7 @@ export default async function ProductionHistoryPage({ searchParams }: { searchPa
     shift,
     date,
   });
-  const breadTypes = await getBreadTypes();
+  const breadTypes = await getBreadTypes(); // Show only active for filtering
 
   return (
     <div className="min-h-screen bg-gray-50">

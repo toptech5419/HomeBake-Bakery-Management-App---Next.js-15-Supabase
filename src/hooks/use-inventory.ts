@@ -43,6 +43,7 @@ async function fetchBreadTypes(): Promise<BreadType[]> {
   const { data, error } = await supabase
     .from('bread_types')
     .select('*')
+    .eq('is_active', true)
     .order('name');
 
   if (error) {

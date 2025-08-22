@@ -21,6 +21,32 @@ export async function deleteBreadTypeClient(user: User, id: string) {
   return true;
 }
 
+export async function deactivateBreadTypeClient(user: User, id: string) {
+  if (user.role !== 'owner' && user.role !== 'manager') {
+    throw new Error('Only owners and managers can deactivate bread types');
+  }
+  
+  const { error } = await supabase
+    .from('bread_types')
+    .update({ is_active: false })
+    .eq('id', id);
+  if (error) throw error;
+  return true;
+}
+
+export async function reactivateBreadTypeClient(user: User, id: string) {
+  if (user.role !== 'owner' && user.role !== 'manager') {
+    throw new Error('Only owners and managers can reactivate bread types');
+  }
+  
+  const { error } = await supabase
+    .from('bread_types')
+    .update({ is_active: true })
+    .eq('id', id);
+  if (error) throw error;
+  return true;
+}
+
 export async function createBreadType(data: {
   name: string;
   unit_price: number;
@@ -32,6 +58,7 @@ export async function createBreadType(data: {
     unit_price: data.unit_price,
     size: data.size,
     created_by: data.created_by,
+    is_active: true, // New bread types are active by default
   }]);
 
   if (error) {
@@ -52,11 +79,17 @@ export async function updateBreadTypeClient(user: User, id: string, input: Bread
   return true;
 } 
 
-export async function getBreadTypesClient() {
-  const { data, error } = await supabase
+export async function getBreadTypesClient(includeInactive: boolean = false) {
+  let query = supabase
     .from('bread_types')
-    .select('id, name, size, unit_price, created_by, created_at')
+    .select('id, name, size, unit_price, created_by, created_at, is_active')
     .order('name');
+    
+  if (!includeInactive) {
+    query = query.eq('is_active', true);
+  }
+    
+  const { data, error } = await query;
   if (error) {
     console.error('Error fetching bread types:', error);
     return [];
@@ -68,5 +101,6 @@ export async function getBreadTypesClient() {
     unit_price: item.unit_price,
     created_by: item.created_by,
     created_at: item.created_at,
+    is_active: item.is_active,
   }));
 } 

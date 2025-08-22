@@ -84,6 +84,7 @@ export async function getSalesDataForShift(userId: string, shift: 'morning' | 'n
     const { data: breadTypes, error: breadTypesError } = await supabase
       .from('bread_types')
       .select('id, name, unit_price')
+      .eq('is_active', true)
 
     if (breadTypesError) {
       throw breadTypesError
@@ -138,6 +139,7 @@ export async function getRemainingBreadData(userId?: string) {
     const { data: breadTypes, error: breadTypesError } = await supabase
       .from('bread_types')
       .select('id, name, unit_price')
+      .eq('is_active', true)
 
     if (breadTypesError) {
       throw breadTypesError
@@ -169,6 +171,7 @@ export async function getBreadTypesForSales() {
     const { data, error } = await supabase
       .from('bread_types')
       .select('id, name, unit_price, size')
+      .eq('is_active', true)
       .order('name')
 
     if (error) {

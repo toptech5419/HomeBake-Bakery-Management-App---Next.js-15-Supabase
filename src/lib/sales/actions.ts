@@ -112,7 +112,7 @@ export async function fetchTodaySalesLogs(user_id: string) {
       .eq('user_id', user_id)
       .gte('created_at', today.toISOString())
       .order('created_at', { ascending: false }),
-    supabase.from('bread_types').select('id, name, unit_price')
+    supabase.from('bread_types').select('id, name, unit_price').eq('is_active', true)
   ]);
   
   if (salesResult.error || breadTypesResult.error) return [];
@@ -148,7 +148,7 @@ export async function fetchShiftSalesLogs(user_id: string, shift: 'morning' | 'n
       .eq('shift', shift)
       .gte('created_at', today.toISOString())
       .order('created_at', { ascending: false }),
-    supabase.from('bread_types').select('id, name, unit_price')
+    supabase.from('bread_types').select('id, name, unit_price').eq('is_active', true)
   ]);
   
   if (salesResult.error || breadTypesResult.error) return [];
