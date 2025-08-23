@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Users, Package, FileText, LogOut } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
-import { OwnerReportsModal } from '@/components/modals/OwnerReportsModal';
 
 interface OwnerSidebarProps {
   isMobileOpen?: boolean;
@@ -23,7 +22,6 @@ interface NavigationItem {
 
 export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName }: OwnerSidebarProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [reportsModalOpen, setReportsModalOpen] = useState(false);
   const pathname = usePathname();
 
   const navigationItems: NavigationItem[] = [
@@ -53,9 +51,9 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
     },
     {
       name: 'Reports',
+      href: '/owner-dashboard/reports',
       icon: FileText,
-      active: false, // Never active since it's a modal trigger
-      onClick: () => setReportsModalOpen(true)
+      active: pathname.startsWith('/owner-dashboard/reports')
     }
   ];
 
@@ -193,12 +191,6 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
           </div>
         </div>
       </div>
-      
-      {/* Reports Modal */}
-      <OwnerReportsModal 
-        isOpen={reportsModalOpen} 
-        onClose={() => setReportsModalOpen(false)} 
-      />
     </>
   );
 }
