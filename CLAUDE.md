@@ -22,6 +22,8 @@ HomeBake is a production-ready bakery management system featuring:
 npm run dev              # Start development server on localhost:3000
 npm run dev:clean        # Kill port 3000 and start fresh
 npm run dev:port         # Start on port 3001
+npm run generate-types   # Update TypeScript types from Supabase database
+npm run update-db-types  # Alternative command for generating database types
 npm run build            # Build production version
 npm run start            # Start production server
 npm run lint             # Run ESLint for code quality
