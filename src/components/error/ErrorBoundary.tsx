@@ -131,7 +131,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                 </div>
                 <h1 className="text-xl font-bold">Oops! Something went wrong</h1>
                 <p className="text-red-100 text-sm mt-2">
-                  Don't worry, we're working to fix this issue
+                  Don&apos;t worry, we&apos;re working to fix this issue
                 </p>
               </div>
 

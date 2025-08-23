@@ -5,7 +5,6 @@ import { ArrowLeft, Plus, Minus, ShoppingCart, Calculator, AlertCircle, Check } 
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { supabase } from '@/lib/supabase/client';
 import { formatCurrencyNGN } from '@/lib/utils/currency';
 // Toast functionality handled by sonner (already imported)
 import { createSalesLog } from '@/lib/sales/actions';

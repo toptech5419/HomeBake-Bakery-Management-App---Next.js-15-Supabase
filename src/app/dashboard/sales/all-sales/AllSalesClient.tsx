@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Search, TrendingUp, Calendar, DollarSign, Package, Filter, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Search, TrendingUp, DollarSign, Package, Filter, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
-import { handleAndShowSalesError, defaultQueryOptions } from '@/lib/utils/sales-error-handler';
+import { handleAndShowSalesError } from '@/lib/utils/sales-error-handler';
 import { 
   salesQueryKeys, 
   salesCacheConfig, 

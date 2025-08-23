@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { BarChart3, Package, Search, Filter, Download, ChevronDown, Clock, User, Eye, Share2, Calendar, X, ArrowLeft } from "lucide-react";
-import { ProductionLoading, ProductionError, ReportSkeleton } from '@/components/ui/production-loading';
+import { BarChart3, Package, Search, Filter, Download, Clock, User, Eye, Share2, Calendar, ArrowLeft } from "lucide-react";
+import { ProductionError, ReportSkeleton } from '@/components/ui/production-loading';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import { cn } from '@/lib/utils';
 import { getManagerReports } from '@/lib/reports/manager-reports-server-actions';

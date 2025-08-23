@@ -329,7 +329,7 @@ export function SalesQuickActions({
         initial="hidden"
         animate="visible"
       >
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Performance</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Today&apos;s Performance</h3>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">

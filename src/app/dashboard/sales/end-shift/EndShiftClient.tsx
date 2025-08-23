@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Plus, Minus, TrendingUp, Package, FileText, Clock, AlertTriangle, Send, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Package, FileText, Clock, AlertTriangle, Send, ChevronDown, ChevronUp } from 'lucide-react';
 // Removed framer-motion imports to fix DOM removeChild errors
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,12 +10,11 @@ import { supabase } from '@/lib/supabase/client';
 import { useShift } from '@/contexts/ShiftContext';
 import { toast } from 'sonner';
 // import { createSalesLog } from '@/lib/sales/actions'; // Removed unused import
-import { getBreadTypesForSales, getSalesDataForShift, getRemainingBreadData, createShiftReport } from '@/lib/reports/sales-reports-server-actions';
-import { getRemainingBread, updateRemainingBread } from '@/lib/reports/actions';
+import { getBreadTypesForSales, getSalesDataForShift, createShiftReport } from '@/lib/reports/sales-reports-server-actions';
+import { getRemainingBread } from '@/lib/reports/actions';
 import { upsertSalesLogs } from '@/lib/sales/end-shift-actions';
 import { upsertRemainingBread } from '@/lib/remaining-bread/actions';
 import { useRouter } from 'next/navigation';
-import { setNavigationHistory } from '@/lib/utils/navigation-history';
 import { SimpleQuantityInput } from './SimpleQuantityInput';
 
 interface EndShiftClientProps {
@@ -1129,7 +1128,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 py-8 sm:py-12 overflow-y-auto">
               <div className="max-w-md mx-auto text-center space-y-6 sm:space-y-8 w-full">
                 <p className="text-gray-700 text-base sm:text-lg md:text-xl leading-relaxed">
-                  You didn't record any remaining bread. Do you want to continue generating the shift report?
+                  You didn&apos;t record any remaining bread. Do you want to continue generating the shift report?
                 </p>
                 
                 <div className="bg-yellow-50 border border-yellow-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">

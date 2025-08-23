@@ -104,12 +104,12 @@ export async function fetchTodaySalesLogs(user_id: string) {
       .select(`
         id, 
         bread_type_id, 
-        quantity_sold, 
-        discount_percentage, 
+        quantity, 
+        discount, 
         shift, 
         created_at
       `)
-      .eq('user_id', user_id)
+      .eq('recorded_by', user_id)
       .gte('created_at', today.toISOString())
       .order('created_at', { ascending: false }),
     supabase.from('bread_types').select('id, name, unit_price').eq('is_active', true)
@@ -139,12 +139,12 @@ export async function fetchShiftSalesLogs(user_id: string, shift: 'morning' | 'n
       .select(`
         id, 
         bread_type_id, 
-        quantity_sold, 
-        discount_percentage, 
+        quantity, 
+        discount, 
         shift, 
         created_at
       `)
-      .eq('user_id', user_id)
+      .eq('recorded_by', user_id)
       .eq('shift', shift)
       .gte('created_at', today.toISOString())
       .order('created_at', { ascending: false }),

@@ -233,7 +233,7 @@ export function PushNotificationToggle({
               <div>
                 <p className="font-medium text-amber-800">Permission Required</p>
                 <p className="text-sm text-amber-700 mt-1">
-                  Click the bell icon in your browser's address bar and select "Allow"
+                  Click the bell icon in your browser&apos;s address bar and select &quot;Allow&quot;
                 </p>
               </div>
             </div>
@@ -255,7 +255,7 @@ export function PushNotificationToggle({
               <div>
                 <p className="font-medium text-green-800">Notifications Active</p>
                 <p className="text-sm text-green-700">
-                  You'll receive updates for sales, batches, and important alerts
+                  You&apos;ll receive updates for sales, batches, and important alerts
                 </p>
               </div>
             </div>

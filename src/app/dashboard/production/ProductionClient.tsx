@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useActiveBatches } from '@/hooks/use-batches-query';
 import { useShift } from '@/contexts/ShiftContext';
-import { ProductionLoading, ProductionError } from '@/components/ui/production-loading';
+import { ProductionError } from '@/components/ui/production-loading';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -20,7 +20,6 @@ import {
   Activity,
   BarChart3,
   RefreshCw,
-  AlertCircle,
   ChevronRight
 } from 'lucide-react';
 import { CreateBatchModal } from '@/components/modals/CreateBatchModal';
@@ -403,7 +402,7 @@ function ProductionClientInner({ }: ProductionClientProps) {
             <Card className="bg-gradient-to-br from-white to-gray-50 border-0 shadow-xl overflow-hidden">
               <CardContent className="p-6">
                 <div className="text-center mb-6">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-2">Today's Production Overview</h2>
+                  <h2 className="text-xl font-semibold text-gray-800 mb-2">Today&apos;s Production Overview</h2>
                   <div className="w-16 h-1 bg-gradient-to-r from-orange-400 to-orange-600 rounded-full mx-auto"></div>
                 </div>
                 

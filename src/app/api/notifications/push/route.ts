@@ -10,7 +10,7 @@ interface PushNotificationRequest {
     quantity?: number;
     revenue?: number;
     batch_number?: string;
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
   };
 }
 
@@ -20,6 +20,13 @@ interface PushSubscription {
     p256dh: string;
     auth: string;
   };
+}
+
+interface DatabaseError {
+  message: string;
+  code?: string;
+  details?: string;
+  hint?: string;
 }
 
 interface OwnerWithPreferences {
@@ -101,7 +108,7 @@ export async function POST(request: NextRequest) {
     let body: PushNotificationRequest;
     try {
       body = await request.json();
-    } catch (parseError) {
+    } catch {
       return NextResponse.json({ 
         success: false,
         error: 'Invalid request body' 
@@ -134,7 +141,7 @@ export async function POST(request: NextRequest) {
       .eq('is_active', true)
       .eq('push_notification_preferences.enabled', true) as {
         data: OwnerWithPreferences[] | null;
-        error: any;
+        error: DatabaseError | null;
       };
 
     if (ownersError) {
@@ -219,11 +226,12 @@ export async function POST(request: NextRequest) {
           );
 
           return { success: true, owner: owner.name };
-        } catch (error: any) {
-          console.error(`Push notification failed for ${owner.name}:`, error.message);
+        } catch (error: unknown) {
+          const webPushError = error as { statusCode?: number; message?: string; };
+          console.error(`Push notification failed for ${owner.name}:`, webPushError.message);
           
           // Clean up invalid subscriptions
-          if (error.statusCode === 410 || error.statusCode === 404 || error.statusCode === 403) {
+          if (webPushError.statusCode === 410 || webPushError.statusCode === 404 || webPushError.statusCode === 403) {
             await supabase
               .from('push_notification_preferences')
               .update({
@@ -240,7 +248,7 @@ export async function POST(request: NextRequest) {
           return { 
             success: false, 
             owner: owner.name, 
-            error: error.message || 'Unknown error' 
+            error: webPushError.message || 'Unknown error' 
           };
         }
       })

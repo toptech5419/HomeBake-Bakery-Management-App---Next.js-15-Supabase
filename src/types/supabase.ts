@@ -207,6 +207,7 @@ export interface Database {
           unit_price: number
           created_by: string | null
           created_at: string
+          is_active: boolean
         }
         Insert: {
           id?: string
@@ -215,6 +216,7 @@ export interface Database {
           unit_price: number
           created_by?: string | null
           created_at?: string
+          is_active?: boolean
         }
         Update: {
           id?: string
@@ -223,6 +225,7 @@ export interface Database {
           unit_price?: number
           created_by?: string | null
           created_at?: string
+          is_active?: boolean
         }
         Relationships: [
           {

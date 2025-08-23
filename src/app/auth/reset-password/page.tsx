@@ -5,7 +5,7 @@ import { resetPassword, verifyResetToken } from '@/lib/auth/password-reset-actio
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff, Lock, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -170,7 +170,7 @@ export default function ResetPasswordPage() {
               Back to Login
             </Link>
             <p className="text-xs text-gray-500">
-              Need a new reset link? Try the "Forgot password?" option on the login page.
+              Need a new reset link? Try the &quot;Forgot password?&quot; option on the login page.
             </p>
           </div>
         </div>
@@ -192,7 +192,7 @@ export default function ResetPasswordPage() {
             Reset Your Password
           </h1>
           <p className="text-sm md:text-base text-gray-600">
-            Enter your new password below. Make sure it's secure and easy to remember.
+            Enter your new password below. Make sure it&apos;s secure and easy to remember.
           </p>
         </div>
 

@@ -34,10 +34,11 @@ export async function POST(request: NextRequest) {
       data: testData
     });
     
-  } catch (error: any) {
-    console.error('❌ Test push notification failed:', error);
+  } catch (error: unknown) {
+    const serverError = error as Error;
+    console.error('❌ Test push notification failed:', serverError);
     return NextResponse.json(
-      { error: 'Failed to send test notification', details: error.message },
+      { error: 'Failed to send test notification', details: serverError.message },
       { status: 500 }
     );
   }

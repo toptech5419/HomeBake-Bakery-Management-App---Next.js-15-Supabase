@@ -1,6 +1,6 @@
 import { createServer } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { getInventoryShiftInfo, validateShiftData } from '@/lib/utils/inventory-shift-utils';
+import { getInventoryShiftInfo } from '@/lib/utils/inventory-shift-utils';
 
 // Force dynamic rendering for API routes that require authentication
 export const dynamic = 'force-dynamic';
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
     for (const batch of batchesData || []) {
       const breadType = (batch as any).bread_type;
       if (!breadType) {
-        console.warn('⚠️ Batch without bread_type found:', (batch as any).id);
+        console.warn('⚠️ Batch without bread_type found:', (batch as { id: string }).id);
         continue;
       }
 
@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
       }
 
       const item = inventoryMap.get(key);
-      item.quantity += (batch as any).actual_quantity || 0;
+      item.quantity += (batch as { actual_quantity?: number }).actual_quantity || 0;
       item.batches += 1;
       
       // Track archived batches

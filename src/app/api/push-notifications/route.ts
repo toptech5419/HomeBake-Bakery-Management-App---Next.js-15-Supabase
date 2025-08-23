@@ -23,7 +23,7 @@ interface PushNotificationPayload {
     quantity?: number;
     revenue?: number;
     batch_number?: string;
-    [key: string]: any;
+    [key: string]: string | number | boolean | null | undefined;
   };
   url?: string;
 }
@@ -34,7 +34,26 @@ interface NotificationRequest {
   user_name: string;
   user_role: string;
   message: string;
-  metadata?: any;
+  metadata?: {
+    bread_type?: string;
+    quantity?: number;
+    revenue?: number;
+    batch_number?: string;
+    [key: string]: string | number | boolean | null | undefined;
+  };
+}
+
+interface PushSubscriptionDB {
+  user_id: string;
+  endpoint: string;
+  p256dh_key: string;
+  auth_key: string;
+}
+
+
+interface WebPushError extends Error {
+  statusCode?: number;
+  message: string;
 }
 
 /**
@@ -134,14 +153,14 @@ export async function POST(request: NextRequest) {
     const payload: PushNotificationPayload = {
       title: getNotificationTitle(body.activity_type),
       body: body.message,
-      activity_type: body.activity_type as any,
+      activity_type: body.activity_type as 'sale' | 'batch' | 'report' | 'login' | 'end_shift' | 'created',
       user_name: body.user_name,
       metadata: body.metadata,
       url: '/owner-dashboard'
     };
 
     // Send notifications to all owner subscriptions
-    const notifications = ownerSubscriptions.map(async (subscription: any) => {
+    const notifications = ownerSubscriptions.map(async (subscription: PushSubscriptionDB) => {
       try {
         const pushSubscription = {
           endpoint: subscription.endpoint,
@@ -166,12 +185,13 @@ export async function POST(request: NextRequest) {
         console.log('✅ Notification sent successfully to user:', subscription.user_id);
         
         return { success: true, user_id: subscription.user_id };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const webPushError = error as WebPushError;
         console.error('❌ Failed to send notification to user:', subscription.user_id);
-        console.error('💥 Push error:', error.message);
+        console.error('💥 Push error:', webPushError.message);
         
         // Remove invalid subscriptions
-        if (error.statusCode === 410 || error.statusCode === 404) {
+        if (webPushError.statusCode === 410 || webPushError.statusCode === 404) {
           console.log('🗑️ Removing invalid subscription for user:', subscription.user_id);
           await supabase
             .from('push_notification_preferences')
@@ -179,7 +199,7 @@ export async function POST(request: NextRequest) {
             .eq('user_id', subscription.user_id);
         }
         
-        return { success: false, user_id: subscription.user_id, error: error.message };
+        return { success: false, user_id: subscription.user_id, error: webPushError.message };
       }
     });
 
@@ -195,9 +215,10 @@ export async function POST(request: NextRequest) {
       total: ownerSubscriptions.length
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const serverError = error as Error;
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: serverError.message },
       { status: 500 }
     );
   }

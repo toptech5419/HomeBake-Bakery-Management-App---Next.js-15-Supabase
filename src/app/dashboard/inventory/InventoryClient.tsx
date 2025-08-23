@@ -1,14 +1,13 @@
 "use client";
 
 import React from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { BackButton } from '@/components/ui/back-button';
-import { Package, TrendingUp, Clock, RefreshCw, Archive, AlertTriangle } from 'lucide-react';
+import { Package, Clock, RefreshCw, Archive } from 'lucide-react';
 import { ProductionLoading, ProductionError } from '@/components/ui/production-loading';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import { useInventoryData } from '@/hooks/use-inventory-data';
 import { useAuth } from '@/hooks/use-auth';
-import { useAutoShift } from '@/hooks/use-auto-shift';
 
 interface InventoryItem {
   id: string;
@@ -35,7 +34,6 @@ function InventoryClientInner({ serverUser }: InventoryClientProps) {
     totalUnits, 
     isLoading, 
     error, 
-    shiftStatus, 
     dataSourceInfo,
     isFetching,
     isError,
