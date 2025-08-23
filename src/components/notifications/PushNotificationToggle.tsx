@@ -26,6 +26,16 @@ export function PushNotificationToggle({
     clearError
   } = usePushNotifications(userId);
 
+  // Track the intended action during loading
+  const [loadingAction, setLoadingAction] = React.useState<'enabling' | 'disabling' | null>(null);
+
+  // Clean up loading action when loading finishes
+  React.useEffect(() => {
+    if (!isLoading) {
+      setLoadingAction(null);
+    }
+  }, [isLoading]);
+
   // Get detailed support information
   const supportDetails = isSupported ? null : {
     isSupported: false,
@@ -100,15 +110,22 @@ export function PushNotificationToggle({
 
   const handleToggle = async () => {
     if (isEnabled) {
+      setLoadingAction('disabling');
       await disable();
+      setLoadingAction(null);
     } else {
+      setLoadingAction('enabling');
       await enable();
+      setLoadingAction(null);
     }
   };
 
   const getStatusText = () => {
     if (permission === 'denied') return 'Permission denied';
-    if (isLoading) return isEnabled ? 'Disabling...' : 'Enabling...';
+    if (isLoading && loadingAction) {
+      // Show the actual action being performed based on user intent
+      return loadingAction === 'enabling' ? 'Enabling...' : 'Disabling...';
+    }
     if (error) return 'Error occurred';
     return isEnabled ? 'Active & Ready' : 'Tap to Enable';
   };
