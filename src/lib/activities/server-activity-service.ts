@@ -2,6 +2,7 @@
 
 import { createServer } from '@/lib/supabase/server';
 import { triggerPushNotification } from '@/lib/push-notifications/server';
+import { withRetry } from '@/lib/push-notifications/monitoring';
 
 export interface ActivityData {
   user_id: string;
@@ -62,16 +63,28 @@ async function logActivity(data: ActivityData): Promise<void> {
     
     console.log('✅ Activity logged successfully:', insertResult);
     
-    // Trigger push notification to owners (async, don't await)
-    triggerPushNotification({
-      activity_type: data.activity_type,
-      user_id: data.user_id,
-      user_name: data.user_name,
-      user_role: data.user_role,
-      message: data.message,
-      metadata: data.metadata
-    }).catch(error => {
-      console.error('🔔 Push notification failed (non-blocking):', error);
+    // Trigger push notification to owners with retry logic (async, don't await)
+    withRetry(
+      () => triggerPushNotification({
+        activity_type: data.activity_type,
+        user_id: data.user_id,
+        user_name: data.user_name,
+        user_role: data.user_role,
+        message: data.message,
+        metadata: data.metadata
+      }),
+      {
+        maxAttempts: 3,
+        baseDelay: 1000,
+        exponentialBackoff: true
+      },
+      {
+        activity_type: data.activity_type,
+        user_name: data.user_name,
+        message: data.message
+      }
+    ).catch(error => {
+      console.error('🔔 Push notification failed after retries (non-blocking):', error);
     });
     
   } catch (error) {

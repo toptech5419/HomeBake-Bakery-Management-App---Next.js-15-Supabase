@@ -76,7 +76,15 @@
       "mcp__filesystem__read_text_file",
       "mcp__filesystem__read_text_file",
       "mcp__filesystem__write_file",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(cat:*)",
+      "Bash(claude-code install-mcp @modelcontextprotocol/server-supabase)",
+      "Bash(docker:*)",
+      "Bash(vercel:*)",
+      "WebFetch(domain:home-bake-bakery-management-app-next-js-15-supabase-2qk82bsgg.vercel.app)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

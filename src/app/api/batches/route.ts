@@ -119,41 +119,63 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       );
     }
-      const { searchParams } = new URL(request.url);
-      const status = searchParams.get('status');
-      const shift = searchParams.get('shift');
-      // const includeDetails = searchParams.get('include') === 'details';
 
-      let query = supabase
-        .from('batches')
-        .select(`
-          *,
-          bread_type:bread_types(name, unit_price),
-          created_by_user:users!created_by(email, name)
-        `)
-        .eq('created_by', user.id) // CRITICAL FIX: Filter by current user (matches deleteAllBatches logic)
-        .order('created_at', { ascending: false });
+    // Get user role for role-based filtering
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
 
-      if (status && ['active', 'completed', 'cancelled'].includes(status)) {
-        query = query.eq('status', status as 'active' | 'completed' | 'cancelled');
-      }
+    const userRole = userProfile?.role || user.user_metadata?.role || 'sales_rep';
 
-      if (shift && ['morning', 'night'].includes(shift)) {
-        query = query.eq('shift', shift as 'morning' | 'night');
-      }
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    const shift = searchParams.get('shift');
 
-      const { data, error } = await query;
+    let query = supabase
+      .from('batches')
+      .select(`
+        *,
+        bread_type:bread_types(name, unit_price),
+        created_by_user:users!created_by(email, name)
+      `)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching batches:', { error, userId: user.id });
-        return NextResponse.json(
-          { error: 'Failed to fetch batches', details: error.message },
-          { status: 500 }
-        );
-      }
+    // Role-based filtering:
+    // - Manager/Owner: See ALL batches (no user filter)
+    // - Sales Rep: Filter by shift only (they don't create batches, just view by shift)
+    if (userRole === 'sales_rep') {
+      // Sales reps don't create batches, so don't filter by created_by
+      // They only need to see batches for their current shift
+      console.log('🔍 Sales Rep: Filtering by shift only (no user filter)');
+    } else if (userRole === 'manager' || userRole === 'owner') {
+      // Managers and Owners see ALL batches from all users
+      console.log('🔍 Manager/Owner: Showing ALL batches (no user filter)');
+    }
 
-      console.log(`📡 API fetched ${data?.length || 0} batches for user ${user.id}, shift: ${shift || 'all'}, status: ${status || 'all'}`);
-      return NextResponse.json({ data });
+    // Apply status filter if provided
+    if (status && ['active', 'completed', 'cancelled'].includes(status)) {
+      query = query.eq('status', status as 'active' | 'completed' | 'cancelled');
+    }
+
+    // Apply shift filter if provided
+    if (shift && ['morning', 'night'].includes(shift)) {
+      query = query.eq('shift', shift as 'morning' | 'night');
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching batches:', { error, userId: user.id, userRole });
+      return NextResponse.json(
+        { error: 'Failed to fetch batches', details: error.message },
+        { status: 500 }
+      );
+    }
+
+    console.log(`📡 API fetched ${data?.length || 0} batches for ${userRole} ${user.id}, shift: ${shift || 'all'}, status: ${status || 'all'}`);
+    return NextResponse.json({ data });
   } catch (error) {
     console.error('Unexpected error fetching batches:', error);
     return NextResponse.json(

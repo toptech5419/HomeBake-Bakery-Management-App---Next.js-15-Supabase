@@ -93,15 +93,25 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
+    // Enhanced authentication: Support both user sessions and service role tokens
     const supabase = await createServer();
+    const authHeader = request.headers.get('Authorization');
     
-    // Authenticate request
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ 
-        success: false,
-        error: 'Unauthorized' 
-      }, { status: 401 });
+    let isServiceCall = false;
+    
+    // Check for service role authentication (server-to-server calls)
+    if (authHeader?.startsWith('Bearer ') && authHeader.includes(process.env.SUPABASE_SERVICE_ROLE_KEY || '')) {
+      isServiceCall = true;
+      console.log('📡 Service-to-service push notification request');
+    } else {
+      // Regular user authentication
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        return NextResponse.json({ 
+          success: false,
+          error: 'Unauthorized: Valid session or service token required' 
+        }, { status: 401 });
+      }
     }
 
     // Validate request body
@@ -254,21 +264,45 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    // Calculate results
+    // Calculate results with detailed logging
     const successful = results.filter(result => 
       result.status === 'fulfilled' && result.value.success
     ).length;
 
     const failed = results.length - successful;
+    const failedResults = results.filter(result => 
+      result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success)
+    );
 
-    console.log(`Push notifications: ${successful} sent, ${failed} failed out of ${validOwners.length} recipients`);
+    // Log detailed results for monitoring
+    console.log(`📊 Push notification results:`, {
+      activity: activity_type,
+      user: user_name,
+      sent: successful,
+      failed: failed,
+      total: validOwners.length,
+      serviceCall: isServiceCall
+    });
+    
+    // Log failures for debugging
+    if (failedResults.length > 0) {
+      console.warn('❌ Failed notifications:', failedResults.map(result => {
+        if (result.status === 'rejected') {
+          return { error: result.reason };
+        } else if (result.status === 'fulfilled' && !result.value.success) {
+          return { owner: result.value.owner, error: result.value.error };
+        }
+        return null;
+      }).filter(Boolean));
+    }
 
     return NextResponse.json({ 
       success: true,
       message: 'Push notifications processed',
       sent: successful,
       failed: failed,
-      total: validOwners.length
+      total: validOwners.length,
+      details: isServiceCall ? 'Server-side notification trigger' : 'User-initiated notification'
     });
 
   } catch (error) {

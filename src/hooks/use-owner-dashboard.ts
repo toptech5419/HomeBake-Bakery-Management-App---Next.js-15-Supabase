@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
-import { getOwnerDashboardStats, getTodayRevenue, getTodayBatchCount, getStaffOnlineCount } from '@/lib/dashboard/server-actions';
+import { getTodayRevenue, getTodayBatchCount } from '@/lib/dashboard/server-actions';
 import { useLowStockTracker } from './use-low-stock-tracker';
 import { useTodayBatchesTracker } from './use-today-batches-tracker';
 
@@ -34,6 +34,31 @@ const ownerDashboardKeys = {
   staffOnline: () => [...ownerDashboardKeys.all(), 'staffOnline'] as const,
 };
 
+// API fetcher for staff online count
+const fetchStaffOnlineCount = async (): Promise<{ online: number; total: number }> => {
+  const response = await fetch('/api/dashboard/staff-online', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch staff online count: ${response.status}`);
+  }
+
+  const data = await response.json();
+  
+  if (!data.success) {
+    throw new Error('Staff online count API returned unsuccessful response');
+  }
+
+  return {
+    online: data.online,
+    total: data.total
+  };
+};
+
 export function useOwnerDashboard(): UseOwnerDashboardReturn {
   // Real-time low stock tracking hook
   const { 
@@ -54,7 +79,7 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
   // React Query for staff online count with 15-second polling (same as active batches)
   const { data: staffData, error: staffError, refetch: refetchStaff } = useQuery({
     queryKey: ownerDashboardKeys.staffOnline(),
-    queryFn: getStaffOnlineCount,
+    queryFn: fetchStaffOnlineCount,
     refetchInterval: 15000, // 15 seconds - same as active batches for staff responsiveness
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,

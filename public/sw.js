@@ -1,538 +1,468 @@
 // HomeBake Unified Service Worker - Production Grade v3.0
-// Enhanced push notifications with Workbox integration and cross-browser compatibility
-
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-import { registerRoute, NavigationRoute } from 'workbox-routing';
-import { StaleWhileRevalidate, CacheFirst, NetworkFirst } from 'workbox-strategies';
+// Enhanced push notifications with cross-browser compatibility
 
 // Version and cache management
 const SW_VERSION = '3.0.0';
 const CACHE_PREFIX = 'homebake-v3';
-const NOTIFICATION_CACHE = `${CACHE_PREFIX}-notifications`;
-
-// Workbox precaching setup
-cleanupOutdatedCaches();
-precacheAndRoute(self.__WB_MANIFEST || []);
-
-// Enhanced activity icons for better notification experience
-const ACTIVITY_ICONS = {
-  sale: '🛒',
-  batch: '📦',
-  report: '📊',
-  login: '👤',
-  end_shift: '🕐',
-  created: '➕',
-  default: '🔔'
+const CACHE_NAMES = {
+  STATIC: `${CACHE_PREFIX}-static-${SW_VERSION}`,
+  DYNAMIC: `${CACHE_PREFIX}-dynamic-${SW_VERSION}`,
+  IMAGES: `${CACHE_PREFIX}-images-${SW_VERSION}`,
+  API: `${CACHE_PREFIX}-api-${SW_VERSION}`
 };
 
-// Browser-specific notification options for maximum compatibility
-const BROWSER_CONFIGS = {
-  chrome: {
-    supportsActions: true,
-    supportsImage: true,
-    supportsVibrate: true,
-    maxActions: 2
-  },
-  firefox: {
-    supportsActions: true,
-    supportsImage: false,
-    supportsVibrate: true,
-    maxActions: 2
-  },
-  safari: {
-    supportsActions: false,
-    supportsImage: false,
-    supportsVibrate: false,
-    maxActions: 0
-  },
-  edge: {
-    supportsActions: true,
-    supportsImage: true,
-    supportsVibrate: true,
-    maxActions: 2
-  }
+// Cache configuration
+const CACHE_STRATEGIES = {
+  STATIC_CACHE_DURATION: 7 * 24 * 60 * 60 * 1000, // 7 days
+  DYNAMIC_CACHE_DURATION: 24 * 60 * 60 * 1000, // 1 day
+  API_CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
+  MAX_CACHE_ENTRIES: 100
 };
 
-// Detect browser type for optimized notification handling
-function getBrowserType() {
-  const userAgent = self.navigator.userAgent.toLowerCase();
-  
-  if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
-    return 'chrome';
-  } else if (userAgent.includes('firefox')) {
-    return 'firefox';
-  } else if (userAgent.includes('safari') && !userAgent.includes('chrome')) {
-    return 'safari';
-  } else if (userAgent.includes('edg')) {
-    return 'edge';
-  }
-  
-  return 'chrome'; // Default to chrome capabilities
-}
+// Resources to precache
+const STATIC_RESOURCES = [
+  '/',
+  '/dashboard',
+  '/login',
+  '/manifest.json',
+  '/icon-192x192.png',
+  '/icon-512x512.png'
+];
 
-// Enhanced install event with comprehensive caching
-self.addEventListener('install', (event) => {
-  console.log(`[SW v${SW_VERSION}] Installing HomeBake Service Worker...`);
+console.log(`🚀 HomeBake Service Worker v${SW_VERSION} initializing...`);
+
+// Install event - precache static resources
+self.addEventListener('install', event => {
+  console.log('📦 Service Worker installing...');
   
   event.waitUntil(
-    Promise.all([
-      // Cache essential resources
-      caches.open(`${CACHE_PREFIX}-core`).then(cache => {
-        return cache.addAll([
-          '/',
-          '/owner-dashboard',
-          '/dashboard',
-          '/manifest.json',
-          '/icons/icon-192x192.png',
-          '/icons/icon-512x512.png',
-          '/icons/icon-72x72.png',
-          '/icons/icon-96x96.png'
-        ]).catch(error => {
-          console.warn('[SW] Some core resources failed to cache:', error);
-          // Don't fail installation if some resources can't be cached
-        });
-      }),
-      
-      // Initialize notification cache
-      caches.open(NOTIFICATION_CACHE)
-    ])
-    .then(() => {
-      console.log(`[SW v${SW_VERSION}] Installation complete`);
-      return self.skipWaiting();
-    })
+    caches.open(CACHE_NAMES.STATIC)
+      .then(cache => {
+        console.log('💾 Precaching static resources');
+        return cache.addAll(STATIC_RESOURCES);
+      })
+      .then(() => {
+        console.log('✅ Static resources cached successfully');
+        return self.skipWaiting();
+      })
+      .catch(error => {
+        console.error('❌ Failed to cache static resources:', error);
+      })
   );
 });
 
-// Enhanced activate event with thorough cleanup
-self.addEventListener('activate', (event) => {
-  console.log(`[SW v${SW_VERSION}] Activating...`);
+// Activate event - cleanup old caches
+self.addEventListener('activate', event => {
+  console.log('🔄 Service Worker activating...');
   
   event.waitUntil(
     Promise.all([
-      // Clean up old caches
+      // Cleanup old caches
       caches.keys().then(cacheNames => {
         return Promise.all(
-          cacheNames.map(cacheName => {
-            if (!cacheName.startsWith(CACHE_PREFIX)) {
-              console.log('[SW] Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
+          cacheNames
+            .filter(name => name.startsWith(CACHE_PREFIX) && !Object.values(CACHE_NAMES).includes(name))
+            .map(name => {
+              console.log('🧹 Deleting old cache:', name);
+              return caches.delete(name);
+            })
         );
       }),
-      
       // Take control of all clients
       self.clients.claim()
     ])
     .then(() => {
-      console.log(`[SW v${SW_VERSION}] Activated successfully`);
-      
-      // Notify clients of successful activation
-      return self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          client.postMessage({
-            type: 'SW_ACTIVATED',
-            version: SW_VERSION,
-            timestamp: Date.now()
-          });
-        });
-      });
-    })
-  );
-});
-
-// Production-grade push notification handler with cross-browser compatibility
-self.addEventListener('push', (event) => {
-  console.log(`[SW v${SW_VERSION}] Push event received`);
-  
-  if (!event.data) {
-    console.log('[SW] Push event has no data');
-    return;
-  }
-
-  try {
-    const data = event.data.json();
-    console.log('[SW] Push data received:', data);
-
-    const browserType = getBrowserType();
-    const browserConfig = BROWSER_CONFIGS[browserType];
-    
-    const {
-      title = 'HomeBake',
-      body = 'New activity in your bakery',
-      activity_type = 'default',
-      user_name,
-      metadata = {},
-      url = '/owner-dashboard',
-      requireInteraction = false
-    } = data;
-
-    // Enhanced notification body with context
-    let enhancedBody = body;
-    if (user_name) {
-      enhancedBody = `${user_name}: ${body}`;
-    }
-    
-    // Add contextual information
-    if (metadata.bread_type && metadata.quantity) {
-      enhancedBody += `\n${metadata.quantity}x ${metadata.bread_type}`;
-    }
-    
-    if (metadata.revenue) {
-      enhancedBody += ` (₦${metadata.revenue.toLocaleString()})`;
-    }
-
-    // Base notification options (supported by all browsers)
-    const baseOptions = {
-      body: enhancedBody,
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
-      tag: `homebake-${activity_type}-${Date.now()}`,
-      requireInteraction,
-      silent: false,
-      timestamp: Date.now(),
-      data: {
-        url,
-        activity_type,
-        user_name,
-        metadata,
-        browserType
-      }
-    };
-
-    // Enhanced options based on browser capabilities
-    const enhancedOptions = { ...baseOptions };
-    
-    // Add actions if supported
-    if (browserConfig.supportsActions && browserConfig.maxActions > 0) {
-      enhancedOptions.actions = [
-        {
-          action: 'view',
-          title: 'View Dashboard',
-          icon: '/icons/icon-72x72.png'
-        }
-      ];
-      
-      if (browserConfig.maxActions > 1) {
-        enhancedOptions.actions.push({
-          action: 'dismiss',
-          title: 'Dismiss'
-        });
-      }
-    }
-    
-    // Add vibration if supported
-    if (browserConfig.supportsVibrate) {
-      enhancedOptions.vibrate = metadata.urgent ? [300, 200, 300] : [200, 100, 200];
-    }
-    
-    // Add image if supported and provided
-    if (browserConfig.supportsImage && metadata.image) {
-      enhancedOptions.image = metadata.image;
-    }
-
-    const icon = ACTIVITY_ICONS[activity_type] || ACTIVITY_ICONS.default;
-    const notificationTitle = `${icon} ${title}`;
-
-    event.waitUntil(
-      // Try enhanced options first, fallback to base options
-      self.registration.showNotification(notificationTitle, enhancedOptions)
-        .catch(error => {
-          console.warn('[SW] Enhanced notification failed, using fallback:', error);
-          return self.registration.showNotification(notificationTitle, baseOptions);
-        })
-        .then(() => {
-          console.log(`[SW] Notification shown successfully (${browserType})`);
-          
-          // Cache notification for analytics
-          return caches.open(NOTIFICATION_CACHE).then(cache => {
-            const notificationLog = {
-              timestamp: Date.now(),
-              title: notificationTitle,
-              body: enhancedBody,
-              activity_type,
-              browserType,
-              success: true
-            };
-            
-            return cache.put(
-              `/notifications/${Date.now()}`,
-              new Response(JSON.stringify(notificationLog))
-            );
-          }).catch(error => {
-            console.warn('[SW] Failed to cache notification log:', error);
-          });
-        })
-    );
-    
-  } catch (error) {
-    console.error('[SW] Error processing push event:', error);
-    
-    // Ultra-fallback: show basic notification
-    event.waitUntil(
-      self.registration.showNotification('🍞 HomeBake', {
-        body: 'New activity in your bakery',
-        icon: '/icons/icon-192x192.png',
-        tag: `homebake-error-${Date.now()}`,
-        data: { url: '/owner-dashboard', error: true }
-      })
-    );
-  }
-});
-
-// Enhanced notification click handler with smart window management
-self.addEventListener('notificationclick', (event) => {
-  console.log(`[SW v${SW_VERSION}] Notification clicked:`, event.notification.tag);
-  
-  event.notification.close();
-
-  // Handle action buttons
-  if (event.action === 'dismiss') {
-    console.log('[SW] Notification dismissed via action');
-    return;
-  }
-
-  const notificationData = event.notification.data || {};
-  const urlToOpen = notificationData.url || '/owner-dashboard';
-  
-  event.waitUntil(
-    self.clients.matchAll({ 
-      type: 'window',
-      includeUncontrolled: true 
-    }).then(clientList => {
-      // Smart window management
-      const origin = self.location.origin;
-      
-      // Look for existing HomeBake windows
-      for (let i = 0; i < clientList.length; i++) {
-        const client = clientList[i];
-        
-        if (client.url.startsWith(origin)) {
-          console.log('[SW] Focusing existing window:', client.url);
-          
-          // Focus and navigate existing window
-          return client.focus().then(() => {
-            // Send navigation message to client
-            return client.postMessage({
-              type: 'NOTIFICATION_CLICK_NAVIGATE',
-              url: urlToOpen,
-              data: notificationData
-            });
-          });
-        }
-      }
-      
-      // No existing window found, open new one
-      console.log('[SW] Opening new window:', urlToOpen);
-      return self.clients.openWindow(urlToOpen);
+      console.log('✅ Service Worker activated successfully');
     })
     .catch(error => {
-      console.error('[SW] Error handling notification click:', error);
-      // Fallback: try to open the URL anyway
-      return self.clients.openWindow(urlToOpen);
+      console.error('❌ Service Worker activation failed:', error);
     })
   );
 });
 
-// Enhanced notification close handler
-self.addEventListener('notificationclose', (event) => {
-  console.log(`[SW v${SW_VERSION}] Notification closed:`, event.notification.tag);
+// Fetch event - handle network requests with caching strategies
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  const { url, method, destination } = request;
   
-  const notificationData = event.notification.data || {};
+  // Only handle GET requests
+  if (method !== 'GET') return;
   
-  // Track notification dismissal
-  event.waitUntil(
-    caches.open(NOTIFICATION_CACHE).then(cache => {
-      const dismissalLog = {
-        timestamp: Date.now(),
-        tag: event.notification.tag,
-        activity_type: notificationData.activity_type,
-        browserType: notificationData.browserType,
-        action: 'dismissed'
+  // Skip non-HTTP requests
+  if (!url.startsWith('http')) return;
+  
+  event.respondWith(handleRequest(request));
+});
+
+// Request handling with different strategies
+async function handleRequest(request) {
+  const { url, destination } = request;
+  
+  try {
+    // API requests - network first with short cache fallback
+    if (url.includes('/api/')) {
+      return await handleApiRequest(request);
+    }
+    
+    // Images - cache first
+    if (destination === 'image' || url.match(/\.(jpg|jpeg|png|gif|webp|svg|ico)$/i)) {
+      return await handleImageRequest(request);
+    }
+    
+    // Static resources - cache first
+    if (url.includes('/_next/static/') || url.includes('/static/')) {
+      return await handleStaticRequest(request);
+    }
+    
+    // Navigation requests - network first with cache fallback
+    if (destination === 'document') {
+      return await handleNavigationRequest(request);
+    }
+    
+    // Default strategy - network first
+    return await handleDefaultRequest(request);
+    
+  } catch (error) {
+    console.warn('⚠️ Request handling failed:', url, error);
+    
+    // Fallback for navigation requests
+    if (request.destination === 'document') {
+      const cachedResponse = await caches.match('/');
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+    }
+    
+    throw error;
+  }
+}
+
+// API request handler - network first with short cache
+async function handleApiRequest(request) {
+  const cache = await caches.open(CACHE_NAMES.API);
+  
+  try {
+    // Try network first
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      // Cache successful responses briefly
+      cache.put(request, networkResponse.clone());
+    }
+    
+    return networkResponse;
+    
+  } catch (error) {
+    console.log('📡 Network failed for API request, trying cache:', request.url);
+    
+    // Fallback to cache
+    const cachedResponse = await cache.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    throw error;
+  }
+}
+
+// Image request handler - cache first
+async function handleImageRequest(request) {
+  const cache = await caches.open(CACHE_NAMES.IMAGES);
+  
+  // Try cache first
+  const cachedResponse = await cache.match(request);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+  
+  try {
+    // Fetch from network
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      // Cache the image
+      cache.put(request, networkResponse.clone());
+    }
+    
+    return networkResponse;
+    
+  } catch (error) {
+    console.warn('🖼️ Failed to fetch image:', request.url);
+    throw error;
+  }
+}
+
+// Static resource handler - cache first with long expiration
+async function handleStaticRequest(request) {
+  const cache = await caches.open(CACHE_NAMES.STATIC);
+  
+  // Try cache first
+  const cachedResponse = await cache.match(request);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+  
+  try {
+    // Fetch from network
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      // Cache static resources for longer
+      cache.put(request, networkResponse.clone());
+    }
+    
+    return networkResponse;
+    
+  } catch (error) {
+    console.warn('📄 Failed to fetch static resource:', request.url);
+    throw error;
+  }
+}
+
+// Navigation request handler - network first
+async function handleNavigationRequest(request) {
+  const cache = await caches.open(CACHE_NAMES.DYNAMIC);
+  
+  try {
+    // Try network first
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      // Cache the page
+      cache.put(request, networkResponse.clone());
+    }
+    
+    return networkResponse;
+    
+  } catch (error) {
+    console.log('🧭 Network failed for navigation, trying cache:', request.url);
+    
+    // Fallback to cache
+    const cachedResponse = await cache.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    // Ultimate fallback to home page
+    const homeCache = await cache.match('/');
+    if (homeCache) {
+      return homeCache;
+    }
+    
+    throw error;
+  }
+}
+
+// Default request handler
+async function handleDefaultRequest(request) {
+  const cache = await caches.open(CACHE_NAMES.DYNAMIC);
+  
+  try {
+    // Try network first
+    const networkResponse = await fetch(request);
+    
+    if (networkResponse.ok) {
+      cache.put(request, networkResponse.clone());
+    }
+    
+    return networkResponse;
+    
+  } catch (error) {
+    // Fallback to cache
+    const cachedResponse = await cache.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    throw error;
+  }
+}
+
+// Push notification handler
+self.addEventListener('push', event => {
+  console.log('🔔 Push notification received');
+  
+  let notificationData = {
+    title: 'HomeBake Notification',
+    body: 'You have a new notification',
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    data: {},
+    tag: 'homebake-notification',
+    requireInteraction: true,
+    actions: [
+      {
+        action: 'view',
+        title: 'View Details',
+        icon: '/icon-192x192.png'
+      },
+      {
+        action: 'dismiss',
+        title: 'Dismiss'
+      }
+    ]
+  };
+  
+  // Parse push data if available
+  if (event.data) {
+    try {
+      const pushData = event.data.json();
+      console.log('📨 Push data received:', pushData);
+      
+      notificationData = {
+        ...notificationData,
+        title: pushData.title || notificationData.title,
+        body: pushData.body || pushData.message || notificationData.body,
+        data: pushData.data || {},
+        tag: pushData.tag || notificationData.tag
       };
       
-      return cache.put(
-        `/dismissals/${Date.now()}`,
-        new Response(JSON.stringify(dismissalLog))
-      );
-    }).catch(error => {
-      console.warn('[SW] Failed to log notification dismissal:', error);
-    })
+    } catch (error) {
+      console.error('❌ Failed to parse push data:', error);
+      notificationData.body = event.data.text() || notificationData.body;
+    }
+  }
+  
+  // Show notification
+  event.waitUntil(
+    self.registration.showNotification(notificationData.title, notificationData)
+      .then(() => {
+        console.log('✅ Push notification displayed successfully');
+      })
+      .catch(error => {
+        console.error('❌ Failed to display push notification:', error);
+      })
   );
 });
 
-// Background sync for offline functionality
-self.addEventListener('sync', (event) => {
-  console.log(`[SW v${SW_VERSION}] Background sync event:`, event.tag);
+// Notification click handler
+self.addEventListener('notificationclick', event => {
+  console.log('👆 Notification clicked:', event.notification);
   
-  if (event.tag === 'homebake-sync') {
-    event.waitUntil(backgroundSync());
+  event.notification.close();
+  
+  const { action, data } = event;
+  const notificationData = event.notification.data || {};
+  
+  if (action === 'dismiss') {
+    console.log('🚫 Notification dismissed');
+    return;
   }
   
-  if (event.tag === 'homebake-notification-sync') {
-    event.waitUntil(syncNotificationLogs());
-  }
+  // Default action or 'view' action
+  const urlToOpen = notificationData.url || '/dashboard';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(clientList => {
+        // Check if app is already open
+        const existingClient = clientList.find(client => 
+          client.url.includes(self.location.origin)
+        );
+        
+        if (existingClient) {
+          // Focus existing window and navigate
+          return existingClient.focus().then(() => {
+            return existingClient.navigate(urlToOpen);
+          });
+        } else {
+          // Open new window
+          return clients.openWindow(urlToOpen);
+        }
+      })
+      .then(() => {
+        console.log('✅ App opened from notification');
+      })
+      .catch(error => {
+        console.error('❌ Failed to open app from notification:', error);
+      })
+  );
 });
 
-// Enhanced message handler for client communication
-self.addEventListener('message', (event) => {
-  const { data } = event;
-  console.log(`[SW v${SW_VERSION}] Message received:`, data);
+// Background sync (if supported)
+if ('sync' in self.registration) {
+  self.addEventListener('sync', event => {
+    console.log('🔄 Background sync triggered:', event.tag);
+    
+    if (event.tag === 'background-sync') {
+      event.waitUntil(
+        // Handle background sync operations
+        Promise.resolve()
+          .then(() => {
+            console.log('✅ Background sync completed');
+          })
+          .catch(error => {
+            console.error('❌ Background sync failed:', error);
+          })
+      );
+    }
+  });
+}
+
+// Periodic background sync (if supported)
+if ('periodicSync' in self.registration) {
+  self.addEventListener('periodicsync', event => {
+    console.log('⏰ Periodic sync triggered:', event.tag);
+    
+    if (event.tag === 'periodic-background-sync') {
+      event.waitUntil(
+        // Handle periodic sync operations
+        Promise.resolve()
+          .then(() => {
+            console.log('✅ Periodic sync completed');
+          })
+          .catch(error => {
+            console.error('❌ Periodic sync failed:', error);
+          })
+      );
+    }
+  });
+}
+
+// Message handler for communication with main app
+self.addEventListener('message', event => {
+  const { type, data } = event.data || {};
   
-  if (!data || !data.type) return;
+  console.log('💬 Message received from client:', type, data);
   
-  switch (data.type) {
+  switch (type) {
     case 'SKIP_WAITING':
       self.skipWaiting();
       break;
       
     case 'GET_VERSION':
-      if (event.ports[0]) {
-        event.ports[0].postMessage({
-          type: 'VERSION_RESPONSE',
-          version: SW_VERSION,
-          timestamp: Date.now()
-        });
-      }
+      event.ports[0].postMessage({ version: SW_VERSION });
       break;
       
-    case 'CLEAR_NOTIFICATION_CACHE':
-      event.waitUntil(clearNotificationCache());
-      break;
-      
-    case 'GET_NOTIFICATION_STATS':
-      event.waitUntil(getNotificationStats().then(stats => {
-        if (event.ports[0]) {
-          event.ports[0].postMessage({
-            type: 'NOTIFICATION_STATS_RESPONSE',
-            stats
-          });
-        }
-      }));
+    case 'CLEAR_CACHE':
+      event.waitUntil(
+        caches.keys()
+          .then(cacheNames => Promise.all(
+            cacheNames.map(name => caches.delete(name))
+          ))
+          .then(() => {
+            event.ports[0].postMessage({ success: true });
+          })
+          .catch(error => {
+            event.ports[0].postMessage({ success: false, error: error.message });
+          })
+      );
       break;
       
     default:
-      console.log('[SW] Unknown message type:', data.type);
+      console.log('❓ Unknown message type:', type);
   }
 });
 
-// Workbox routing for different content types
-registerRoute(
-  // API routes - network first with cache fallback
-  ({ url }) => url.pathname.startsWith('/api/'),
-  new NetworkFirst({
-    cacheName: `${CACHE_PREFIX}-api`,
-    networkTimeoutSeconds: 3
-  })
-);
-
-registerRoute(
-  // Static assets - cache first
-  ({ request }) => request.destination === 'image' || 
-                   request.destination === 'script' || 
-                   request.destination === 'style',
-  new CacheFirst({
-    cacheName: `${CACHE_PREFIX}-assets`
-  })
-);
-
-registerRoute(
-  // App pages - stale while revalidate
-  ({ request }) => request.mode === 'navigate',
-  new StaleWhileRevalidate({
-    cacheName: `${CACHE_PREFIX}-pages`
-  })
-);
-
-// Helper functions
-async function backgroundSync() {
-  try {
-    console.log('[SW] Starting background sync...');
-    
-    const clients = await self.clients.matchAll();
-    clients.forEach(client => {
-      client.postMessage({
-        type: 'BACKGROUND_SYNC_COMPLETE',
-        timestamp: Date.now()
-      });
-    });
-    
-    console.log('[SW] Background sync completed');
-  } catch (error) {
-    console.error('[SW] Background sync failed:', error);
-    throw error;
-  }
-}
-
-async function syncNotificationLogs() {
-  try {
-    const cache = await caches.open(NOTIFICATION_CACHE);
-    const requests = await cache.keys();
-    
-    // Send logs to analytics endpoint (implement as needed)
-    console.log(`[SW] Syncing ${requests.length} notification logs`);
-    
-    // Clean up old logs (keep last 100)
-    if (requests.length > 100) {
-      const toDelete = requests.slice(100);
-      await Promise.all(toDelete.map(req => cache.delete(req)));
-    }
-    
-  } catch (error) {
-    console.error('[SW] Failed to sync notification logs:', error);
-  }
-}
-
-async function clearNotificationCache() {
-  try {
-    const cache = await caches.open(NOTIFICATION_CACHE);
-    const requests = await cache.keys();
-    
-    await Promise.all(requests.map(req => cache.delete(req)));
-    console.log('[SW] Notification cache cleared');
-    
-  } catch (error) {
-    console.error('[SW] Failed to clear notification cache:', error);
-  }
-}
-
-async function getNotificationStats() {
-  try {
-    const cache = await caches.open(NOTIFICATION_CACHE);
-    const requests = await cache.keys();
-    
-    const stats = {
-      total: 0,
-      byType: {},
-      byBrowser: {},
-      dismissalRate: 0
-    };
-    
-    for (const request of requests) {
-      const response = await cache.match(request);
-      if (response) {
-        const data = await response.json();
-        
-        stats.total++;
-        stats.byType[data.activity_type] = (stats.byType[data.activity_type] || 0) + 1;
-        stats.byBrowser[data.browserType] = (stats.byBrowser[data.browserType] || 0) + 1;
-      }
-    }
-    
-    return stats;
-  } catch (error) {
-    console.error('[SW] Failed to get notification stats:', error);
-    return { total: 0, byType: {}, byBrowser: {}, dismissalRate: 0 };
-  }
-}
-
-// Global error handling
-self.addEventListener('error', (event) => {
-  console.error(`[SW v${SW_VERSION}] Global error:`, event.error);
+// Error handler
+self.addEventListener('error', event => {
+  console.error('💥 Service Worker error:', event.error);
 });
 
-self.addEventListener('unhandledrejection', (event) => {
-  console.error(`[SW v${SW_VERSION}] Unhandled promise rejection:`, event.reason);
+// Unhandled rejection handler
+self.addEventListener('unhandledrejection', event => {
+  console.error('💥 Service Worker unhandled rejection:', event.reason);
+  event.preventDefault();
 });
 
-console.log(`[SW v${SW_VERSION}] HomeBake Service Worker loaded successfully`);
+console.log(`✅ HomeBake Service Worker v${SW_VERSION} initialized successfully`);

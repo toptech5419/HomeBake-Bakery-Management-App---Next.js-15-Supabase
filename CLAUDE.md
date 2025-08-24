@@ -171,7 +171,7 @@ shift_handovers → Manage shift transitions
 daily_low_stock_counts → Track daily low stock counts
 ```
 
-### Critical Tables Schema
+### Critical Tables Schema (COMPLETE DATABASE SCHEMA - Updated)
 
 #### Users & Authentication
 ```sql
@@ -182,9 +182,10 @@ CREATE TABLE public.users (
   created_by uuid,
   is_active boolean DEFAULT true,
   created_at timestamp with time zone DEFAULT now(),
-  email text,
+  email text UNIQUE,
   CONSTRAINT users_pkey PRIMARY KEY (id),
-  CONSTRAINT users_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+  CONSTRAINT users_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
+  CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );
 
 CREATE TABLE public.profiles (
@@ -193,6 +194,7 @@ CREATE TABLE public.profiles (
   role text NOT NULL CHECK (role = ANY (ARRAY['owner'::text, 'manager'::text, 'sales_rep'::text])),
   is_active boolean DEFAULT true,
   created_at timestamp with time zone DEFAULT now(),
+  email text UNIQUE,
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
   CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );
@@ -202,13 +204,28 @@ CREATE TABLE public.profiles (
 ```sql
 CREATE TABLE public.bread_types (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  name text NOT NULL,
+  name text NOT NULL UNIQUE,
   size text,
-  unit_price numeric NOT NULL,
+  unit_price numeric NOT NULL CHECK (unit_price > 0::numeric),
   created_by uuid,
   created_at timestamp with time zone DEFAULT now(),
+  is_active boolean NOT NULL DEFAULT true,
   CONSTRAINT bread_types_pkey PRIMARY KEY (id),
   CONSTRAINT bread_types_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+
+CREATE TABLE public.bread_type_sync_log (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  bread_type_id uuid NOT NULL,
+  old_name text,
+  new_name text,
+  tables_affected ARRAY,
+  total_rows_updated integer DEFAULT 0,
+  error_message text,
+  sync_timestamp timestamp with time zone DEFAULT now(),
+  sync_type text DEFAULT 'name_update'::text,
+  success boolean DEFAULT true,
+  CONSTRAINT bread_type_sync_log_pkey PRIMARY KEY (id)
 );
 ```
 
@@ -228,8 +245,8 @@ CREATE TABLE public.batches (
   updated_at timestamp with time zone DEFAULT now(),
   shift text NOT NULL DEFAULT 'morning'::text CHECK (shift = ANY (ARRAY['morning'::text, 'night'::text])),
   CONSTRAINT batches_pkey PRIMARY KEY (id),
-  CONSTRAINT batches_bread_type_id_fkey FOREIGN KEY (bread_type_id) REFERENCES public.bread_types(id),
-  CONSTRAINT batches_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+  CONSTRAINT batches_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
+  CONSTRAINT batches_bread_type_id_fkey FOREIGN KEY (bread_type_id) REFERENCES public.bread_types(id)
 );
 
 CREATE TABLE public.all_batches (
@@ -249,6 +266,20 @@ CREATE TABLE public.all_batches (
   CONSTRAINT all_batches_bread_type_id_fkey FOREIGN KEY (bread_type_id) REFERENCES public.bread_types(id),
   CONSTRAINT all_batches_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );
+
+CREATE TABLE public.production_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  bread_type_id uuid NOT NULL,
+  quantity integer NOT NULL,
+  shift text NOT NULL CHECK (shift = ANY (ARRAY['morning'::text, 'night'::text])),
+  recorded_by uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  unit_price numeric DEFAULT 0.00,
+  CONSTRAINT production_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT production_logs_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES public.users(id),
+  CONSTRAINT production_logs_bread_type_id_fkey FOREIGN KEY (bread_type_id) REFERENCES public.bread_types(id)
+);
 ```
 
 #### Inventory Management
@@ -258,7 +289,7 @@ CREATE TABLE public.available_stock (
   bread_type_id uuid NOT NULL UNIQUE,
   bread_type_name text NOT NULL,
   quantity integer NOT NULL DEFAULT 0 CHECK (quantity >= 0),
-  unit_price numeric NOT NULL DEFAULT 0,
+  unit_price numeric NOT NULL DEFAULT 0 CHECK (unit_price >= 0::numeric),
   last_updated timestamp with time zone DEFAULT now(),
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
@@ -266,23 +297,67 @@ CREATE TABLE public.available_stock (
   CONSTRAINT available_stock_bread_type_id_fkey FOREIGN KEY (bread_type_id) REFERENCES public.bread_types(id)
 );
 
-CREATE TABLE public.sales_logs (
+CREATE TABLE public.inventory (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  bread_type_id uuid NOT NULL UNIQUE,
+  quantity integer NOT NULL DEFAULT 0,
+  last_updated timestamp with time zone DEFAULT now(),
+  CONSTRAINT inventory_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE public.inventory_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   bread_type_id uuid NOT NULL,
-  quantity integer NOT NULL,
-  unit_price numeric,
-  discount numeric,
-  returned boolean DEFAULT false,
-  shift text NOT NULL,
-  recorded_by uuid NOT NULL,
+  quantity_change integer NOT NULL,
+  reason text NOT NULL,
+  user_id uuid NOT NULL,
+  shift text CHECK (shift = ANY (ARRAY['morning'::text, 'night'::text])),
+  reference_id uuid,
+  notes text,
   created_at timestamp with time zone DEFAULT now(),
-  leftovers integer DEFAULT 0,
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT sales_logs_pkey PRIMARY KEY (id)
+  CONSTRAINT inventory_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT inventory_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+
+CREATE TABLE public.remaining_bread (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  shift text NOT NULL CHECK (shift = ANY (ARRAY['morning'::text, 'night'::text])),
+  bread_type text NOT NULL,
+  bread_type_id uuid NOT NULL UNIQUE,
+  quantity integer NOT NULL CHECK (quantity >= 0),
+  recorded_by uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+  unit_price numeric NOT NULL DEFAULT 0 CHECK (unit_price > 0::numeric),
+  total_value numeric DEFAULT ((quantity)::numeric * unit_price),
+  record_date date NOT NULL DEFAULT CURRENT_DATE,
+  CONSTRAINT remaining_bread_pkey PRIMARY KEY (id),
+  CONSTRAINT remaining_bread_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES public.users(id),
+  CONSTRAINT remaining_bread_bread_type_id_fkey FOREIGN KEY (bread_type_id) REFERENCES public.bread_types(id)
 );
 ```
 
-#### Activity Tracking
+#### Sales Management
+```sql
+CREATE TABLE public.sales_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  bread_type_id uuid NOT NULL,
+  quantity integer NOT NULL CHECK (quantity > 0),
+  unit_price numeric CHECK (unit_price >= 0::numeric),
+  discount numeric CHECK (discount >= 0::numeric),
+  returned boolean DEFAULT false,
+  shift text NOT NULL CHECK (shift = ANY (ARRAY['morning'::text, 'night'::text])),
+  recorded_by uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  leftovers integer DEFAULT 0 CHECK (leftovers >= 0),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT sales_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT sales_logs_bread_type_id_fkey FOREIGN KEY (bread_type_id) REFERENCES public.bread_types(id),
+  CONSTRAINT sales_logs_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES public.users(id)
+);
+```
+
+#### Activity & Reporting
 ```sql
 CREATE TABLE public.activities (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -297,57 +372,132 @@ CREATE TABLE public.activities (
   CONSTRAINT activities_pkey PRIMARY KEY (id),
   CONSTRAINT activities_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+
+CREATE TABLE public.shift_reports (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  shift text NOT NULL CHECK (shift = ANY (ARRAY['morning'::text, 'night'::text])),
+  report_date date NOT NULL DEFAULT CURRENT_DATE,
+  total_revenue numeric NOT NULL DEFAULT 0 CHECK (total_revenue >= 0::numeric),
+  total_items_sold integer NOT NULL DEFAULT 0 CHECK (total_items_sold >= 0),
+  total_remaining integer NOT NULL DEFAULT 0 CHECK (total_remaining >= 0),
+  feedback text,
+  sales_data jsonb NOT NULL DEFAULT '[]'::jsonb,
+  remaining_breads jsonb NOT NULL DEFAULT '[]'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT shift_reports_pkey PRIMARY KEY (id),
+  CONSTRAINT shift_reports_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+
+CREATE TABLE public.shift_handovers (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  from_shift text NOT NULL CHECK (from_shift = ANY (ARRAY['morning'::text, 'night'::text])),
+  to_shift text NOT NULL CHECK (to_shift = ANY (ARRAY['morning'::text, 'night'::text])),
+  handover_date date NOT NULL DEFAULT CURRENT_DATE,
+  manager_id uuid NOT NULL,
+  notes text,
+  total_production integer DEFAULT 0,
+  completed_batches integer DEFAULT 0,
+  pending_batches integer DEFAULT 0,
+  quality_issues ARRAY,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT shift_handovers_pkey PRIMARY KEY (id),
+  CONSTRAINT shift_handovers_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.users(id)
+);
+
+CREATE TABLE public.shift_feedback (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  shift text NOT NULL CHECK (shift = ANY (ARRAY['morning'::text, 'night'::text])),
+  note text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT shift_feedback_pkey PRIMARY KEY (id),
+  CONSTRAINT shift_feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+
+CREATE TABLE public.daily_low_stock_counts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  count_date date NOT NULL DEFAULT CURRENT_DATE UNIQUE,
+  morning_shift_count integer NOT NULL DEFAULT 0 CHECK (morning_shift_count >= 0),
+  night_shift_count integer NOT NULL DEFAULT 0 CHECK (night_shift_count >= 0),
+  total_count integer DEFAULT (morning_shift_count + night_shift_count),
+  last_updated_morning timestamp with time zone,
+  last_updated_night timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT daily_low_stock_counts_pkey PRIMARY KEY (id)
+);
+```
+
+#### System Management
+```sql
+CREATE TABLE public.sessions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  token text NOT NULL UNIQUE,
+  expires_at timestamp with time zone NOT NULL,
+  CONSTRAINT sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+
+CREATE TABLE public.qr_invites (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  token text NOT NULL UNIQUE,
+  role text NOT NULL CHECK (role = ANY (ARRAY['manager'::text, 'sales_rep'::text])),
+  is_used boolean DEFAULT false,
+  expires_at timestamp with time zone NOT NULL,
+  created_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT qr_invites_pkey PRIMARY KEY (id),
+  CONSTRAINT qr_invites_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+);
+
+CREATE TABLE public.push_notification_preferences (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE,
+  enabled boolean NOT NULL DEFAULT true,
+  endpoint text,
+  p256dh_key text,
+  auth_key text,
+  user_agent text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT push_notification_preferences_pkey PRIMARY KEY (id),
+  CONSTRAINT push_notification_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+
+CREATE TABLE public.user_management_audit (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  operation text NOT NULL CHECK (operation = ANY (ARRAY['role_change'::text, 'user_delete'::text, 'user_deactivate'::text])),
+  target_user_id uuid NOT NULL,
+  target_user_name text NOT NULL,
+  target_user_role text NOT NULL,
+  performed_by uuid NOT NULL,
+  performed_by_name text NOT NULL,
+  old_values jsonb,
+  new_values jsonb,
+  dependencies_affected jsonb,
+  success boolean NOT NULL DEFAULT false,
+  error_message text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_management_audit_pkey PRIMARY KEY (id)
+);
 ```
 
 ## 🕒 SHIFT MANAGEMENT SYSTEM
 
 ### Core Shift Implementation
-```typescript
-// Nigeria timezone shift detection (src/lib/utils/shift-utils.ts)
-export const SHIFT_CONSTANTS = {
-  MORNING_START_HOUR: 10, // 10:00 AM
-  MORNING_END_HOUR: 22,   // 10:00 PM (22:00)
-  NIGHT_START_HOUR: 22,   // 10:00 PM (22:00)
-  NIGHT_END_HOUR: 10,     // 10:00 AM (next day)
-  NIGERIA_TIMEZONE: 'Africa/Lagos' as const, // UTC+1
-} as const;
-
-export function getCurrentShiftInfo(): ShiftInfo {
-  const nigeriaTime = new Date().toLocaleString("en-US", {
-    timeZone: SHIFT_CONSTANTS.NIGERIA_TIMEZONE
-  });
-  const hours = new Date(nigeriaTime).getHours();
-  
-  const isMorningShift = hours >= SHIFT_CONSTANTS.MORNING_START_HOUR && 
-                        hours < SHIFT_CONSTANTS.MORNING_END_HOUR;
-  
-  return {
-    currentShift: isMorningShift ? 'morning' : 'night',
-    // ... additional shift info
-  };
-}
-```
+- **Morning Shift**: 10:00 AM - 10:00 PM (Africa/Lagos timezone)
+- **Night Shift**: 10:00 PM - 10:00 AM (next day)
+- **Dynamic shift detection** based on Nigeria timezone (GMT+1)
+- **Automatic data filtering** by current shift and date range
 
 ### Shift-Filtered Database Queries
-```typescript
-// Always filter by current shift and date
-const getBatchesForCurrentShift = async () => {
-  const { currentShift } = getCurrentShiftInfo();
-  const { startTime, endTime } = getShiftDateRange(currentShift);
-  
-  return supabase
-    .from('batches')
-    .select(`
-      *,
-      bread_types (name, unit_price),
-      users (name)
-    `)
-    .eq('shift', currentShift)
-    .gte('created_at', startTime)
-    .lt('created_at', endTime)
-    .order('created_at', { ascending: false });
-};
-```
+- **Always filter** by current shift and date range
+- **Use JOINs** to get related data in single queries
+- **Fallback logic** from `batches` to `all_batches` when needed
+- **Proper ordering** and pagination for large datasets
 
 ## 🔧 TYPESCRIPT TYPE DEFINITIONS
 
@@ -428,45 +578,10 @@ export interface Activity {
 - **Sales Rep**: Sales recording, inventory viewing, limited reporting
 
 ### Implementation Pattern
-```typescript
-// Route protection (src/app/dashboard/layout.tsx)
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createServerComponentClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return redirect('/login');
-  }
-
-  // Fetch role from database with fallback to metadata
-  const { data: profile } = await supabase
-    .from('users')
-    .select('role, name')
-    .eq('id', user.id)
-    .single();
-
-  const role = profile?.role || user.user_metadata?.role || 'sales_rep';
-  
-  // Owner uses separate layout structure
-  if (role === 'owner') {
-    return (
-      <DataProvider>
-        <ToastProvider>
-          <ShiftProvider>
-            {children}
-          </ShiftProvider>
-        </ToastProvider>
-      </DataProvider>
-    );
-  }
-
-  return (
-    <DashboardLayoutClient user={user} role={role}>
-      {children}
-    </DashboardLayoutClient>
-  );
-}
-```
+- **Server-side auth checks** in layout.tsx files
+- **Role-based route protection** with automatic redirects
+- **Database role fetching** with metadata fallback
+- **Separate layouts** for different user roles
 
 ## 🔄 KEY DEVELOPMENT PATTERNS
 
@@ -483,127 +598,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
 - **Context API**: Global UI state (shift status, offline mode)
 - **Local State**: useState/useReducer for component-specific data
 
-### Database Operations (src/lib/supabase/client.ts)
-```typescript
-// Enhanced error handling and retry logic
-export const withRetry = async <T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 3,
-  delay: number = 1000
-): Promise<T> => {
-  let lastError: Error;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error as Error;
-      
-      if (attempt === maxRetries) break;
-      
-      // Exponential backoff
-      await new Promise(resolve => 
-        setTimeout(resolve, delay * Math.pow(2, attempt - 1))
-      );
-    }
-  }
-  
-  throw lastError!;
-};
-
-export const handleSupabaseError = (error: any): string => {
-  const errorCode = error.code || error.error_description || error.message;
-  
-  switch (errorCode) {
-    case 'PGRST116': return 'No data found for this request';
-    case '23505': return 'This record already exists';
-    case '23503': return 'Cannot delete this record as it is being used elsewhere';
-    case 'UND_ERR_CONNECT_TIMEOUT': return 'Connection timeout. Please check your internet connection.';
-    default: return error.message || 'Something went wrong. Please try again.';
-  }
-};
-```
+### Database Operations
+- **Enhanced error handling** with retry logic and exponential backoff
+- **Proper error mapping** for common Supabase/PostgreSQL errors
+- **Connection timeout handling** for network issues
+- **Transaction support** with rollback capabilities
 
 ### React Query Implementation Patterns
-```typescript
-// Primary data fetching with optimized polling (src/hooks/use-batches-query.ts)
-export function useActiveBatches(pollingInterval = 15000, shift?: 'morning' | 'night') {
-  return useQuery({
-    queryKey: batchQueryKeys.active(shift),
-    queryFn: async () => getActiveBatches(shift),
-    refetchInterval: pollingInterval, // 15 seconds for active batches
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
-    staleTime: 10000, // Data considered fresh for 10 seconds
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    networkMode: 'offlineFirst', // Better UX during network issues
-  });
-}
-
-// Optimistic mutations with rollback (src/hooks/use-batches-query.ts)
-const createBatchMutation = useMutation({
-  mutationFn: createBatch,
-  onMutate: async (newBatchData) => {
-    // Cancel outgoing refetches
-    await queryClient.cancelQueries({ queryKey: batchQueryKeys.active(shift) });
-    
-    // Snapshot previous value
-    const previousBatches = queryClient.getQueryData(batchQueryKeys.active(shift));
-    
-    // Apply optimistic update
-    const optimisticBatch = {
-      id: `temp-${Date.now()}`,
-      ...newBatchData,
-      _isOptimistic: true
-    };
-    
-    queryClient.setQueryData(batchQueryKeys.active(shift), [optimisticBatch, ...previousBatches]);
-    
-    return { previousBatches, shift };
-  },
-  onError: (error, newBatchData, context) => {
-    // Rollback on error
-    if (context?.previousBatches) {
-      queryClient.setQueryData(batchQueryKeys.active(context.shift), context.previousBatches);
-    }
-  },
-  onSuccess: (createdBatch, newBatchData, context) => {
-    // Replace optimistic data with real server response
-    queryClient.setQueryData(batchQueryKeys.active(shift), (old: any) => {
-      const filteredOld = old.filter(batch => !batch._isOptimistic);
-      return [createdBatch, ...filteredOld];
-    });
-  }
-});
-
-// Selective real-time subscriptions (src/hooks/use-realtime-batches.ts)
-export function useRealtimeBatches(options: UseRealtimeBatchesOptions = {}) {
-  const queryClient = useQueryClient();
-  
-  // Only invalidate React Query cache when real-time events occur
-  const invalidateQueries = useCallback(() => {
-    if (shift) {
-      queryClient.invalidateQueries({ 
-        queryKey: batchQueryKeys.active(shift),
-        refetchType: 'active' // Only refetch if component is mounted
-      });
-    }
-  }, [queryClient, shift]);
-  
-  // Supabase subscription setup with error handling
-  const channel = supabase
-    .channel(`batches_realtime_${shift || 'all'}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'batches' }, 
-      (payload) => {
-        console.log(`📡 Real-time batch ${payload.eventType}`);
-        debouncedInvalidate(); // Trigger React Query refetch
-      }
-    )
-    .subscribe();
-}
-```
+- **Primary data fetching** with optimized polling (15-30s intervals)
+- **Optimistic mutations** with automatic rollback on errors
+- **Selective real-time subscriptions** for critical features only
+- **Smart caching strategies** with proper invalidation
+- **Network-aware** with offline-first approach
 
 ### Form Handling
 - React Hook Form with Zod validation schemas
@@ -629,30 +635,11 @@ export function useRealtimeBatches(options: UseRealtimeBatchesOptions = {}) {
 - **Layout**: `/components/layout`
 
 ### Component Standards
-```typescript
-interface ComponentProps {
-  // Always use TypeScript interfaces
-  data: SomeType;
-  onAction?: (data: SomeType) => void;
-  className?: string;
-}
-
-export function Component({ data, onAction, className }: ComponentProps) {
-  // Implement proper loading and error states
-  const [isLoading, setIsLoading] = useState(false);
-  
-  return (
-    <motion.div
-      className={cn("base-styles", className)}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      {/* Content with proper ARIA labels */}
-    </motion.div>
-  );
-}
-```
+- **TypeScript interfaces** for all props
+- **Proper loading and error states** implementation
+- **Framer Motion animations** for smooth transitions
+- **Accessible markup** with ARIA labels
+- **Tailwind CSS** with design system consistency
 
 ## 📊 PERFORMANCE OPTIMIZATIONS
 
@@ -665,26 +652,10 @@ export function Component({ data, onAction, className }: ComponentProps) {
 - **Service Worker**: Offline functionality and caching
 
 ### Database Best Practices
-```typescript
-// Always filter by shift and date for time-sensitive operations
-const getShiftData = async (shift: ShiftType) => {
-  const { startTime, endTime } = getShiftDateRange(shift);
-  
-  return supabase
-    .from('sales_logs')
-    .select(`
-      *,
-      bread_types (name, unit_price)
-    `)
-    .eq('shift', shift)
-    .gte('created_at', startTime)
-    .lt('created_at', endTime)
-    .order('created_at', { ascending: false });
-};
-
-// Use JOINs to get related data in single queries
-// Handle empty result sets gracefully (batches → all_batches fallback)
-```
+- **Shift and date filtering** for all time-sensitive operations
+- **Efficient JOINs** to minimize database round trips
+- **Graceful fallback** handling for empty result sets
+- **Proper indexing** on frequently queried columns
 
 ## 🧪 TESTING & QUALITY ASSURANCE
 
@@ -802,14 +773,45 @@ HomeBake should feel like:
 
 ## 🚨 CRITICAL REMINDERS
 
-1. **NEVER MAKE ASSUMPTIONS** - Always ask or verify implementation details before proceeding
-2. **Always Use TodoWrite Tool** to plan and track tasks
-3. **Never Commit Without Explicit Request** from user
-4. **Always Run Quality Checks** (`type-check` && `lint`) before completion
-5. **Mobile-First Approach** - test on 320px minimum width
-6. **Nigeria Timezone Awareness** - all dates/times in Africa/Lagos
-7. **Production-Ready Code** - error handling, retry logic, offline support
-8. **Ask Questions** when unsure about requirements or implementation details
-9. **Verify Architecture** - This app uses React Query + selective Supabase real-time, not full real-time subscriptions
+1. **MANDATORY INVESTIGATION BEFORE FIXES** - Before performing any fixes, patches, or solutions, ALWAYS:
+   - Read and investigate the entire codebase thoroughly
+   - Check all related files, components, and dependencies
+   - Understand the full context and potential impact of the issue
+   - Identify the best recommended solution approach
+   - Present the findings and proposed solution to the user
+   - Ask "Should I proceed with this solution?" and wait for explicit approval
+   - NEVER implement fixes without this investigation and approval process
+
+2. **WORLD-CLASS PROFESSIONAL STANDARDS** - Act as a professional senior software engineer from top-tier companies (Facebook/Meta, Google, Apple). All fixes must be:
+   - **Enterprise-Grade Quality**: Perfect, professional, production-ready solutions
+   - **Industry Best Practices**: Follow patterns used by major tech companies
+   - **Comprehensive**: Address root causes, not just symptoms
+   - **Future-Proof**: Scalable, maintainable, and extensible
+   - **Well-Documented**: Clear code comments and implementation reasoning
+   - **Performance-Optimized**: Consider efficiency, memory usage, and scalability
+   - **Security-First**: Follow security best practices and threat modeling
+   - **Test-Ready**: Structure code for easy testing and validation
+   - **Code Review Ready**: Clean, readable code that passes senior engineer review standards
+   - **Production-Grade Only**: NEVER provide quick fixes, hacks, or temporary solutions
+   - **Zero Assumptions**: NEVER assume any problem, issue, requirement, or implementation detail
+   - **Certainty Required**: Be absolutely certain of the issue and solution, or ask clarifying questions
+   - **Question Everything**: When in doubt about any aspect, ask specific questions before proceeding
+
+3. **CLEANUP TEMPORARY FILES** - After successfully implementing any solution:
+   - **Show all temporary files created** (test files, SQL scripts, debug files, etc.)
+   - **Ask for permission** before deleting: "Should I delete these temporary files?"
+   - **Wait for explicit approval** before removing any files
+   - **Keep only production-necessary files** in the codebase
+   - **Document what was removed** for transparency
+
+4. **NEVER MAKE ASSUMPTIONS** - Always ask or verify implementation details before proceeding
+5. **Always Use TodoWrite Tool** to plan and track tasks
+6. **Never Commit Without Explicit Request** from user
+7. **Always Run Quality Checks** (`type-check` && `lint`) before completion
+8. **Mobile-First Approach** - test on 320px minimum width
+9. **Nigeria Timezone Awareness** - all dates/times in Africa/Lagos
+10. **Production-Ready Code** - error handling, retry logic, offline support
+11. **Ask Questions** when unsure about requirements or implementation details
+12. **Verify Architecture** - This app uses React Query + selective Supabase real-time, not full real-time subscriptions
 
 Remember: You're building the smartest, smoothest bakery app in the world. Every interaction should be delightful, every feature should be accessible, and every line of code should contribute to that world-class experience. 🍞✨
