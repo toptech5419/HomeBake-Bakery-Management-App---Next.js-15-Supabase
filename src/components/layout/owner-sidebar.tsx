@@ -108,7 +108,8 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        <div className="p-4 border-b">
+        {/* Header */}
+        <div className="flex-shrink-0 p-4 border-b">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
               <span className="text-white font-bold text-lg">🍞</span>
@@ -120,11 +121,11 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
           </div>
         </div>
 
-        {/* Main content with proper flex layout - Full height minus header */}
-        <div className="flex flex-col h-full" style={{ minHeight: 'calc(100vh - 88px)' }}>
-          {/* Navigation Section - takes remaining space */}
-          <div className="flex-1 p-4 overflow-y-auto" style={{ minHeight: 0 }}>
-            <nav className="space-y-2">
+        {/* Mobile-First Layout: Full height container with proper flex */}
+        <div className="flex flex-col" style={{ height: 'calc(100vh - 88px)' }}>
+          {/* Navigation Section - takes available space but allows bottom section */}
+          <div className="flex-1 overflow-y-auto">
+            <nav className="p-4 space-y-2">
               {navigationItems.map((item) => (
                 item.href ? (
                   <Link
@@ -132,7 +133,7 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
                     href={item.href}
                     onClick={onMobileClose}
                     className={`
-                      w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
+                      w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px]
                       ${item.active 
                         ? 'bg-orange-50 text-orange-600 border border-orange-200' 
                         : 'hover:bg-gray-50 text-gray-700'
@@ -150,7 +151,7 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
                       onMobileClose?.();
                     }}
                     className={`
-                      w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
+                      w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 min-h-[44px]
                       ${item.active 
                         ? 'bg-orange-50 text-orange-600 border border-orange-200' 
                         : 'hover:bg-gray-50 text-gray-700'
@@ -165,39 +166,39 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
             </nav>
           </div>
 
-          {/* Bottom Section - User Profile and Sign Out - Always at bottom */}
-          <div className="flex-shrink-0 border-t bg-gray-50 mt-auto">
+          {/* Bottom Section - Always visible, fixed at bottom */}
+          <div className="flex-shrink-0 border-t bg-gray-50">
             {/* User Profile */}
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-3 border-b border-gray-200">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white font-bold">
+                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-bold text-sm">
                     {displayName.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium text-gray-900 truncate">{displayName}</div>
-                  <div className="text-sm text-gray-500">Owner</div>
+                  <div className="font-medium text-gray-900 truncate text-sm">{displayName}</div>
+                  <div className="text-xs text-gray-500">Owner</div>
                 </div>
               </div>
             </div>
             
-            {/* Sign Out Button - Always visible at bottom */}
-            <div className="p-4">
+            {/* Sign Out Button - Compact but always visible */}
+            <div className="p-3">
               <button
                 onClick={handleSignOut}
                 disabled={isSigningOut}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 disabled:opacity-50 border border-red-200 shadow-sm hover:shadow-md"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 disabled:opacity-50 border border-red-200 shadow-sm hover:shadow-md min-h-[44px]"
               >
                 {isSigningOut ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="font-medium">Signing out...</span>
+                    <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="font-medium text-sm">Signing out...</span>
                   </>
                 ) : (
                   <>
-                    <LogOut size={20} />
-                    <span className="font-medium">Sign Out</span>
+                    <LogOut size={18} />
+                    <span className="font-medium text-sm">Sign Out</span>
                   </>
                 )}
               </button>
