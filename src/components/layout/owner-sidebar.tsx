@@ -211,18 +211,6 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
                 )}
               </button>
             </div>
-            
-            {/* Visual indicator for scrollable content above */}
-            <div className="px-3 pb-2">
-              <div className="text-center">
-                <div className="inline-flex items-center gap-1 px-2 py-1 text-xs text-gray-400 bg-gray-100 rounded-full">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
-                  </svg>
-                  <span>Scroll up for more</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

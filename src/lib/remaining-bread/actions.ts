@@ -55,16 +55,21 @@ export async function upsertRemainingBread(
     const results = [];
     const today = new Date().toISOString().split('T')[0];
     
-    // Get current authenticated user ID from Supabase Auth
-    const currentAuthUserId = await getCurrentAuthUserId();
-    if (!currentAuthUserId) {
-      throw new Error('User not authenticated');
+    // Validate that we have data and user IDs are provided
+    if (!remainingData || remainingData.length === 0) {
+      return { success: true, results: [] };
+    }
+
+    // Use the first user ID as reference (all should be the same user)
+    const userId = remainingData[0]?.recorded_by;
+    if (!userId) {
+      throw new Error('User ID not provided in remaining bread data');
     }
 
     console.log('🍞 Database constraint UPSERT starting:', {
       count: remainingData.length,
       today,
-      currentUser: currentAuthUserId.slice(-8)
+      userId: userId.slice(-8)
     });
 
     for (const remaining of remainingData) {
@@ -99,7 +104,7 @@ export async function upsertRemainingBread(
           unit_price: remaining.unit_price,
           // total_value: NOT SET - it's auto-generated as (quantity * unit_price)
           shift: remaining.shift,
-          recorded_by: currentAuthUserId,
+          recorded_by: remaining.recorded_by,
           record_date: today,
           updated_at: new Date().toISOString()
         }, {

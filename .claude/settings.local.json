@@ -84,7 +84,13 @@
       "WebFetch(domain:home-bake-bakery-management-app-next-js-15-supabase-2qk82bsgg.vercel.app)",
       "mcp__sequential-thinking__sequentialthinking",
       "mcp__supabase__execute_sql",
-      "mcp__supabase__apply_migration"
+      "mcp__supabase__apply_migration",
+      "mcp__filesystem__search_files",
+      "mcp__filesystem__edit_file",
+      "Read(/c:\\Users\\TOPTECH\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\\TempState\\BE3C7FE586AB8B69887E6B0F52BFE9B9/**)",
+      "Read(/c:\\Users\\TOPTECH\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\\TempState\\8870F76779E7C585E74CDB4F300921F1/**)",
+      "Read(/c:\\Users\\TOPTECH\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\\TempState\\1654F6096DE3A8D08D244EEAC21DEE2A/**)",
+      "Read(/c:\\Users\\TOPTECH\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\\TempState\\DDF79CABFA698A8D8A713582D8A3FBFF/**)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
