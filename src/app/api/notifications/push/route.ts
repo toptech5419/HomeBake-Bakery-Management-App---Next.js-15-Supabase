@@ -134,61 +134,67 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Get owners with push notifications enabled
-    const { data: owners, error: ownersError } = await supabase
-      .from('users')
+    // Get owners with push notifications enabled using the same reliable approach as the working endpoint
+    // First get all enabled push notification subscriptions
+    const { data: subscriptions, error: subscriptionError } = await supabase
+      .from('push_notification_preferences')
       .select(`
-        id,
-        name,
-        push_notification_preferences!inner (
-          enabled,
-          endpoint,
-          p256dh_key,
-          auth_key
-        )
+        user_id,
+        endpoint,
+        p256dh_key,
+        auth_key
       `)
-      .eq('role', 'owner')
-      .eq('is_active', true)
-      .eq('push_notification_preferences.enabled', true) as {
-        data: OwnerWithPreferences[] | null;
-        error: DatabaseError | null;
-      };
+      .eq('enabled', true)
+      .not('endpoint', 'is', null);
 
-    if (ownersError) {
-      console.error('Database error fetching owners:', ownersError);
-      return NextResponse.json({ 
-        success: false,
-        error: 'Database error' 
-      }, { status: 500 });
+    if (subscriptionError) {
+      console.error('❌ Failed to fetch subscriptions:', subscriptionError);
+      return NextResponse.json(
+        { error: 'Failed to fetch subscriptions', details: subscriptionError.message }, 
+        { status: 500 }
+      );
     }
 
-    if (!owners?.length) {
+    if (!subscriptions || subscriptions.length === 0) {
       return NextResponse.json({ 
-        success: true,
-        message: 'No owners with push notifications enabled',
-        sent: 0,
-        total: 0
+        success: true, 
+        message: 'No subscriptions to notify',
+        sent: 0 
       });
     }
 
-    // Filter and validate subscriptions
-    const validOwners = owners.filter(owner => {
-      const prefs = owner.push_notification_preferences;
-      return Array.isArray(prefs) && 
-             prefs.length > 0 && 
-             prefs[0]?.endpoint && 
-             prefs[0]?.p256dh_key && 
-             prefs[0]?.auth_key;
-    });
+    // Filter subscriptions to only include owners by checking profiles table
+    const userIds = subscriptions.map(sub => sub.user_id);
+    const { data: ownerProfiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, name')
+      .in('id', userIds)
+      .eq('role', 'owner');
 
-    if (!validOwners.length) {
+    if (profileError) {
+      console.error('❌ Failed to fetch owner profiles:', profileError);
+      return NextResponse.json(
+        { error: 'Failed to fetch owner profiles', details: profileError.message }, 
+        { status: 500 }
+      );
+    }
+
+    const ownerIds = new Set((ownerProfiles || []).map(profile => profile.id));
+    const ownerSubscriptions = subscriptions.filter(sub => ownerIds.has(sub.user_id));
+
+    if (ownerSubscriptions.length === 0) {
       return NextResponse.json({ 
-        success: true,
-        message: 'No valid push notification subscriptions found',
-        sent: 0,
-        total: owners.length
+        success: true, 
+        message: 'No owner subscriptions to notify',
+        sent: 0 
       });
     }
+
+    const ownersError = null; // No error since we got subscriptions successfully
+    const owners = ownerSubscriptions; // Use the filtered subscriptions
+
+    // All filtering and validation is already done above
+    const validOwners = owners; // owners is already the filtered ownerSubscriptions
 
     // Prepare notification payload
     const payload = {
@@ -215,19 +221,18 @@ export async function POST(request: NextRequest) {
 
     // Send notifications with proper error handling
     const results = await Promise.allSettled(
-      validOwners.map(async (owner): Promise<{ success: boolean; owner: string; error?: string }> => {
-        const preferences = owner.push_notification_preferences[0];
-        const subscription: PushSubscription = {
-          endpoint: preferences.endpoint!,
+      validOwners.map(async (subscription): Promise<{ success: boolean; user: string; error?: string }> => {
+        const pushSubscription: PushSubscription = {
+          endpoint: subscription.endpoint!,
           keys: {
-            p256dh: preferences.p256dh_key!,
-            auth: preferences.auth_key!
+            p256dh: subscription.p256dh_key!,
+            auth: subscription.auth_key!
           }
         };
 
         try {
           await webpush.sendNotification(
-            subscription,
+            pushSubscription,
             JSON.stringify(payload),
             {
               TTL: 24 * 60 * 60, // 24 hours
@@ -235,10 +240,10 @@ export async function POST(request: NextRequest) {
             }
           );
 
-          return { success: true, owner: owner.name };
+          return { success: true, user: subscription.user_id };
         } catch (error: unknown) {
           const webPushError = error as { statusCode?: number; message?: string; };
-          console.error(`Push notification failed for ${owner.name}:`, webPushError.message);
+          console.error(`Push notification failed for user ${subscription.user_id}:`, webPushError.message);
           
           // Clean up invalid subscriptions
           if (webPushError.statusCode === 410 || webPushError.statusCode === 404 || webPushError.statusCode === 403) {
@@ -251,13 +256,12 @@ export async function POST(request: NextRequest) {
                 auth_key: null,
                 updated_at: new Date().toISOString()
               })
-              .eq('user_id', owner.id)
-              .single();
+              .eq('user_id', subscription.user_id);
           }
 
           return { 
             success: false, 
-            owner: owner.name, 
+            user: subscription.user_id, 
             error: webPushError.message || 'Unknown error' 
           };
         }
@@ -290,7 +294,7 @@ export async function POST(request: NextRequest) {
         if (result.status === 'rejected') {
           return { error: result.reason };
         } else if (result.status === 'fulfilled' && !result.value.success) {
-          return { owner: result.value.owner, error: result.value.error };
+          return { user: result.value.user, error: result.value.error };
         }
         return null;
       }).filter(Boolean));

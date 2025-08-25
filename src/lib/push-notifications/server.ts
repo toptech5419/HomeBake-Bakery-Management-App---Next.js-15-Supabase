@@ -38,7 +38,7 @@ export async function triggerPushNotification(data: NotificationData): Promise<v
     // Production-grade solution: Use fetch to call our push notification API
     // This prevents server component crashes by using proper API architecture
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const apiUrl = `${baseUrl}/api/notifications/push`;
+    const apiUrl = `${baseUrl}/api/push-notifications`;
     
     console.log('📡 Sending push notification via API:', apiUrl);
     
