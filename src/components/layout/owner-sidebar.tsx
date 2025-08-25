@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Users, Package, FileText, LogOut } from 'lucide-react';
@@ -23,6 +23,20 @@ interface NavigationItem {
 export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName }: OwnerSidebarProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const pathname = usePathname();
+
+  // Lock body scroll when sidebar is open
+  useEffect(() => {
+    if (isMobileOpen) {
+      // Store original overflow style to restore later
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      
+      // Cleanup: restore original overflow when sidebar closes
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isMobileOpen]);
 
   const navigationItems: NavigationItem[] = [
     {
@@ -107,9 +121,9 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
         </div>
 
         {/* Main content with proper flex layout - Full height minus header */}
-        <div className="flex flex-col" style={{ height: 'calc(100vh - 88px)' }}>
+        <div className="flex flex-col h-full" style={{ minHeight: 'calc(100vh - 88px)' }}>
           {/* Navigation Section - takes remaining space */}
-          <div className="flex-1 p-4 overflow-y-auto">
+          <div className="flex-1 p-4 overflow-y-auto" style={{ minHeight: 0 }}>
             <nav className="space-y-2">
               {navigationItems.map((item) => (
                 item.href ? (
@@ -152,7 +166,7 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
           </div>
 
           {/* Bottom Section - User Profile and Sign Out - Always at bottom */}
-          <div className="flex-shrink-0 border-t bg-gray-50">
+          <div className="flex-shrink-0 border-t bg-gray-50 mt-auto">
             {/* User Profile */}
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-center gap-3">

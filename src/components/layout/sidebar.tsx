@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserRole } from '@/types';
@@ -76,6 +76,20 @@ export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarPr
   const [isSigningOut, setIsSigningOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  // Lock body scroll when sidebar is open
+  useEffect(() => {
+    if (isMobileOpen) {
+      // Store original overflow style to restore later
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      
+      // Cleanup: restore original overflow when sidebar closes
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isMobileOpen]);
 
   const filteredNavigation = navigationItems.filter(item =>
     item.requiredRole.includes(role)
