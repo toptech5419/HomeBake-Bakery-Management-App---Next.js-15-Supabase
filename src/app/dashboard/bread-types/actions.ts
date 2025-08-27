@@ -12,7 +12,14 @@ import { User } from '@/types/database';
 
 export async function createBreadTypeAction(user: unknown, input: unknown) {
   try {
-    await createBreadType(user as User, input as any);
+    // Convert User type from database.ts to rbac.ts format
+    const rbacUser = user as { id: string; email?: string | null; role: string };
+    const convertedUser = {
+      id: rbacUser.id,
+      email: rbacUser.email || undefined,
+      role: rbacUser.role as 'owner' | 'manager' | 'sales_rep'
+    };
+    await createBreadType(convertedUser, input as any);
     revalidatePath('/dashboard/bread-types');
     return { success: true };
   } catch {
@@ -22,7 +29,14 @@ export async function createBreadTypeAction(user: unknown, input: unknown) {
 
 export async function updateBreadTypeAction(user: unknown, id: string, input: unknown) {
   try {
-    await updateBreadType(user as User, id, input as any);
+    // Convert User type from database.ts to rbac.ts format
+    const rbacUser = user as { id: string; email?: string | null; role: string };
+    const convertedUser = {
+      id: rbacUser.id,
+      email: rbacUser.email || undefined,
+      role: rbacUser.role as 'owner' | 'manager' | 'sales_rep'
+    };
+    await updateBreadType(convertedUser, id, input as any);
     revalidatePath('/dashboard/bread-types');
     return { success: true };
   } catch {
@@ -32,7 +46,14 @@ export async function updateBreadTypeAction(user: unknown, id: string, input: un
 
 export async function deleteBreadTypeAction(user: unknown, id: string) {
   try {
-    await deleteBreadType(user as User, id);
+    // Convert User type from database.ts to rbac.ts format
+    const rbacUser = user as { id: string; email?: string | null; role: string };
+    const convertedUser = {
+      id: rbacUser.id,
+      email: rbacUser.email || undefined,
+      role: rbacUser.role as 'owner' | 'manager' | 'sales_rep'
+    };
+    await deleteBreadType(convertedUser, id);
     revalidatePath('/dashboard/bread-types');
     return { success: true };
   } catch (error) {
@@ -54,7 +75,14 @@ export async function refetchBreadTypesAction(includeInactive: boolean = false) 
 // New server actions for soft delete operations
 export async function deactivateBreadTypeAction(user: unknown, id: string) {
   try {
-    await deactivateBreadType(user as User, id);
+    // Convert User type from database.ts to rbac.ts format
+    const rbacUser = user as { id: string; email?: string | null; role: string };
+    const convertedUser = {
+      id: rbacUser.id,
+      email: rbacUser.email || undefined,
+      role: rbacUser.role as 'owner' | 'manager' | 'sales_rep'
+    };
+    await deactivateBreadType(convertedUser, id);
     revalidatePath('/dashboard/bread-types');
     return { success: true };
   } catch (error) {
@@ -66,7 +94,14 @@ export async function deactivateBreadTypeAction(user: unknown, id: string) {
 
 export async function reactivateBreadTypeAction(user: unknown, id: string) {
   try {
-    await reactivateBreadType(user as User, id);
+    // Convert User type from database.ts to rbac.ts format
+    const rbacUser = user as { id: string; email?: string | null; role: string };
+    const convertedUser = {
+      id: rbacUser.id,
+      email: rbacUser.email || undefined,
+      role: rbacUser.role as 'owner' | 'manager' | 'sales_rep'
+    };
+    await reactivateBreadType(convertedUser, id);
     revalidatePath('/dashboard/bread-types');
     return { success: true };
   } catch (error) {

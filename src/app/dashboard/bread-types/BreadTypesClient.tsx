@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { withRetry } from '@/lib/utils/error-handling';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { QUERY_KEYS } from '@/lib/react-query/config';
 
 interface User {
   id: string;
@@ -25,14 +27,25 @@ interface User {
 }
 
 export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }: { breadTypes: BreadType[]; user: User }) {
-  const [allBreadTypes, setAllBreadTypes] = useState(initialBreadTypes); // Store ALL bread types
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const router = useRouter();
   const { showNotification } = useMobileNotifications();
+  const queryClient = useQueryClient();
+  
+  // Use React Query for bread types data management
+  const { data: allBreadTypes = initialBreadTypes, isLoading: isRefreshing, refetch: refetchQuery } = useQuery({
+    queryKey: QUERY_KEYS.breadTypes.all(),
+    queryFn: async () => {
+      return await refetchBreadTypesAction(true); // Always fetch all (active + inactive)
+    },
+    initialData: initialBreadTypes,
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: true,
+    refetchOnMount: false, // Don't refetch on mount since we have initial data
+  });
   
   // Filter bread types for display based on showInactive toggle
   const breadTypes = showInactive 
@@ -41,15 +54,10 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
 
   const refetchBreadTypes = async (showSuccessMessage: boolean = false) => {
     try {
-      setIsRefreshing(true);
       setLoadingId('refetch');
       
-      // Always fetch ALL bread types (active AND inactive) to maintain complete dataset
-      const updated = await withRetry(async () => {
-        return await refetchBreadTypesAction(true); // Always include inactive
-      }, 3, 1000);
-      
-      setAllBreadTypes(updated);
+      // Use React Query's refetch for proper cache management
+      await refetchQuery();
       
       if (showSuccessMessage) {
         showNotification(NotificationHelpers.success('Success', 'Bread types refreshed successfully!'));
@@ -59,7 +67,6 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       showNotification(NotificationHelpers.error('Error', 'Failed to refresh bread types. Please try again.'));
     } finally {
       setLoadingId(null);
-      setIsRefreshing(false);
     }
   };
 
@@ -82,6 +89,9 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       
       if (result?.success) {
         showNotification(NotificationHelpers.success('Bread Type Deactivated', `"${breadType.name}" has been deactivated and hidden from daily operations. Click "Show Inactive" to view and reactivate it.`));
+        
+        // Invalidate React Query cache to ensure fresh data
+        await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.breadTypes.all() });
         await refetchBreadTypes(false);
       } else {
         showNotification(NotificationHelpers.error('Error', result?.error || `Failed to deactivate "${breadType.name}". Please try again.`));
@@ -110,6 +120,9 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       
       if (result?.success) {
         showNotification(NotificationHelpers.success('Bread Type Reactivated', `"${breadType.name}" is now active and available for daily operations again!`));
+        
+        // Invalidate React Query cache to ensure fresh data
+        await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.breadTypes.all() });
         await refetchBreadTypes(false);
       } else {
         showNotification(NotificationHelpers.error('Error', result?.error || `Failed to reactivate "${breadType.name}". Please try again.`));
@@ -149,6 +162,9 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       
       if (result?.success) {
         showNotification(NotificationHelpers.success('Success', `"${breadType.name}" permanently deleted successfully!`));
+        
+        // Invalidate React Query cache to ensure fresh data
+        await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.breadTypes.all() });
         await refetchBreadTypes(false);
       } else {
         showNotification(NotificationHelpers.error('Error', result?.error || `Failed to delete "${breadType.name}". Please try again.`));

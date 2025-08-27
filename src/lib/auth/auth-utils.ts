@@ -33,26 +33,24 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthUser | null> => 
       .from('users')
       .select('id, email, name, role, is_active, created_at')
       .eq('id', authUser.id)
-      .eq('is_active', true)
-      .single();
+      .single(); // Remove .eq('is_active', true) to check status explicitly
     
     if (profileError || !userProfile) {
-      // Fallback to auth metadata if database profile doesn't exist
-      const metadata = authUser.user_metadata;
-      
-      if (!metadata?.role || !metadata?.name) {
-        console.warn(`User ${authUser.id} has no profile in database and insufficient metadata`);
+      // If user doesn't exist in database, they should not have access
+      if (profileError?.code === 'PGRST116') {
+        console.warn(`User ${authUser.id} authenticated but not found in database - possible deleted/invalid user`);
         return null;
       }
       
-      return {
-        id: authUser.id,
-        email: authUser.email,
-        name: metadata.name,
-        role: metadata.role as UserRole,
-        is_active: true,
-        created_at: authUser.created_at
-      };
+      // For any other error, deny access (security-first approach)
+      console.error(`Database error for user ${authUser.id}:`, profileError);
+      return null;
+    }
+    
+    // 🔒 CRITICAL SECURITY CHECK: Verify user is active
+    if (!userProfile.is_active) {
+      console.warn(`Inactive user ${authUser.id} blocked from access`);
+      return null;
     }
     
     return {

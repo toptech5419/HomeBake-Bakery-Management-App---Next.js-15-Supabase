@@ -15,33 +15,73 @@ interface User {
   is_active?: boolean;
 }
 
-export default function UsersClient({ users: initialUsers, user }: { users: User[]; user: User }) {
+interface Props {
+  users: User[];
+  user: User;
+  refreshTrigger?: number;
+}
+
+export default function UsersClient({ users: initialUsers, user, refreshTrigger }: Props) {
   const [users, setUsers] = useState(initialUsers);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
+  const [lastRefreshTrigger, setLastRefreshTrigger] = useState(refreshTrigger);
   const toast = useToast();
 
+  // 🚀 AUTO-SYNC: Update users when server data changes
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger !== lastRefreshTrigger) {
+      setUsers(initialUsers);
+      setLastRefreshTrigger(refreshTrigger);
+    }
+  }, [initialUsers, refreshTrigger, lastRefreshTrigger]);
+
+  // 🚀 AUTO-REFRESH: Refresh when page becomes visible (user returns)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !document.hidden) {
+        refetchUsers();
+      }
+    };
+
+    const handleFocus = () => {
+      refetchUsers();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  // 🚀 ENHANCED REFETCH with proper error handling
   const refetchUsers = async () => {
     try {
       setIsRefreshing(true);
       setLoadingId('refetch');
+      
       const result = await refetchUsersAction(user);
+      
       if (result.success && Array.isArray(result.users)) {
         setUsers(result.users);
+        console.log(`✅ Users refreshed successfully: ${result.users.length} users loaded`);
       } else if (result.success && result.users) {
         setUsers(Array.isArray(result.users) ? result.users : []);
       } else {
         setUsers([]);
         toast.error(result.error || 'Failed to fetch users. Please refresh the page.');
       }
-    } catch {
-      setUsers([]);
-      toast.error('An unexpected error occurred while fetching users.');
+    } catch (error) {
+      console.error('Error refetching users:', error);
+      toast.error('Failed to refresh users');
     } finally {
-      setLoadingId(null);
       setIsRefreshing(false);
+      setLoadingId(null);
     }
   };
 
@@ -54,15 +94,26 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
       setLoadingAction(null);
       return;
     }
+    
+    // Optimistic update
+    const originalUsers = users;
+    setUsers(users.map(u => u.id === target.id ? { ...u, role: newRole } : u));
+    
     try {
       const result = await updateUserRoleAction(user, target.id, newRole);
+      
       if (result.success) {
         toast.success('Role updated successfully!');
+        // Force fresh data from server
         await refetchUsers();
       } else {
+        // Rollback optimistic update
+        setUsers(originalUsers);
         toast.error(result.error || 'Failed to update user role.');
       }
-    } catch {
+    } catch (error) {
+      // Rollback optimistic update
+      setUsers(originalUsers);
       toast.error('An unexpected error occurred while updating the role.');
     } finally {
       setLoadingId(null);
@@ -70,18 +121,30 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
     }
   };
 
+  // 🚀 ENHANCED USER ACTIONS with immediate UI feedback + server sync
   const handleDeactivate = async (target: User) => {
     setLoadingId(target.id);
     setLoadingAction('deactivate');
+    
+    // Optimistic update
+    const originalUsers = users;
+    setUsers(users.map(u => u.id === target.id ? { ...u, is_active: false } : u));
+    
     try {
       const result = await deactivateUserAction(user, target.id);
+      
       if (result.success) {
         toast.success('User deactivated successfully!');
+        // Force fresh data from server
         await refetchUsers();
       } else {
+        // Rollback optimistic update
+        setUsers(originalUsers);
         toast.error(result.error || 'Failed to deactivate user.');
       }
-    } catch {
+    } catch (error) {
+      // Rollback optimistic update
+      setUsers(originalUsers);
       toast.error('An unexpected error occurred while deactivating the user.');
     } finally {
       setLoadingId(null);
@@ -92,15 +155,26 @@ export default function UsersClient({ users: initialUsers, user }: { users: User
   const handleReactivate = async (target: User) => {
     setLoadingId(target.id);
     setLoadingAction('reactivate');
+    
+    // Optimistic update
+    const originalUsers = users;
+    setUsers(users.map(u => u.id === target.id ? { ...u, is_active: true } : u));
+    
     try {
       const result = await reactivateUserAction(user, target.id);
+      
       if (result.success) {
         toast.success('User reactivated successfully!');
+        // Force fresh data from server
         await refetchUsers();
       } else {
+        // Rollback optimistic update
+        setUsers(originalUsers);
         toast.error(result.error || 'Failed to reactivate user.');
       }
-    } catch {
+    } catch (error) {
+      // Rollback optimistic update
+      setUsers(originalUsers);
       toast.error('An unexpected error occurred while reactivating the user.');
     } finally {
       setLoadingId(null);

@@ -69,7 +69,7 @@ export async function login(prevState: { error?: string }, formData: FormData) {
   try {
     const { data: profile, error: profileError } = await supabase
       .from('users')
-      .select('role, name')
+      .select('role, name, is_active')
       .eq('id', authData.user.id)
       .single();
 
@@ -96,13 +96,24 @@ export async function login(prevState: { error?: string }, formData: FormData) {
               is_active: true
             });
         } else {
+          // Sign out the user immediately if no profile exists
+          await supabase.auth.signOut();
           return { error: 'User profile not found. Please contact your bakery owner for access.' }
         }
       } else {
         console.error('Profile fetch error:', profileError);
+        await supabase.auth.signOut();
         return { error: 'Failed to verify user account. Please try again.' }
       }
     } else if (profile) {
+      // 🔒 CRITICAL: Check if user is active before proceeding
+      if (!profile.is_active) {
+        console.warn(`Deactivated user ${authData.user.id} attempted login - denying access`);
+        // Immediately sign out the deactivated user
+        await supabase.auth.signOut();
+        return { error: 'Your account has been deactivated. Please contact your bakery owner.' };
+      }
+      
       userRole = profile.role as UserRole;
       displayName = profile.name || displayName;
     }

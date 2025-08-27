@@ -4,7 +4,14 @@ import UsersClient from './UsersClient';
 import { OwnerPageWrapper } from '@/components/layout/OwnerPageWrapper';
 import { Suspense } from 'react';
 
+// Force complete dynamic rendering with no caching
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 export default async function UsersPage() {
+  // Force fresh data by adding unique timestamp
+  const requestTime = Date.now();
   // Get current user from Supabase session
   const supabase = await createServerComponentClient();
   const { data } = await supabase.auth.getUser();
@@ -35,8 +42,14 @@ export default async function UsersPage() {
 
   return (
     <OwnerPageWrapper displayName={displayName}>
-      <Suspense fallback={<div>Loading...</div>}>
-        <UsersClient users={users} user={user} />
+      <Suspense fallback={<div>Loading users...</div>}>
+        {/* Force re-render with unique key */}
+        <UsersClient 
+          key={`users-${requestTime}`} 
+          users={users} 
+          user={user} 
+          refreshTrigger={requestTime}
+        />
       </Suspense>
     </OwnerPageWrapper>
   );
