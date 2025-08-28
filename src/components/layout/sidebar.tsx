@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserRole } from '@/types';
-import { useRouter } from 'next/navigation';
+import { useLayoutAwareNavigation, createSmartLinkProps } from '@/hooks/use-smart-navigation';
 import { motion } from 'framer-motion';
 
 interface SidebarProps {
@@ -72,10 +72,9 @@ const navigationItems: NavigationItem[] = [
 ];
 
 export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarProps) {
-  const [isNavigating, setIsNavigating] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
+  const { navigateWithOverlayClose, isNavigating } = useLayoutAwareNavigation();
 
   // Lock body scroll when sidebar is open
   useEffect(() => {
@@ -114,17 +113,8 @@ export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarPr
       return;
     }
     
-    setIsNavigating(true);
-    onMobileClose?.();
-    
-    try {
-      await router.push(href);
-    } catch (error) {
-      console.error('Navigation error:', error);
-    } finally {
-      // Always reset navigation state after a short delay
-      setTimeout(() => setIsNavigating(false), 500);
-    }
+    // Use smart navigation that prevents layout-router warnings
+    navigateWithOverlayClose(href, onMobileClose);
   };
 
   const handleSignOut = async () => {
@@ -214,7 +204,7 @@ export function Sidebar({ role, isMobileOpen = false, onMobileClose }: SidebarPr
                   transition={{ delay: index * 0.1 }}
                 >
                   <Link
-                    href={item.href}
+                    {...createSmartLinkProps(item.href)}
                     onClick={(e) => handleNavigation(e, item.href)}
                     className={`
                       flex items-center min-h-[48px] px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 hover-scale focus-ring

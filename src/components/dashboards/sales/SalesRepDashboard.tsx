@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useSmartNavigation } from '@/hooks/use-smart-navigation';
 import {
   DollarSign,
   ShoppingCart,
@@ -79,7 +79,7 @@ interface SalesLog {
 export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) {
   const { currentShift, setCurrentShift } = useShift();
   const { setEndShiftHandler } = useEndShiftContext();
-  const router = useRouter();
+  const { smartPush } = useSmartNavigation();
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     todaySales: 0,
     transactions: 0,
@@ -346,7 +346,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
   }, [setEndShiftHandler, handleEndShift]);
 
   const handleNavigation = (path: string) => {
-    router.push(path);
+    smartPush(path);
   };
 
 

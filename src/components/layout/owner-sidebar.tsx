@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Users, Package, FileText, LogOut } from 'lucide-react';
+import { createSmartLinkProps, useLayoutAwareNavigation } from '@/hooks/use-smart-navigation';
 import { supabase } from '@/lib/supabase/client';
 
 interface OwnerSidebarProps {
@@ -23,6 +24,7 @@ interface NavigationItem {
 export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName }: OwnerSidebarProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const pathname = usePathname();
+  const { navigateWithOverlayClose, isNavigating } = useLayoutAwareNavigation();
 
   // Lock body scroll when sidebar is open
   useEffect(() => {
@@ -135,14 +137,18 @@ export function OwnerSidebar({ isMobileOpen = false, onMobileClose, displayName 
                 item.href ? (
                   <Link
                     key={item.href}
-                    href={item.href}
-                    onClick={onMobileClose}
+                    {...createSmartLinkProps(item.href)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigateWithOverlayClose(item.href!, onMobileClose);
+                    }}
                     className={`
                       w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all duration-200 min-h-[40px] text-sm
                       ${item.active 
                         ? 'bg-orange-50 text-orange-600 border border-orange-200 font-medium' 
                         : 'hover:bg-gray-50 text-gray-700'
                       }
+                      ${isNavigating ? 'pointer-events-none opacity-50' : ''}
                     `}
                   >
                     <item.icon size={18} />

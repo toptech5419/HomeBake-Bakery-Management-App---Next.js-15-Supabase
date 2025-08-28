@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { TrendingUp, Users, Settings, ChevronRight, UserPlus } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useSmartNavigation } from '@/hooks/use-smart-navigation';
 import { OwnerHeader } from '@/components/layout/owner-header';
 import { OwnerSidebar } from '@/components/layout/owner-sidebar';
 import { useOwnerDashboard } from '@/hooks/use-owner-dashboard';
@@ -19,7 +19,7 @@ interface OwnerDashboardClientProps {
 
 
 export default function OwnerDashboardClient({ displayName, user }: OwnerDashboardClientProps) {
-  const router = useRouter();
+  const { smartPush } = useSmartNavigation();
   const { stats, isLoading, error, refetch } = useOwnerDashboard();
   const { totalCount } = useReportCounters();
   const { activities, isLoading: activitiesLoading, refetch: refetchActivities } = useActivities({
@@ -53,19 +53,19 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
 
 
   const handleAddStaffMember = () => {
-    router.push('/dashboard/users/invite');
+    smartPush('/dashboard/users/invite');
   };
 
   const handleCheckReports = () => {
-    router.push('/owner-dashboard/reports');
+    smartPush('/owner-dashboard/reports');
   };
 
   const handlePerformanceCheck = () => {
-    router.push('/owner-dashboard/performance');
+    smartPush('/owner-dashboard/performance');
   };
 
   const handleViewAllNotifications = () => {
-    router.push('/owner-dashboard/notifications');
+    smartPush('/owner-dashboard/notifications');
   };
 
 
