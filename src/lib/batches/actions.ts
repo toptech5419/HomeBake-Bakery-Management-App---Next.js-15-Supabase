@@ -117,11 +117,25 @@ export async function createBatch(data: Omit<CreateBatchData, 'batch_number'>) {
   return batch;
 }
 
-// Get all batches
+// Get all batches with role-based filtering
 export async function getBatches() {
   const supabase = await createServer();
   
-  const { data: batches, error } = await supabase
+  // Get current user and role
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    throw new Error('Authentication required');
+  }
+
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const userRole = userProfile?.role || 'sales_rep';
+  
+  let query = supabase
     .from('batches')
     .select(`
       *,
@@ -130,8 +144,15 @@ export async function getBatches() {
         name,
         unit_price
       )
-    `)
-    .order('created_at', { ascending: false });
+    `);
+
+  // Role-based filtering: Manager isolation, Owner/Sales Rep see all
+  if (userRole === 'manager') {
+    query = query.eq('created_by', user.id);
+  }
+  // Owner and sales_rep see all batches (no filter)
+  
+  const { data: batches, error } = await query.order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching batches:', error);
@@ -141,11 +162,25 @@ export async function getBatches() {
   return batches;
 }
 
-// Get active batches
+// Get active batches with role-based filtering
 export async function getActiveBatches() {
   const supabase = await createServer();
   
-  const { data: batches, error } = await supabase
+  // Get current user and role
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    throw new Error('Authentication required');
+  }
+
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const userRole = userProfile?.role || 'sales_rep';
+  
+  let query = supabase
     .from('batches')
     .select(`
       *,
@@ -155,8 +190,15 @@ export async function getActiveBatches() {
         unit_price
       )
     `)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false });
+    .eq('status', 'active');
+
+  // Role-based filtering: Manager isolation, Owner/Sales Rep see all
+  if (userRole === 'manager') {
+    query = query.eq('created_by', user.id);
+  }
+  // Owner and sales_rep see all active batches (no filter)
+  
+  const { data: batches, error } = await query.order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching active batches:', error);
@@ -461,13 +503,39 @@ export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<voi
   }
 }
 
-// Get batch statistics
+// Get batch statistics with role-based filtering
 export async function getBatchStats() {
   const supabase = await createServer();
   
-  const { data: stats, error } = await supabase
+  // Get current user and role
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return {
+      activeBatches: 0,
+      completedBatches: 0,
+      totalActualQuantity: 0,
+    };
+  }
+
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const userRole = userProfile?.role || 'sales_rep';
+  
+  let query = supabase
     .from('batches')
     .select('status, actual_quantity');
+
+  // Role-based filtering: Manager isolation, Owner/Sales Rep see all
+  if (userRole === 'manager') {
+    query = query.eq('created_by', user.id);
+  }
+  // Owner and sales_rep see all batch stats (no filter)
+
+  const { data: stats, error } = await query;
 
   if (error) {
     console.error('Error fetching batch stats:', error);

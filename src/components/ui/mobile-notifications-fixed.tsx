@@ -192,7 +192,7 @@ export function MobileNotificationProvider({ children }: { children: React.React
       {/* Enhanced mobile-first notification container */}
       <div 
         className={cn(
-          "fixed z-[9999] pointer-events-none",
+          "fixed z-40 pointer-events-none",
           // Use Tailwind responsive classes instead of inline styles
           isDesktop 
             ? "top-4 right-4 left-auto bottom-auto" 

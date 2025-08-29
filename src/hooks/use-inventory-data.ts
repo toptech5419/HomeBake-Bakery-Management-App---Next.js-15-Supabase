@@ -113,11 +113,11 @@ export function useInventoryData(user?: any) {
 
       const data = await response.json();
       console.log(`📊 Inventory API Response:`, {
-        items: data.data?.length || 0,
-        totalUnits: data.totalUnits || 0,
-        source: data.source,
-        shift: data.shift,
-        debug: data.debug
+        items: Array.isArray(data?.data) ? data.data.length : 0,
+        totalUnits: typeof data?.totalUnits === 'number' ? data.totalUnits : 0,
+        source: data?.source || 'unknown',
+        shift: data?.shift || 'unknown',
+        debug: data?.debug || 'none'
       });
 
       return data;
@@ -181,10 +181,10 @@ export function useInventoryData(user?: any) {
   };
 
   const dataSourceInfo = {
-    source: inventoryData.source || 'batches',
-    totalBatches: inventoryData.totalBatches || 0,
-    totalArchivedBatches: inventoryData.totalArchivedBatches || 0,
-    recordCount: inventoryData.recordCount || 0,
+    source: inventoryData?.source || 'batches',
+    totalBatches: typeof inventoryData?.totalBatches === 'number' ? inventoryData.totalBatches : 0,
+    totalArchivedBatches: typeof inventoryData?.totalArchivedBatches === 'number' ? inventoryData.totalArchivedBatches : 0,
+    recordCount: typeof inventoryData?.recordCount === 'number' ? inventoryData.recordCount : 0,
     timeUntilNextShift: timeUntilNextShift,
     nextShiftTime: currentShift === 'morning' ? '10:00 PM' : '10:00 AM',
     refreshData: refetch,
@@ -194,8 +194,8 @@ export function useInventoryData(user?: any) {
   };
 
   return {
-    inventory: inventoryData.data || [],
-    totalUnits: inventoryData.totalUnits || 0,
+    inventory: Array.isArray(inventoryData?.data) ? inventoryData.data : [],
+    totalUnits: typeof inventoryData?.totalUnits === 'number' ? inventoryData.totalUnits : 0,
     isLoading: isLoading || shiftLoading,
     error,
     refetch,

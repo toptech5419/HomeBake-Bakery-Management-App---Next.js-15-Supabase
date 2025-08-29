@@ -719,7 +719,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       {/* Back Navigation Loading Overlay - True Full Screen */}
       {isNavigatingBack && (
         <div 
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-[9999] pointer-events-auto"
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-40 pointer-events-auto"
           style={{ 
             touchAction: 'none',
             width: '100vw',
@@ -764,7 +764,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       {/* End Shift Loading Overlay - True Full Screen */}
       {submitting && (
         <div 
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-[9999] pointer-events-auto"
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-40 pointer-events-auto"
           style={{ 
             touchAction: 'none',
             width: '100vw',
@@ -1096,7 +1096,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       {/* Confirmation Modal - True Full Screen */}
       {showConfirmationModal && !submitting && (
         <div 
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-[9999] pointer-events-auto"
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-40 pointer-events-auto"
           style={{ 
             touchAction: 'none',
             width: '100vw',
@@ -1169,7 +1169,7 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       {/* Feedback Modal - Mobile-First Responsive Design */}
       {showFeedbackModal && !submitting && (
         <div 
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-[9999] pointer-events-auto"
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-40 pointer-events-auto"
           style={{ 
             touchAction: 'none',
             width: '100vw',

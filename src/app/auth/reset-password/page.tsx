@@ -13,7 +13,8 @@ interface ResetPasswordState {
   error?: { 
     password?: string[];
     confirmPassword?: string[];
-    _form?: string;
+  } | {
+    _form: string;
   };
 }
 
@@ -211,10 +212,10 @@ export default function ResetPasswordPage() {
                 disabled={isPending}
                 className="min-h-[44px] text-sm md:text-base"
                 placeholder="Enter your new password"
-                error={state?.error?.password?.[0]}
+                error={state?.error && 'password' in state.error ? state.error.password?.[0] : undefined}
               />
             </div>
-            {state?.error?.password && (
+            {state?.error && 'password' in state.error && state.error.password && (
               <p id="password-error" className="text-sm text-red-600 mt-1 flex items-center">
                 <AlertCircle className="w-4 h-4 mr-1 flex-shrink-0" />
                 {state.error.password[0]}
@@ -236,10 +237,10 @@ export default function ResetPasswordPage() {
                 disabled={isPending}
                 className="min-h-[44px] text-sm md:text-base"
                 placeholder="Confirm your new password"
-                error={state?.error?.confirmPassword?.[0]}
+                error={state?.error && 'confirmPassword' in state.error ? state.error.confirmPassword?.[0] : undefined}
               />
             </div>
-            {state?.error?.confirmPassword && (
+            {state?.error && 'confirmPassword' in state.error && state.error.confirmPassword && (
               <p id="confirmPassword-error" className="text-sm text-red-600 mt-1 flex items-center">
                 <AlertCircle className="w-4 h-4 mr-1 flex-shrink-0" />
                 {state.error.confirmPassword[0]}
@@ -247,7 +248,7 @@ export default function ResetPasswordPage() {
             )}
           </div>
 
-          {state?.error?._form && (
+          {state?.error && '_form' in state.error && (
             <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200 flex items-start">
               <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
               <span>{state.error._form}</span>

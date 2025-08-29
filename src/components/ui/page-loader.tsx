@@ -27,7 +27,7 @@ export function PageLoader({
 
   const containerClasses = cn(
     "flex flex-col items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100",
-    fullScreen ? "fixed inset-0 w-screen h-screen min-h-screen z-[100000]" : "p-8",
+    fullScreen ? "fixed inset-0 w-screen h-screen min-h-screen z-50" : "p-8",
     className
   );
 

@@ -2,7 +2,7 @@
 // Enhanced push notifications with cross-browser compatibility
 
 // Version and cache management
-const SW_VERSION = '3.0.0';
+const SW_VERSION = '3.0.1';
 const CACHE_PREFIX = 'homebake-v3';
 const CACHE_NAMES = {
   STATIC: `${CACHE_PREFIX}-static-${SW_VERSION}`,
@@ -19,14 +19,12 @@ const CACHE_STRATEGIES = {
   MAX_CACHE_ENTRIES: 100
 };
 
-// Resources to precache
+// Resources to precache (only essential resources)
 const STATIC_RESOURCES = [
   '/',
-  '/dashboard',
-  '/login',
-  '/manifest.json',
-  '/icon-192x192.png',
-  '/icon-512x512.png'
+  '/manifest.json'
+  // Note: Dashboard and login pages are dynamic routes that shouldn't be precached
+  // Note: Icons will be cached on-demand if they exist
 ];
 
 console.log(`🚀 HomeBake Service Worker v${SW_VERSION} initializing...`);
@@ -37,16 +35,35 @@ self.addEventListener('install', event => {
   
   event.waitUntil(
     caches.open(CACHE_NAMES.STATIC)
-      .then(cache => {
+      .then(async cache => {
         console.log('💾 Precaching static resources');
-        return cache.addAll(STATIC_RESOURCES);
+        
+        // Cache resources individually with error handling
+        const cachePromises = STATIC_RESOURCES.map(async resource => {
+          try {
+            const response = await fetch(resource);
+            if (response.ok) {
+              await cache.put(resource, response);
+              console.log(`✅ Cached: ${resource}`);
+            } else {
+              console.warn(`⚠️ Skipped (${response.status}): ${resource}`);
+            }
+          } catch (error) {
+            console.warn(`⚠️ Failed to cache: ${resource}`, error.message);
+          }
+        });
+        
+        await Promise.allSettled(cachePromises);
+        return true;
       })
       .then(() => {
-        console.log('✅ Static resources cached successfully');
+        console.log('✅ Static resource caching completed');
         return self.skipWaiting();
       })
       .catch(error => {
-        console.error('❌ Failed to cache static resources:', error);
+        console.error('❌ Failed to open cache:', error);
+        // Continue anyway - don't block SW installation
+        return self.skipWaiting();
       })
   );
 });

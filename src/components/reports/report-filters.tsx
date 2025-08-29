@@ -119,7 +119,7 @@ export default function ReportFiltersComponent({
                   className="pr-10 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
                   placeholderText="Select start date"
                   popperPlacement="bottom"
-                  popperClassName="z-[9999]"
+                  popperClassName="z-40"
                   calendarClassName="!w-full !max-w-xs sm:!max-w-sm"
                   wrapperClassName="w-full"
                   showPopperArrow={false}
@@ -153,7 +153,7 @@ export default function ReportFiltersComponent({
                   className="pr-10 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
                   placeholderText="Select end date"
                   popperPlacement="bottom"
-                  popperClassName="z-[9999]"
+                  popperClassName="z-40"
                   calendarClassName="!w-full !max-w-xs sm:!max-w-sm"
                   wrapperClassName="w-full"
                   showPopperArrow={false}

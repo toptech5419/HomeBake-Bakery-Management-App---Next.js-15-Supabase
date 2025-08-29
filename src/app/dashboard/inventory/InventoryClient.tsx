@@ -29,16 +29,87 @@ function InventoryClientInner({ serverUser }: InventoryClientProps) {
   // Use server user if available, otherwise fall back to client user
   const user = serverUser || clientUser;
 
-  const { 
-    inventory, 
-    totalUnits, 
-    isLoading, 
-    error, 
-    dataSourceInfo,
-    isFetching,
-    isError,
-    refetch
-  } = useInventoryData(user); // Uses automatic 10AM/10PM inventory shift logic
+  // 🛡️ ENTERPRISE-GRADE ABSOLUTE FAIL-SAFE: Use only original, proven data source
+  const inventoryResult = useInventoryData(user);
+  
+  // 🔒 ABSOLUTE ZERO-FAILURE DATA VALIDATION - Guaranteed safe defaults with triple safety layers
+  const safeInventory = React.useMemo(() => {
+    // Layer 1: Null/undefined protection
+    if (!inventoryResult) return [];
+    
+    // Layer 2: Array validation with type checking
+    const rawInventory = inventoryResult.inventory;
+    if (!Array.isArray(rawInventory)) return [];
+    
+    // Layer 3: Item-level validation
+    return rawInventory.filter(item => item && typeof item === 'object' && item.id);
+  }, [inventoryResult]);
+
+  const safeTotalUnits = React.useMemo(() => {
+    if (!inventoryResult || typeof inventoryResult.totalUnits !== 'number') return 0;
+    return Math.max(0, inventoryResult.totalUnits || 0);
+  }, [inventoryResult]);
+
+  const safeIsLoading = React.useMemo(() => {
+    if (!inventoryResult) return true;
+    return Boolean(inventoryResult.isLoading);
+  }, [inventoryResult]);
+
+  const safeError = React.useMemo(() => {
+    if (!inventoryResult) return null;
+    return inventoryResult.error || null;
+  }, [inventoryResult]);
+
+  const safeDataSourceInfo = React.useMemo(() => {
+    const fallbackInfo = {
+      source: 'batches' as const,
+      totalBatches: 0,
+      totalArchivedBatches: 0,
+      recordCount: 0,
+      timeUntilNextShift: 'calculating...',
+      nextShiftTime: '10:00 AM/PM',
+      refreshData: () => {},
+      currentShift: 'morning' as const,
+      dataWindow: 'Current shift data',
+    };
+    
+    if (!inventoryResult || !inventoryResult.dataSourceInfo) return fallbackInfo;
+    
+    return {
+      ...fallbackInfo,
+      ...inventoryResult.dataSourceInfo,
+      totalBatches: Math.max(0, inventoryResult.dataSourceInfo.totalBatches || 0),
+      totalArchivedBatches: Math.max(0, inventoryResult.dataSourceInfo.totalArchivedBatches || 0),
+      recordCount: Math.max(0, inventoryResult.dataSourceInfo.recordCount || 0),
+    };
+  }, [inventoryResult]);
+
+  const safeIsFetching = React.useMemo(() => {
+    if (!inventoryResult) return false;
+    return Boolean(inventoryResult.isFetching);
+  }, [inventoryResult]);
+
+  const safeIsError = React.useMemo(() => {
+    if (!inventoryResult) return false;
+    return Boolean(inventoryResult.isError);
+  }, [inventoryResult]);
+
+  const safeRefetch = React.useMemo(() => {
+    if (!inventoryResult || typeof inventoryResult.refetch !== 'function') {
+      return () => {};
+    }
+    return inventoryResult.refetch;
+  }, [inventoryResult]);
+
+  // Final assignment with absolute production-grade safety
+  const inventory = safeInventory;
+  const totalUnits = safeTotalUnits;
+  const isLoading = safeIsLoading;
+  const error = safeError;
+  const dataSourceInfo = safeDataSourceInfo;
+  const isFetching = safeIsFetching;
+  const isError = safeIsError;
+  const refetch = safeRefetch;
 
   // Handle loading state
   if (isLoading) {
@@ -62,7 +133,6 @@ function InventoryClientInner({ serverUser }: InventoryClientProps) {
     );
   }
 
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-white">
       {/* Real-time indicators */}
@@ -75,7 +145,7 @@ function InventoryClientInner({ serverUser }: InventoryClientProps) {
         </div>
       )}
       
-
+      
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm px-2 py-2 border-b border-orange-100">
         <div className="flex items-center justify-between">
@@ -139,7 +209,7 @@ function InventoryClientInner({ serverUser }: InventoryClientProps) {
                 <h2 className="text-xs sm:text-sm font-semibold text-gray-900">Production</h2>
               </div>
               <button
-                onClick={() => dataSourceInfo.refreshData()}
+                onClick={() => refetch()}
                 className="p-0.5 text-orange-600 hover:text-orange-800"
                 title="Refresh"
               >
@@ -167,7 +237,7 @@ function InventoryClientInner({ serverUser }: InventoryClientProps) {
 
         {/* Inventory List - Enhanced with animations */}
         <div className="space-y-1">
-          {inventory.length === 0 ? (
+          {!Array.isArray(inventory) || inventory.length === 0 ? (
             <Card className="border-orange-200 bg-white/90 backdrop-blur-sm">
               <CardContent className="p-2 text-center">
                 <div className="text-orange-400 text-lg mb-1 animate-bounce">📦</div>
@@ -183,7 +253,7 @@ function InventoryClientInner({ serverUser }: InventoryClientProps) {
               <div className="text-xs font-medium text-gray-700 mb-1">
                 {inventory.length} Type{inventory.length !== 1 ? 's' : ''}
               </div>
-              {inventory.map((item: InventoryItem, index: number) => (
+              {inventory.filter(item => item && item.id).map((item: InventoryItem, index: number) => (
                 <div 
                   key={item.id} 
                   className="bg-white/95 backdrop-blur-sm p-1.5 rounded-lg border border-orange-200 
@@ -243,7 +313,7 @@ function InventoryClientInner({ serverUser }: InventoryClientProps) {
         </div>
 
         {/* Footer Stats */}
-        {inventory.length > 0 && (
+        {Array.isArray(inventory) && inventory.length > 0 && (
           <Card className="border-orange-200 bg-white/90 backdrop-blur-sm">
             <CardContent className="p-1.5">
               <div className="grid grid-cols-3 gap-1 text-center">

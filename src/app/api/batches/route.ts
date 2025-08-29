@@ -142,16 +142,14 @@ export async function GET(request: NextRequest) {
       `)
       .order('created_at', { ascending: false });
 
-    // Role-based filtering:
-    // - Manager/Owner: See ALL batches (no user filter)
-    // - Sales Rep: Filter by shift only (they don't create batches, just view by shift)
-    if (userRole === 'sales_rep') {
-      // Sales reps don't create batches, so don't filter by created_by
-      // They only need to see batches for their current shift
-      console.log('🔍 Sales Rep: Filtering by shift only (no user filter)');
-    } else if (userRole === 'manager' || userRole === 'owner') {
-      // Managers and Owners see ALL batches from all users
-      console.log('🔍 Manager/Owner: Showing ALL batches (no user filter)');
+    // Role-based filtering for proper manager isolation:
+    // - Owner/Sales Rep: See ALL batches (global view for oversight/production awareness)
+    // - Manager: See ONLY their own batches (individual autonomy)
+    if (userRole === 'manager') {
+      query = query.eq('created_by', user.id);
+      console.log('🔍 Manager: Filtering by own batches only (created_by =', user.id + ')');
+    } else if (userRole === 'owner' || userRole === 'sales_rep') {
+      console.log('🔍 Owner/Sales Rep: Showing ALL batches for oversight/production awareness');
     }
 
     // Apply status filter if provided

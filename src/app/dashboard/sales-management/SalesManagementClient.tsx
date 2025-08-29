@@ -437,7 +437,7 @@ export default function SalesManagementClient({
     >
       {/* Enhanced Transition Overlay */}
       {showTransitionOverlay && (
-        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center">
+        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-2xl max-w-sm mx-4">
             <div className="flex flex-col items-center space-y-6">
               <div className="relative">

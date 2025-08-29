@@ -19,7 +19,7 @@ export interface BreadType {
   unit_price: number
   created_by?: string | null | undefined
   created_at: string
-  is_active?: boolean
+  is_active: boolean
 }
 
 export interface Activity {

@@ -361,7 +361,7 @@ export default function OwnerManagerReportsClient({ user, displayName }: OwnerMa
                   <SelectTrigger className="flex-1 h-10 px-3 border-2 border-blue-200 rounded-lg text-sm">
                     <SelectValue placeholder="All Shifts" />
                   </SelectTrigger>
-                  <SelectContent className="z-[9999]">
+                  <SelectContent className="z-40">
                     <SelectItem value="All">All Shifts</SelectItem>
                     <SelectItem value="morning">🌅 Morning</SelectItem>
                     <SelectItem value="night">🌙 Night</SelectItem>

@@ -93,7 +93,14 @@
       "Read(/c:\\Users\\TOPTECH\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\\TempState\\DDF79CABFA698A8D8A713582D8A3FBFF/**)",
       "Read(c:\\Users\\TOPTECH\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\\TempState\\41D89D375C748DA6A894CCB1B51523A1/**)",
       "Read(c:\\Users\\TOPTECH\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\\TempState\\9BB170D5A0ADF8A2DA13F042B4CFFCAB/**)",
-      "Read(c:\\Users\\TOPTECH\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\\TempState\\ACE213AFFB48C3DB008EEE07D97BFB94/**)"
+      "Read(c:\\Users\\TOPTECH\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\\TempState\\ACE213AFFB48C3DB008EEE07D97BFB94/**)",
+      "Read(c:\\Users\\TOPTECH\\Pictures\\iTop Screenshot/**)",
+      "mcp__filesystem__list_directory",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__search_docs",
+      "Bash(git log:*)",
+      "mcp__supabase__list_tables",
+      "Bash(env)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

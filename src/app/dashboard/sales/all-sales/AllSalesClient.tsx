@@ -153,7 +153,7 @@ export function AllSalesClient({ userId, userName }: AllSalesClientProps) {
     <div className="min-h-screen flex flex-col">
       {/* Back Navigation Loading Overlay */}
       {isNavigatingBack && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center">
           <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm mx-4 text-center">
             <div className="flex flex-col items-center space-y-4">
               <div className="relative">
