@@ -15,6 +15,7 @@ interface BatchData {
   status: 'active' | 'completed' | 'cancelled';
   shift: 'morning' | 'night';
   created_by: string;
+  notes?: string | null;
   bread_types: {
     name: string;
   } | null;
@@ -140,7 +141,8 @@ export default function ManagerReportsPage() {
     const matchesSearch =
       r.date.includes(search) ||
       r.manager.toLowerCase().includes(search.toLowerCase()) ||
-      r.breadTypes.some((b: string) => b.toLowerCase().includes(search.toLowerCase()));
+      r.breadTypes.some((b: string) => b.toLowerCase().includes(search.toLowerCase())) ||
+              r.batches.some((batch: BatchData) => batch.notes?.toLowerCase().includes(search.toLowerCase()));
     return matchesShift && matchesSearch;
   });
 
@@ -268,6 +270,28 @@ export default function ManagerReportsPage() {
                         <span key={i} className="bg-blue-50 px-2 py-1 rounded-full">{b}</span>
                       ))}
                     </div>
+                    {/* Notes Section */}
+                    {report.batches.some((batch: BatchData) => batch.notes) && (
+                      <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                        <div className="flex items-start gap-2 mb-2">
+                          <div className="w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-white text-xs font-bold">!</span>
+                          </div>
+                          <h4 className="text-xs font-semibold text-amber-800">Batch Notes:</h4>
+                        </div>
+                        <div className="space-y-1 ml-6">
+                          {report.batches
+                            .filter((batch: BatchData) => batch.notes)
+                            .map((batch: BatchData, i: number) => (
+                              <div key={i} className="text-xs text-amber-700">
+                                <span className="font-medium">#{batch.batch_number}:</span>
+                                <span className="ml-1">{batch.notes}</span>
+                              </div>
+                            ))
+                          }
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2 mt-2 sm:mt-0">
                     <button className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">

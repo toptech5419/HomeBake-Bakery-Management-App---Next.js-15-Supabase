@@ -100,7 +100,8 @@
       "mcp__supabase__search_docs",
       "Bash(git log:*)",
       "mcp__supabase__list_tables",
-      "Bash(env)"
+      "Bash(env)",
+      "Bash(start http://localhost:3001)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

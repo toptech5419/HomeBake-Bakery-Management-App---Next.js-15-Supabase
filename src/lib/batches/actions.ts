@@ -54,24 +54,30 @@ export async function createBatch(data: Omit<CreateBatchData, 'batch_number'>) {
     throw new Error('Authentication required');
   }
 
-  const batchNumber = `BATCH-${Date.now()}`;
-
-  const { data: batch, error } = await supabase
-    .from('batches')
-    .insert({
-      bread_type_id: data.bread_type_id,
-      actual_quantity: data.actual_quantity,
-      notes: data.notes,
-      shift: data.shift,
-      created_by: user.id,
-      batch_number: batchNumber
-    })
-    .select()
-    .single();
+  // Use RPC function to handle creation safely (avoids materialized view permission issues)
+  const { data: batchId, error } = await supabase.rpc('create_user_batch', {
+    p_bread_type_id: data.bread_type_id,
+    p_actual_quantity: data.actual_quantity,
+    p_shift: data.shift,
+    p_notes: data.notes || null,
+    p_user_id: user.id
+  });
 
   if (error) {
     console.error('Error creating batch:', error);
-    throw new Error('Failed to create batch');
+    throw new Error(`Failed to create batch: ${error.message}`);
+  }
+
+  // Get the created batch with full details
+  const { data: batch, error: selectError } = await supabase
+    .from('batches')
+    .select('*')
+    .eq('id', batchId)
+    .single();
+
+  if (selectError) {
+    console.error('Error fetching created batch:', selectError);
+    throw new Error('Batch created but failed to fetch details');
   }
 
   // Log activity for batch creation

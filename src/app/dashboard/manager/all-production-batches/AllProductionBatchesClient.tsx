@@ -339,6 +339,23 @@ function AllProductionBatchesClientInner({ userName }: AllProductionBatchesClien
                     </div>
                   </div>
 
+                  {/* Notes Section */}
+                  {batch.notes && (
+                    <div className="mt-2 p-2 bg-blue-50 rounded-md border border-blue-100">
+                      <div className="flex items-start gap-2">
+                        <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-white text-xs font-bold">!</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-blue-800 font-medium mb-1">Notes:</p>
+                          <p className="text-xs text-blue-700 leading-relaxed break-words">
+                            {batch.notes.length > 80 ? `${batch.notes.substring(0, 80)}...` : batch.notes}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Compact Footer */}
                   <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
                     <span>{new Date(batch.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
