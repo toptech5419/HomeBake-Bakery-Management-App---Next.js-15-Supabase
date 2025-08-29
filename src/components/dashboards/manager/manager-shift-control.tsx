@@ -103,12 +103,9 @@ export function ManagerShiftControl({ }: ManagerShiftControlProps) {
   const handleShiftHandover = async () => {
     try {
       // Import the necessary functions
-      const { checkAndSaveBatchesToAllBatches } = await import('@/lib/batches/actions');
+      const { checkAndSaveBatchesToAllBatches, deleteAllBatches } = await import('@/lib/batches/actions');
       
-      // Get current date for filtering
-      const today = new Date().toISOString().split('T')[0];
-      
-      console.log(`🔄 Starting end shift process for ${currentShift} shift on ${today}`);
+      console.log(`🔄 Starting end shift process for ${currentShift} shift`);
       
       // Step 1: Save batches to all_batches (with duplicate checking)
       const saveResult = await checkAndSaveBatchesToAllBatches(currentShift);
@@ -119,39 +116,9 @@ export function ManagerShiftControl({ }: ManagerShiftControlProps) {
         console.log(`ℹ️ All ${currentShift} shift batches already saved to all_batches`);
       }
       
-      // Step 2: Clear batches for current shift and date
-      const supabase = (await import('@/lib/supabase/server')).createServer();
-      const { data: { user }, error: authError } = await (await supabase).auth.getUser();
-      
-      if (authError || !user) {
-        throw new Error('Authentication required');
-      }
-      
-      // Get user role for permission check
-      const { data: userData } = await (await supabase)
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      
-      if (!userData || (userData.role !== 'manager' && userData.role !== 'owner')) {
-        throw new Error('Unauthorized: Only managers and owners can end shifts');
-      }
-      
-      // Delete batches for current shift and today's date
-      const { error: deleteError } = await (await supabase)
-        .from('batches')
-        .delete()
-        .eq('shift', currentShift)
-        .gte('created_at', `${today}T00:00:00`)
-        .lt('created_at', `${today}T23:59:59`);
-      
-      if (deleteError) {
-        console.error('Error clearing batches:', deleteError);
-        throw new Error('Failed to clear batches for current shift');
-      }
-      
-      console.log(`🧹 Cleared ${currentShift} shift batches for ${today}`);
+      // Step 2: Clear batches for current shift using production-grade server action
+      await deleteAllBatches(currentShift);
+      console.log(`🧹 Cleared ${currentShift} shift batches successfully`);
       
       // Step 3: Clear form and close modal
       setShowHandover(false);

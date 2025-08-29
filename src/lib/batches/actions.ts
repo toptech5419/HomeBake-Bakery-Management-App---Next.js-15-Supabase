@@ -472,18 +472,13 @@ export async function deleteAllBatches(shift?: 'morning' | 'night'): Promise<voi
 
     console.log(`🗑️ Deleting ${shift || 'all'} shift batches for current user...`);
 
-    // Build delete query for current user with optional shift filter
-    let deleteQuery = supabase
-      .from('batches')
-      .delete()
-      .eq('created_by', user.id);
+    // Use database function to handle deletion safely (avoids materialized view permission issues)
+    const { data: result, error: deleteError } = await supabase.rpc('delete_user_batches', {
+      p_user_id: user.id,
+      p_shift: shift || null
+    });
 
-    if (shift) {
-      deleteQuery = deleteQuery.eq('shift', shift);
-    }
-
-    // Execute deletion
-    const { error: deleteError, count } = await deleteQuery;
+    const count = result || 0;
 
     if (deleteError) {
       console.error('❌ Delete error:', deleteError);
