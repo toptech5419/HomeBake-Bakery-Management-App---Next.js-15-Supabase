@@ -42,9 +42,9 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
       return await refetchBreadTypesAction(true); // Always fetch all (active + inactive)
     },
     initialData: initialBreadTypes,
-    staleTime: 30000, // 30 seconds
+    staleTime: 0, // Always consider stale for immediate updates after mutations
     refetchOnWindowFocus: true,
-    refetchOnMount: false, // Don't refetch on mount since we have initial data
+    refetchOnMount: true, // Refetch on mount to ensure fresh data
   });
   
   // Filter bread types for display based on showInactive toggle
@@ -361,6 +361,31 @@ export default function BreadTypesClient({ breadTypes: initialBreadTypes, user }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 p-4 md:p-6">
+      {/* Loading Overlay */}
+      <AnimatePresence>
+        {isRefreshing && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              className="bg-white/90 backdrop-blur-xl rounded-2xl p-6 shadow-2xl border border-white/30 flex items-center gap-4"
+            >
+              <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+              <div>
+                <div className="font-semibold text-gray-900">Updating...</div>
+                <div className="text-sm text-gray-600">Refreshing bread types data</div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

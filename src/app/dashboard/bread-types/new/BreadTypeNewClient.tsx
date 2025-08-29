@@ -49,9 +49,11 @@ export default function BreadTypeNewClient({ initialValues, user }: { initialVal
           const message = createUserMessages.breadTypes.updateSuccess(breadTypeName);
           toast.success(message.message);
           
-          // Invalidate React Query cache to ensure fresh data on bread types page
+          // Invalidate and refetch immediately
           await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.breadTypes.all() });
+          await queryClient.refetchQueries({ queryKey: QUERY_KEYS.breadTypes.all() });
           
+          // Navigate back to show the updated data
           router.push('/dashboard/bread-types');
         } else {
           const message = createUserMessages.breadTypes.updateError(breadTypeName, result?.error);
@@ -67,9 +69,11 @@ export default function BreadTypeNewClient({ initialValues, user }: { initialVal
           const message = createUserMessages.breadTypes.createSuccess(breadTypeName);
           toast.success(message.message);
           
-          // Invalidate React Query cache to ensure fresh data on bread types page
+          // Invalidate and refetch immediately
           await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.breadTypes.all() });
+          await queryClient.refetchQueries({ queryKey: QUERY_KEYS.breadTypes.all() });
           
+          // Navigate back to show the updated data
           router.push('/dashboard/bread-types');
         } else {
           const message = createUserMessages.breadTypes.createError(breadTypeName, result?.error);
