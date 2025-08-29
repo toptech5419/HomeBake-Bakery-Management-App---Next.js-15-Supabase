@@ -716,14 +716,14 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
   return (
     <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6 overflow-x-hidden overflow-y-auto px-3 sm:px-4 md:px-6">
-      {/* Back Navigation Loading Overlay - Mobile-First Responsive */}
+      {/* Back Navigation Loading Overlay - Full Screen */}
       {isNavigatingBack && (
         <div 
-          className="fixed top-16 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-50 pointer-events-auto"
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-[60] pointer-events-auto"
           style={{ 
             touchAction: 'none',
             width: '100vw',
-            height: 'calc(100vh - 4rem)',
+            height: '100vh',
             margin: 0,
             padding: 0
           }}
@@ -732,9 +732,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             className="bg-white flex flex-col"
             style={{
               width: '100vw',
-              height: 'calc(100vh - 4rem)',
-              minHeight: 'calc(100vh - 4rem)',
-              maxHeight: 'calc(100vh - 4rem)'
+              height: '100vh',
+              minHeight: '100vh',
+              maxHeight: '100vh'
             }}
           >
             {/* Header */}
@@ -761,14 +761,14 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         </div>
       )}
 
-      {/* End Shift Loading Overlay - Mobile-First Responsive */}
+      {/* End Shift Loading Overlay - Full Screen */}
       {submitting && (
         <div 
-          className="fixed top-16 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-50 pointer-events-auto"
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-[60] pointer-events-auto"
           style={{ 
             touchAction: 'none',
             width: '100vw',
-            height: 'calc(100vh - 4rem)',
+            height: '100vh',
             margin: 0,
             padding: 0
           }}
@@ -777,9 +777,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             className="bg-white flex flex-col"
             style={{
               width: '100vw',
-              height: 'calc(100vh - 4rem)',
-              minHeight: 'calc(100vh - 4rem)',
-              maxHeight: 'calc(100vh - 4rem)'
+              height: '100vh',
+              minHeight: '100vh',
+              maxHeight: '100vh'
             }}
           >
             {/* Header */}
@@ -1093,14 +1093,14 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         )}
       </div>
 
-      {/* Confirmation Modal - Mobile-First Responsive */}
+      {/* Confirmation Modal - Full Screen */}
       {showConfirmationModal && !submitting && (
         <div 
-          className="fixed top-16 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-50 pointer-events-auto"
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-[60] pointer-events-auto"
           style={{ 
             touchAction: 'none',
             width: '100vw',
-            height: 'calc(100vh - 4rem)',
+            height: '100vh',
             margin: 0,
             padding: 0
           }}
@@ -1109,9 +1109,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             className="bg-white flex flex-col"
             style={{
               width: '100vw',
-              height: 'calc(100vh - 4rem)',
-              minHeight: 'calc(100vh - 4rem)',
-              maxHeight: 'calc(100vh - 4rem)'
+              height: '100vh',
+              minHeight: '100vh',
+              maxHeight: '100vh'
             }}
           >
             {/* Header */}
@@ -1166,14 +1166,14 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         </div>
       )}
 
-      {/* Feedback Modal - Mobile-First Responsive Design */}
+      {/* Feedback Modal - Full Screen with Keyboard Support */}
       {showFeedbackModal && !submitting && (
         <div 
-          className="fixed top-16 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-50 pointer-events-auto"
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-[60] pointer-events-auto"
           style={{ 
             touchAction: 'none',
             width: '100vw',
-            height: isKeyboardVisible ? `calc(${window.visualViewport?.height || window.innerHeight}px - 4rem)` : 'calc(100vh - 4rem)',
+            height: isKeyboardVisible ? `${window.visualViewport?.height || window.innerHeight}px` : '100vh',
             margin: 0,
             padding: 0
           }}
@@ -1182,9 +1182,9 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             className="bg-white flex flex-col"
             style={{
               width: '100vw',
-              height: isKeyboardVisible ? `calc(${window.visualViewport?.height || window.innerHeight}px - 4rem)` : 'calc(100vh - 4rem)',
+              height: isKeyboardVisible ? `${window.visualViewport?.height || window.innerHeight}px` : '100vh',
               minHeight: 'auto',
-              maxHeight: isKeyboardVisible ? `calc(${window.visualViewport?.height || window.innerHeight}px - 4rem)` : 'calc(100vh - 4rem)'
+              maxHeight: isKeyboardVisible ? `${window.visualViewport?.height || window.innerHeight}px` : '100vh'
             }}
           >
             {/* Header - Collapsible on mobile when keyboard is visible */}
