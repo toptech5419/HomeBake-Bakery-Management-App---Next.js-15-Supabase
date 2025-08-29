@@ -14,55 +14,21 @@ export async function createSalesLog(data: {
   recorded_by: string;
 }) {
   const supabase = await createServer();
-  
-  // Check if a record exists for today (same user, shift, bread_type, date)
-  const today = new Date().toISOString().split('T')[0];
-  const { data: existing } = await supabase
-    .from('sales_logs')
-    .select('id, quantity, unit_price, discount, leftovers')
-    .eq('recorded_by', data.recorded_by)
-    .eq('shift', data.shift)
-    .eq('bread_type_id', data.bread_type_id)
-    .gte('created_at', `${today}T00:00:00`)
-    .lte('created_at', `${today}T23:59:59`)
-    .single();
 
-  if (existing) {
-    // Update existing record by adding the new quantity and discount
-    const newQuantity = existing.quantity + data.quantity;
-    const newDiscount = (existing.discount || 0) + (data.discount || 0);
-    const newLeftovers = (existing.leftovers || 0) + (data.leftover || 0);
-    
-    const { error } = await supabase
-      .from('sales_logs')
-      .update({
-        quantity: newQuantity,
-        unit_price: data.unit_price, // Use latest unit price
-        discount: newDiscount,
-        leftovers: newLeftovers,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', existing.id);
+  // Use RPC function to handle creation/update safely (avoids materialized view permission issues)
+  const { data: salesId, error } = await (supabase as any).rpc('create_user_sales_log', {
+    p_bread_type_id: data.bread_type_id,
+    p_quantity: data.quantity,
+    p_shift: data.shift,
+    p_unit_price: data.unit_price,
+    p_discount: data.discount,
+    p_returned: data.returned || false,
+    p_leftover: data.leftover || 0,
+    p_user_id: data.recorded_by
+  });
 
-    if (error) {
-      throw new Error(`Failed to update sales log: ${error.message}`);
-    }
-  } else {
-    // Insert new record
-    const { error } = await supabase.from('sales_logs').insert({
-      bread_type_id: data.bread_type_id,
-      quantity: data.quantity,
-      unit_price: data.unit_price,
-      discount: data.discount,
-      returned: data.returned || false,
-      leftovers: data.leftover || 0,
-      shift: data.shift,
-      recorded_by: data.recorded_by,
-    });
-
-    if (error) {
-      throw new Error(`Failed to create sales log: ${error.message}`);
-    }
+  if (error) {
+    throw new Error(`Failed to create sales log: ${error.message}`);
   }
 
   // Get user and bread type info for activity logging
