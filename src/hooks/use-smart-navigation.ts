@@ -4,11 +4,14 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useState, useCallback } from 'react';
 
 /**
- * Production-grade smart navigation hook that manages scroll behavior
- * to eliminate Next.js layout-router warnings while preserving UX.
+ * Enterprise-grade navigation hook with smooth transitions and zero-jank UX
+ * Designed to match industry standards from Apple, Google, and Meta
  * 
- * This hook intelligently handles scroll restoration with fixed/sticky elements
- * by using scroll={false} to prevent layout-router conflicts.
+ * Features:
+ * - Eliminates scroll-up behavior during navigation
+ * - Provides immediate visual feedback
+ * - Handles loading states professionally
+ * - Prevents layout-router warnings
  */
 export function useSmartNavigation() {
   const router = useRouter();
@@ -16,16 +19,18 @@ export function useSmartNavigation() {
   const [isNavigating, setIsNavigating] = useState(false);
 
   /**
-   * Smart push navigation that prevents layout-router auto-scroll conflicts
-   * Uses scroll={false} to eliminate warnings from fixed/sticky positioned elements
+   * Enterprise-grade navigation with zero-jank UX
+   * No automatic scrolling - preserves current scroll position for smooth transitions
    */
   const smartPush = useCallback((
     href: string, 
     options?: {
       preserveScroll?: boolean;
+      scrollToTop?: boolean;
       customScrollTarget?: string;
       onNavigationStart?: () => void;
       onNavigationEnd?: () => void;
+      immediate?: boolean;
     }
   ) => {
     // Don't navigate if already on the same page
@@ -36,39 +41,43 @@ export function useSmartNavigation() {
     setIsNavigating(true);
     options?.onNavigationStart?.();
 
-    // Always use scroll: false to prevent layout-router warnings
-    // Handle custom scroll behavior manually
+    // Always use scroll: false to prevent layout-router warnings and unwanted scroll behavior
     try {
       router.push(href, { scroll: false });
       
-      // Execute smart scroll behavior after a short delay
-      setTimeout(() => {
-        try {
-          if (!options?.preserveScroll) {
+      // Only handle scroll if explicitly requested
+      if (options?.scrollToTop || options?.customScrollTarget) {
+        setTimeout(() => {
+          try {
             if (options?.customScrollTarget) {
-              // Scroll to specific element if provided
               const element = document.querySelector(options.customScrollTarget);
               if (element) {
                 element.scrollIntoView({
                   behavior: 'smooth',
                   block: 'start'
                 });
-              } else {
-                // Fallback to top
-                window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
               }
-            } else {
-              // Default: scroll to top
+            } else if (options?.scrollToTop) {
               window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
             }
+          } catch (scrollError) {
+            console.warn('Scroll behavior failed:', scrollError);
           }
-        } catch (scrollError) {
-          console.warn('Scroll behavior failed:', scrollError);
-        }
-        
+        }, 100);
+      }
+      
+      // Reset navigation state after route change
+      const resetNavigationState = () => {
         setIsNavigating(false);
         options?.onNavigationEnd?.();
-      }, 100);
+      };
+      
+      if (options?.immediate) {
+        resetNavigationState();
+      } else {
+        // Allow time for route change to complete
+        setTimeout(resetNavigationState, 150);
+      }
       
       return Promise.resolve();
     } catch (error) {
@@ -80,29 +89,32 @@ export function useSmartNavigation() {
   }, [router, pathname]);
 
   /**
-   * Smart replace navigation with scroll management
+   * Enterprise-grade replace navigation with preserved scroll position
    */
   const smartReplace = useCallback((
     href: string,
-    options?: { preserveScroll?: boolean }
+    options?: { 
+      preserveScroll?: boolean;
+      scrollToTop?: boolean;
+    }
   ) => {
     setIsNavigating(true);
     
     try {
       router.replace(href, { scroll: false });
       
-      // Execute scroll behavior after replace
-      setTimeout(() => {
-        try {
-          if (!options?.preserveScroll) {
+      // Only scroll if explicitly requested
+      if (options?.scrollToTop && !options?.preserveScroll) {
+        setTimeout(() => {
+          try {
             window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+          } catch (scrollError) {
+            console.warn('Scroll behavior failed:', scrollError);
           }
-        } catch (scrollError) {
-          console.warn('Scroll behavior failed:', scrollError);
-        }
-        
-        setIsNavigating(false);
-      }, 100);
+        }, 100);
+      }
+      
+      setTimeout(() => setIsNavigating(false), 150);
       
       return Promise.resolve();
     } catch (error) {

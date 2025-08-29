@@ -79,7 +79,7 @@ interface SalesLog {
 export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) {
   const { currentShift, setCurrentShift } = useShift();
   const { setEndShiftHandler } = useEndShiftContext();
-  const { smartPush } = useSmartNavigation();
+  const { smartPush, isNavigating } = useSmartNavigation();
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     todaySales: 0,
     transactions: 0,
@@ -93,6 +93,7 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
   const [loading, setLoading] = useState(true);
   const [isEndingShift, setIsEndingShift] = useState(false);
   const [hasSalesLogs, setHasSalesLogs] = useState(false);
+  const [activeNavigation, setActiveNavigation] = useState<string | null>(null);
 
   // Removed unused checkSalesLogsExist function
 
@@ -233,10 +234,27 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
       setLoading(true);
       const metricsData = await getSalesRepDashboardMetrics(userId, currentShift);
       
-      const hasData = metricsData.transactions > 0;
+      // Production-grade null checking and validation
+      if (!metricsData || typeof metricsData !== 'object') {
+        console.warn('⚠️ Invalid metricsData received, falling back to manual fetch');
+        await fetchDashboardDataFallback();
+        return;
+      }
+      
+      // Ensure all required properties exist with fallbacks
+      const safeMetricsData = {
+        todaySales: metricsData.todaySales || 0,
+        transactions: metricsData.transactions || 0,
+        itemsSold: metricsData.itemsSold || 0,
+        remainingTarget: metricsData.remainingTarget || 0,
+        topProducts: Array.isArray(metricsData.topProducts) ? metricsData.topProducts : [],
+        recentSales: Array.isArray(metricsData.recentSales) ? metricsData.recentSales : []
+      };
+      
+      const hasData = safeMetricsData.transactions > 0;
       setHasSalesLogs(hasData);
       
-      // Fetch production data
+      // Fetch production data with enhanced error handling
       let productionTotalAmount = 0;
       try {
         const nigeriaTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Africa/Lagos"}));
@@ -245,28 +263,40 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
         const productionResponse = await fetch(`/api/sales-rep/production?shift=${currentShift}&date=${nigeriaDate}`);
         if (productionResponse.ok) {
           const productionData = await productionResponse.json();
-          productionTotalAmount = productionData.productionItems.reduce((sum: number, item: { unit_price: number; quantity: number }) => {
-            return sum + ((item.unit_price || 0) * (item.quantity || 0));
-          }, 0);
+          if (productionData && Array.isArray(productionData.productionItems)) {
+            productionTotalAmount = productionData.productionItems.reduce((sum: number, item: { unit_price: number; quantity: number }) => {
+              return sum + ((item.unit_price || 0) * (item.quantity || 0));
+            }, 0);
+          }
+        } else {
+          console.warn('⚠️ Production API request failed:', productionResponse.status);
         }
       } catch (error) {
-        console.error('Error fetching production data:', error);
+        console.error('❌ Error fetching production data:', error);
       }
       
-      const salesTarget = productionTotalAmount + metricsData.remainingTarget;
+      const salesTarget = productionTotalAmount + safeMetricsData.remainingTarget;
 
       setMetrics({
-        todaySales: metricsData.todaySales,
-        transactions: metricsData.transactions,
-        itemsSold: metricsData.itemsSold,
+        todaySales: safeMetricsData.todaySales,
+        transactions: safeMetricsData.transactions,
+        itemsSold: safeMetricsData.itemsSold,
         productionTotalAmount,
-        remainingTarget: metricsData.remainingTarget,
+        remainingTarget: safeMetricsData.remainingTarget,
         salesTarget,
-        topProducts: metricsData.topProducts,
-        recentSales: metricsData.recentSales
+        topProducts: safeMetricsData.topProducts,
+        recentSales: safeMetricsData.recentSales
       });
+      
+      console.log('✅ Dashboard data loaded successfully:', {
+        transactions: safeMetricsData.transactions,
+        revenue: safeMetricsData.todaySales,
+        production: productionTotalAmount
+      });
+      
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('❌ Critical error in fetchDashboardData:', error);
+      console.log('🔄 Falling back to manual data fetch...');
       await fetchDashboardDataFallback();
     } finally {
       setLoading(false);
@@ -345,8 +375,17 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     setEndShiftHandler(handleEndShift);
   }, [setEndShiftHandler, handleEndShift]);
 
-  const handleNavigation = (path: string) => {
-    smartPush(path);
+  const handleNavigation = (path: string, buttonId: string) => {
+    setActiveNavigation(buttonId);
+    smartPush(path, {
+      onNavigationStart: () => {
+        // Immediate visual feedback - no delay
+      },
+      onNavigationEnd: () => {
+        setActiveNavigation(null);
+      },
+      immediate: false // Allow proper loading state management
+    });
   };
 
 
@@ -659,11 +698,15 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
             <ModernButton
               variant="secondary"
               size="md"
-              leftIcon={<History className="h-4 w-4" />}
-              onClick={() => handleNavigation('/dashboard/sales/all-sales')}
-              className="hover-lift"
+              leftIcon={activeNavigation === 'all-sales' ? 
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-600 border-t-transparent" /> : 
+                <History className="h-4 w-4" />
+              }
+              onClick={() => handleNavigation('/dashboard/sales/all-sales', 'all-sales')}
+              className="hover-lift transition-all duration-200"
+              disabled={activeNavigation === 'all-sales' || isNavigating}
             >
-              View All Sales
+              {activeNavigation === 'all-sales' ? 'Loading...' : 'View All Sales'}
             </ModernButton>
           </div>
         )}
@@ -681,34 +724,46 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
             <ModernButton
               variant="success"
               size="lg"
-              leftIcon={<RotateCcw className="h-5 w-5" />}
-              onClick={() => handleNavigation('/dashboard/sales/end-shift')}
-              className="hover-lift"
+              leftIcon={activeNavigation === 'shift-reports' ? 
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" /> : 
+                <RotateCcw className="h-5 w-5" />
+              }
+              onClick={() => handleNavigation('/dashboard/sales/end-shift', 'shift-reports')}
+              className="hover-lift transition-all duration-200"
+              disabled={activeNavigation === 'shift-reports' || isNavigating}
               fullWidth
             >
-              Generate Shift Reports
+              {activeNavigation === 'shift-reports' ? 'Loading...' : 'Generate Shift Reports'}
             </ModernButton>
             
             <ModernButton
               variant="primary"
               size="lg"
-              leftIcon={<Plus className="h-5 w-5" />}
-              onClick={() => handleNavigation('/dashboard/sales/record')}
-              className="hover-lift"
+              leftIcon={activeNavigation === 'record-sale' ? 
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" /> : 
+                <Plus className="h-5 w-5" />
+              }
+              onClick={() => handleNavigation('/dashboard/sales/record', 'record-sale')}
+              className="hover-lift transition-all duration-200"
+              disabled={activeNavigation === 'record-sale' || isNavigating}
               fullWidth
             >
-              Record Sale
+              {activeNavigation === 'record-sale' ? 'Loading...' : 'Record Sale'}
             </ModernButton>
             
             <ModernButton
               variant="secondary"
               size="lg"
-              leftIcon={<History className="h-4 w-5" />}
-              onClick={() => handleNavigation('/dashboard/sales-reports-history')}
-              className="hover-lift"
+              leftIcon={activeNavigation === 'reports-history' ? 
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-600 border-t-transparent" /> : 
+                <History className="h-4 w-5" />
+              }
+              onClick={() => handleNavigation('/dashboard/sales-reports-history', 'reports-history')}
+              className="hover-lift transition-all duration-200"
+              disabled={activeNavigation === 'reports-history' || isNavigating}
               fullWidth
             >
-              View Reports History
+              {activeNavigation === 'reports-history' ? 'Loading...' : 'View Reports History'}
             </ModernButton>
           </div>
         </ModernCardContent>
@@ -718,10 +773,14 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
       <ModernButton
         variant="primary"
         size="xl"
-        className="fixed bottom-8 right-8 rounded-full shadow-xl z-50 h-16 w-16 hover-lift"
-        onClick={() => handleNavigation('/dashboard/sales/record')}
+        className="fixed bottom-8 right-8 rounded-full shadow-xl z-50 h-16 w-16 hover-lift transition-all duration-200"
+        onClick={() => handleNavigation('/dashboard/sales/record', 'fab-record-sale')}
+        disabled={activeNavigation === 'fab-record-sale' || isNavigating}
       >
-        <Plus className="h-6 w-6" />
+        {activeNavigation === 'fab-record-sale' ? 
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent" /> : 
+          <Plus className="h-6 w-6" />
+        }
       </ModernButton>
     </div>
   );

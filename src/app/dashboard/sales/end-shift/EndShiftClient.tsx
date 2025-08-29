@@ -716,14 +716,14 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
 
   return (
     <div className="w-full max-w-full min-w-0 space-y-4 sm:space-y-6 overflow-x-hidden overflow-y-auto px-3 sm:px-4 md:px-6">
-      {/* Back Navigation Loading Overlay - True Full Screen */}
+      {/* Back Navigation Loading Overlay - Mobile-First Responsive */}
       {isNavigatingBack && (
         <div 
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-40 pointer-events-auto"
+          className="fixed top-16 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-50 pointer-events-auto"
           style={{ 
             touchAction: 'none',
             width: '100vw',
-            height: '100vh',
+            height: 'calc(100vh - 4rem)',
             margin: 0,
             padding: 0
           }}
@@ -732,28 +732,28 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             className="bg-white flex flex-col"
             style={{
               width: '100vw',
-              height: '100vh',
-              minHeight: '100vh',
-              maxHeight: '100vh'
+              height: 'calc(100vh - 4rem)',
+              minHeight: 'calc(100vh - 4rem)',
+              maxHeight: 'calc(100vh - 4rem)'
             }}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 sm:px-6 py-6 sm:py-8">
-              <div className="flex items-center justify-center mb-4 sm:mb-6">
-                <div className="bg-white/20 p-3 sm:p-4 rounded-full">
-                  <ArrowLeft className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-3 sm:px-6 py-4 sm:py-6">
+              <div className="flex items-center justify-center mb-3 sm:mb-6">
+                <div className="bg-white/20 p-2 sm:p-3 md:p-4 rounded-full">
+                  <ArrowLeft className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-white" />
                 </div>
               </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center">Going Back</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-center">Going Back</h1>
             </div>
 
             {/* Content */}
-            <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-6">
-              <div className="relative mb-6 sm:mb-8">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                <div className="absolute inset-0 w-16 h-16 sm:w-20 sm:h-20 border-4 border-orange-200 rounded-full opacity-25"></div>
+            <div className="flex-1 flex flex-col justify-center items-center px-3 sm:px-6 py-4">
+              <div className="relative mb-4 sm:mb-6 md:mb-8">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-4 border-orange-200 rounded-full opacity-25"></div>
               </div>
-              <p className="text-gray-600 text-lg sm:text-xl text-center">
+              <p className="text-gray-600 text-base sm:text-lg md:text-xl text-center px-4">
                 Loading previous page...
               </p>
             </div>
@@ -761,14 +761,14 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         </div>
       )}
 
-      {/* End Shift Loading Overlay - True Full Screen */}
+      {/* End Shift Loading Overlay - Mobile-First Responsive */}
       {submitting && (
         <div 
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-40 pointer-events-auto"
+          className="fixed top-16 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-50 pointer-events-auto"
           style={{ 
             touchAction: 'none',
             width: '100vw',
-            height: '100vh',
+            height: 'calc(100vh - 4rem)',
             margin: 0,
             padding: 0
           }}
@@ -777,33 +777,33 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             className="bg-white flex flex-col"
             style={{
               width: '100vw',
-              height: '100vh',
-              minHeight: '100vh',
-              maxHeight: '100vh'
+              height: 'calc(100vh - 4rem)',
+              minHeight: 'calc(100vh - 4rem)',
+              maxHeight: 'calc(100vh - 4rem)'
             }}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 sm:px-6 py-6 sm:py-8">
-              <div className="flex items-center justify-center mb-4 sm:mb-6">
-                <div className="bg-white/20 p-3 sm:p-4 rounded-full">
-                  <FileText className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
+            <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 sm:px-6 py-4 sm:py-6">
+              <div className="flex items-center justify-center mb-3 sm:mb-6">
+                <div className="bg-white/20 p-2 sm:p-3 md:p-4 rounded-full">
+                  <FileText className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-white" />
                 </div>
               </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center">Generating Report</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-center">Generating Report</h1>
             </div>
 
             {/* Content */}
-            <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-6">
-              <div className="relative mb-6 sm:mb-8">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                <div className="absolute inset-0 w-16 h-16 sm:w-20 sm:h-20 border-4 border-green-200 rounded-full opacity-25"></div>
+            <div className="flex-1 flex flex-col justify-center items-center px-3 sm:px-6 py-4">
+              <div className="relative mb-4 sm:mb-6 md:mb-8">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-4 border-green-200 rounded-full opacity-25"></div>
               </div>
-              <div className="text-center space-y-3 sm:space-y-4 max-w-lg">
-                <p className="text-gray-700 text-lg sm:text-xl font-medium">
+              <div className="text-center space-y-2 sm:space-y-3 md:space-y-4 max-w-lg px-4">
+                <p className="text-gray-700 text-base sm:text-lg md:text-xl font-medium">
                   Creating comprehensive shift report...
                 </p>
-                <div className="bg-green-50 border border-green-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-                  <p className="text-green-800 text-sm sm:text-base">
+                <div className="bg-green-50 border border-green-200 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6">
+                  <p className="text-green-800 text-xs sm:text-sm md:text-base">
                     This may take a few moments while we process your sales data and remaining inventory.
                   </p>
                 </div>
@@ -1093,14 +1093,14 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
         )}
       </div>
 
-      {/* Confirmation Modal - True Full Screen */}
+      {/* Confirmation Modal - Mobile-First Responsive */}
       {showConfirmationModal && !submitting && (
         <div 
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-40 pointer-events-auto"
+          className="fixed top-16 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-50 pointer-events-auto"
           style={{ 
             touchAction: 'none',
             width: '100vw',
-            height: '100vh',
+            height: 'calc(100vh - 4rem)',
             margin: 0,
             padding: 0
           }}
@@ -1109,33 +1109,33 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             className="bg-white flex flex-col"
             style={{
               width: '100vw',
-              height: '100vh',
-              minHeight: '100vh',
-              maxHeight: '100vh'
+              height: 'calc(100vh - 4rem)',
+              minHeight: 'calc(100vh - 4rem)',
+              maxHeight: 'calc(100vh - 4rem)'
             }}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 sm:px-6 py-6 sm:py-8">
-              <div className="flex items-center justify-center mb-4 sm:mb-6">
-                <div className="bg-white/20 p-3 sm:p-4 rounded-full">
-                  <AlertTriangle className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
+            <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 sm:px-6 py-4 sm:py-6">
+              <div className="flex items-center justify-center mb-3 sm:mb-6">
+                <div className="bg-white/20 p-2 sm:p-3 md:p-4 rounded-full">
+                  <AlertTriangle className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-white" />
                 </div>
               </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-center">No Remaining Bread</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-center">No Remaining Bread</h1>
             </div>
 
             {/* Content - Takes remaining space */}
-            <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 py-8 sm:py-12 overflow-y-auto">
-              <div className="max-w-md mx-auto text-center space-y-6 sm:space-y-8 w-full">
-                <p className="text-gray-700 text-base sm:text-lg md:text-xl leading-relaxed">
+            <div className="flex-1 flex flex-col justify-center px-3 sm:px-6 py-4 sm:py-8 md:py-12 overflow-y-auto">
+              <div className="max-w-md mx-auto text-center space-y-4 sm:space-y-6 md:space-y-8 w-full">
+                <p className="text-gray-700 text-sm sm:text-base md:text-lg lg:text-xl leading-relaxed px-4">
                   You didn&apos;t record any remaining bread. Do you want to continue generating the shift report?
                 </p>
                 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-                  <div className="flex items-center justify-center mb-3 sm:mb-4">
-                    <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600" />
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6 mx-4">
+                  <div className="flex items-center justify-center mb-2 sm:mb-3 md:mb-4">
+                    <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-yellow-600" />
                   </div>
-                  <p className="text-yellow-800 font-medium text-sm sm:text-base">
+                  <p className="text-yellow-800 font-medium text-xs sm:text-sm md:text-base">
                     This will generate a shift report with no remaining inventory recorded.
                   </p>
                 </div>
@@ -1143,19 +1143,19 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             </div>
 
             {/* Footer with Buttons - Fixed at bottom */}
-            <div className="px-4 sm:px-6 pb-6 sm:pb-8">
-              <div className="flex gap-3 sm:gap-4 max-w-md mx-auto w-full">
+            <div className="px-3 sm:px-6 pb-4 sm:pb-6 md:pb-8">
+              <div className="flex gap-2 sm:gap-3 md:gap-4 max-w-md mx-auto w-full">
                 <Button
                   variant="outline"
                   onClick={() => setShowConfirmationModal(false)}
-                  className="flex-1 py-4 sm:py-6 px-4 sm:px-6 rounded-xl sm:rounded-2xl border-2 border-gray-300 hover:border-gray-400 transition-colors text-base sm:text-lg font-semibold touch-manipulation min-h-[56px] sm:min-h-[60px]"
+                  className="flex-1 py-3 sm:py-4 md:py-6 px-3 sm:px-4 md:px-6 rounded-lg sm:rounded-xl md:rounded-2xl border-2 border-gray-300 hover:border-gray-400 transition-colors text-sm sm:text-base md:text-lg font-semibold touch-manipulation min-h-[48px] sm:min-h-[56px] md:min-h-[60px]"
                   aria-label="Cancel and go back to main page"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleConfirmProceed}
-                  className="flex-1 py-4 sm:py-6 px-4 sm:px-6 rounded-xl sm:rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-base sm:text-lg font-semibold touch-manipulation min-h-[56px] sm:min-h-[60px] shadow-lg hover:shadow-xl transition-all text-white"
+                  className="flex-1 py-3 sm:py-4 md:py-6 px-3 sm:px-4 md:px-6 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-sm sm:text-base md:text-lg font-semibold touch-manipulation min-h-[48px] sm:min-h-[56px] md:min-h-[60px] shadow-lg hover:shadow-xl transition-all text-white"
                   aria-label="Proceed to feedback modal"
                 >
                   Proceed
@@ -1169,11 +1169,11 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
       {/* Feedback Modal - Mobile-First Responsive Design */}
       {showFeedbackModal && !submitting && (
         <div 
-          className="fixed top-0 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-40 pointer-events-auto"
+          className="fixed top-16 left-0 right-0 bottom-0 bg-black/80 backdrop-blur-sm z-50 pointer-events-auto"
           style={{ 
             touchAction: 'none',
             width: '100vw',
-            height: isKeyboardVisible ? `${window.visualViewport?.height || window.innerHeight}px` : '100vh',
+            height: isKeyboardVisible ? `calc(${window.visualViewport?.height || window.innerHeight}px - 4rem)` : 'calc(100vh - 4rem)',
             margin: 0,
             padding: 0
           }}
@@ -1182,31 +1182,31 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             className="bg-white flex flex-col"
             style={{
               width: '100vw',
-              height: isKeyboardVisible ? `${window.visualViewport?.height || window.innerHeight}px` : '100vh',
+              height: isKeyboardVisible ? `calc(${window.visualViewport?.height || window.innerHeight}px - 4rem)` : 'calc(100vh - 4rem)',
               minHeight: 'auto',
-              maxHeight: isKeyboardVisible ? `${window.visualViewport?.height || window.innerHeight}px` : '100vh'
+              maxHeight: isKeyboardVisible ? `calc(${window.visualViewport?.height || window.innerHeight}px - 4rem)` : 'calc(100vh - 4rem)'
             }}
           >
             {/* Header - Collapsible on mobile when keyboard is visible */}
             <div className={`bg-gradient-to-r from-blue-500 to-cyan-500 text-white transition-all duration-300 ${
               isKeyboardVisible 
-                ? 'px-4 py-3' // Compact header when keyboard is visible
-                : 'px-4 sm:px-6 py-6 sm:py-8' // Full header when keyboard is hidden
+                ? 'px-3 py-2' // Compact header when keyboard is visible
+                : 'px-3 sm:px-6 py-4 sm:py-6' // Full header when keyboard is hidden
             }`}>
               {!isKeyboardVisible && (
-                <div className="flex items-center justify-center mb-4 sm:mb-6">
-                  <div className="bg-white/20 p-3 sm:p-4 rounded-full">
-                    <Send className="h-10 w-10 sm:h-12 sm:w-12 text-white" />
+                <div className="flex items-center justify-center mb-3 sm:mb-6">
+                  <div className="bg-white/20 p-2 sm:p-3 md:p-4 rounded-full">
+                    <Send className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-white" />
                   </div>
                 </div>
               )}
               <h1 className={`font-bold text-center transition-all duration-300 ${
                 isKeyboardVisible 
-                  ? 'text-lg' // Smaller title when keyboard visible
-                  : 'text-xl sm:text-2xl md:text-3xl' // Full size when keyboard hidden
+                  ? 'text-base' // Smaller title when keyboard visible
+                  : 'text-lg sm:text-xl md:text-2xl lg:text-3xl' // Full size when keyboard hidden
               }`}>Add Feedback</h1>
               {!isKeyboardVisible && (
-                <p className="text-blue-100 text-center mt-2 sm:mt-3 text-sm sm:text-base md:text-lg">
+                <p className="text-blue-100 text-center mt-1 sm:mt-2 md:mt-3 text-xs sm:text-sm md:text-base lg:text-lg">
                   Optional feedback for this shift
                 </p>
               )}
@@ -1215,35 +1215,35 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             {/* Content - Responsive height calculation */}
             <div className={`flex-1 flex flex-col overflow-y-auto transition-all duration-300 ${
               isKeyboardVisible 
-                ? 'px-4 py-2' // Compact padding when keyboard visible
-                : 'px-4 sm:px-6 py-6 sm:py-8' // Full padding when keyboard hidden
+                ? 'px-3 py-1' // Compact padding when keyboard visible
+                : 'px-3 sm:px-6 py-4 sm:py-6 md:py-8' // Full padding when keyboard hidden
             }`}>
-              <div className="max-w-2xl mx-auto w-full space-y-3 sm:space-y-4">
+              <div className="max-w-2xl mx-auto w-full space-y-2 sm:space-y-3 md:space-y-4">
                 {/* Info box - hide on mobile when keyboard is visible to save space */}
                 {!isKeyboardVisible && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-                    <p className="text-blue-800 text-center font-medium text-sm sm:text-base">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6">
+                    <p className="text-blue-800 text-center font-medium text-xs sm:text-sm md:text-base">
                       Add any feedback or notes about this shift before generating the report.
                     </p>
                   </div>
                 )}
                 
-                <div className="space-y-2 sm:space-y-3">
-                  <label className="block text-base sm:text-lg font-semibold text-gray-900">
+                <div className="space-y-1 sm:space-y-2 md:space-y-3">
+                  <label className="block text-sm sm:text-base md:text-lg font-semibold text-gray-900">
                     Shift Feedback
                   </label>
                   <textarea
                     value={feedback}
                     onChange={(e) => setFeedback(e.target.value)}
                     placeholder="Enter feedback about this shift (optional)..."
-                    className="w-full p-4 border-2 border-gray-300 rounded-xl resize-none text-base leading-relaxed focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all duration-200"
+                    className="w-full p-3 sm:p-4 border-2 border-gray-300 rounded-lg sm:rounded-xl resize-none text-sm sm:text-base leading-relaxed focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all duration-200"
                     style={{
-                      // Mobile-first responsive height calculation
+                      // Mobile-first responsive height calculation - accounting for header height
                       height: isKeyboardVisible 
-                        ? 'calc(100vh - 280px)' // When keyboard visible: full viewport minus header + footer + padding
-                        : 'calc(100vh - 420px)', // When keyboard hidden: full viewport minus header + footer + padding + info box
-                      minHeight: '120px', // Ensure minimum usable height
-                      maxHeight: isKeyboardVisible ? 'calc(100vh - 280px)' : '300px'
+                        ? 'calc(100vh - 320px)' // When keyboard visible: full viewport minus all chrome + header
+                        : 'calc(100vh - 480px)', // When keyboard hidden: full viewport minus all chrome + header + info box
+                      minHeight: '100px', // Ensure minimum usable height for small screens
+                      maxHeight: isKeyboardVisible ? 'calc(100vh - 320px)' : '300px'
                     }}
                     aria-label="Shift feedback textarea"
                     autoComplete="off"
@@ -1262,17 +1262,17 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
             {/* Footer with Buttons - Always visible and accessible */}
             <div className={`bg-white border-t border-gray-100 transition-all duration-300 ${
               isKeyboardVisible 
-                ? 'px-4 py-3' // Compact footer when keyboard visible
-                : 'px-4 sm:px-6 pb-6 sm:pb-8 pt-4' // Full footer when keyboard hidden
+                ? 'px-3 py-2' // Compact footer when keyboard visible
+                : 'px-3 sm:px-6 pb-4 sm:pb-6 md:pb-8 pt-3 sm:pt-4' // Full footer when keyboard hidden
             }`}>
-              <div className="flex gap-3 sm:gap-4 max-w-lg mx-auto w-full">
+              <div className="flex gap-2 sm:gap-3 md:gap-4 max-w-lg mx-auto w-full">
                 <Button
                   variant="outline"
                   onClick={() => setShowFeedbackModal(false)}
-                  className={`flex-1 rounded-xl border-2 border-gray-300 hover:border-gray-400 transition-colors font-semibold touch-manipulation ${
+                  className={`flex-1 rounded-lg sm:rounded-xl border-2 border-gray-300 hover:border-gray-400 transition-colors font-semibold touch-manipulation ${
                     isKeyboardVisible 
-                      ? 'py-3 px-4 text-base min-h-[48px]' // Compact when keyboard visible
-                      : 'py-4 sm:py-6 px-4 sm:px-6 text-base sm:text-lg min-h-[56px] sm:min-h-[60px]' // Full size when keyboard hidden
+                      ? 'py-2 px-3 text-sm min-h-[44px]' // Compact when keyboard visible
+                      : 'py-3 sm:py-4 md:py-6 px-3 sm:px-4 md:px-6 text-sm sm:text-base md:text-lg min-h-[48px] sm:min-h-[56px] md:min-h-[60px]' // Full size when keyboard hidden
                   }`}
                   aria-label="Go back to previous step"
                 >
@@ -1281,24 +1281,24 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                 <Button
                   onClick={handleSubmitWithFeedback}
                   disabled={submitting}
-                  className={`flex-1 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all text-white font-semibold ${
+                  className={`flex-1 rounded-lg sm:rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all text-white font-semibold ${
                     isKeyboardVisible 
-                      ? 'py-3 px-4 text-base min-h-[48px]' // Compact when keyboard visible  
-                      : 'py-4 sm:py-6 px-4 sm:px-6 text-base sm:text-lg min-h-[56px] sm:min-h-[60px]' // Full size when keyboard hidden
+                      ? 'py-2 px-3 text-sm min-h-[44px]' // Compact when keyboard visible  
+                      : 'py-3 sm:py-4 md:py-6 px-3 sm:px-4 md:px-6 text-sm sm:text-base md:text-lg min-h-[48px] sm:min-h-[56px] md:min-h-[60px]' // Full size when keyboard hidden
                   }`}
                   aria-label="Generate shift report with feedback"
                 >
                   {submitting ? (
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-1 sm:gap-2">
                       <div className={`rounded-full border-2 border-white border-t-transparent animate-spin ${
-                        isKeyboardVisible ? 'h-4 w-4' : 'h-4 w-4 sm:h-5 sm:w-5'
+                        isKeyboardVisible ? 'h-3 w-3' : 'h-4 w-4 sm:h-5 sm:w-5'
                       }`} />
-                      <span className={isKeyboardVisible ? 'text-base' : 'text-base sm:text-lg'}>
+                      <span className={isKeyboardVisible ? 'text-sm' : 'text-sm sm:text-base md:text-lg'}>
                         Generating...
                       </span>
                     </div>
                   ) : (
-                    <span className={isKeyboardVisible ? 'text-base' : 'text-base sm:text-lg'}>
+                    <span className={isKeyboardVisible ? 'text-sm' : 'text-sm sm:text-base md:text-lg'}>
                       Generate Report
                     </span>
                   )}
