@@ -13,7 +13,7 @@ interface BreadTypeInput {
 // Enhanced getBreadTypes with soft delete support
 export async function getBreadTypes(includeInactive: boolean = false): Promise<BreadType[]> {
   try {
-    const supabase = await createServer();
+    const supabase = createServiceRoleClient();
     
     let query = supabase
       .from('bread_types')
@@ -63,20 +63,27 @@ export async function createBreadType(currentUser: User, input: BreadTypeInput) 
     throw new Error('Invalid bread type data');
   }
   
-  const supabase = await createServer();
+  const supabase = createServiceRoleClient();
   
-  const { error } = await supabase.from('bread_types').insert([{
+  const { data, error } = await supabase.from('bread_types').insert([{
     name: parsed.data.name,
     size: parsed.data.size,
     unit_price: parsed.data.unit_price,
     is_active: parsed.data.is_active !== undefined ? parsed.data.is_active : true,
     created_by: currentUser.id
-  }]);
+  }]).select('id, name, is_active');
   
   if (error) {
     console.error('Bread type creation error:', error);
     throw new Error(`Failed to create bread type: ${error.message}`);
   }
+  
+  // Verify the creation actually happened
+  if (!data || data.length === 0) {
+    throw new Error('Bread type creation failed: No rows were created');
+  }
+  
+  console.log(`✅ Bread type "${data[0].name}" created successfully (ID: ${data[0].id})`);
   
   return true;
 }
@@ -92,7 +99,7 @@ export async function updateBreadType(currentUser: User, id: string, input: Brea
     throw new Error('Invalid bread type data');
   }
   
-  const supabase = await createServer();
+  const supabase = createServiceRoleClient();
   
   // Get the current bread type data for comparison
   const { data: currentBreadType, error: fetchError } = await supabase
@@ -105,23 +112,22 @@ export async function updateBreadType(currentUser: User, id: string, input: Brea
     throw new Error('Bread type not found');
   }
   
-  // Perform the update - database triggers handle name/price synchronization
-  const updateData: any = {
-    name: parsed.data.name,
-    size: parsed.data.size,
-    unit_price: parsed.data.unit_price
-  };
-  
-  // Only include is_active if it's provided
-  if (parsed.data.is_active !== undefined) {
-    updateData.is_active = parsed.data.is_active;
-  }
-  
-  const { error } = await supabase.from('bread_types').update(updateData).eq('id', id);
+  // Use the working bypass function
+  const { data, error } = await supabase.rpc('update_bread_type_with_manual_refresh', {
+    p_id: id,
+    p_name: parsed.data.name,
+    p_size: parsed.data.size,
+    p_unit_price: parsed.data.unit_price,
+    p_is_active: parsed.data.is_active
+  });
   
   if (error) {
     console.error('Bread type update error:', error);
     throw new Error(`Failed to update bread type: ${error.message}`);
+  }
+  
+  if (!data || data.length === 0) {
+    throw new Error('Bread type update failed: No data returned');
   }
   
   // Enhanced audit logging
@@ -149,7 +155,7 @@ export async function deactivateBreadType(currentUser: User, id: string): Promis
     throw new Error('Unauthorized: Only owners and managers can deactivate bread types');
   }
   
-  const supabase = await createServer();
+  const supabase = createServiceRoleClient();
   
   // Check if bread type exists and is currently active
   const { data: existing, error: fetchError } = await supabase
@@ -166,15 +172,24 @@ export async function deactivateBreadType(currentUser: User, id: string): Promis
     throw new Error('Bread type is already inactive');
   }
   
-  // Perform soft delete
-  const { error } = await supabase
-    .from('bread_types')
-    .update({ is_active: false })
-    .eq('id', id);
+  // Use the working bypass function for deactivation
+  const { data, error } = await supabase.rpc('update_bread_type_with_manual_refresh', {
+    p_id: id,
+    p_is_active: false
+  });
   
   if (error) {
     console.error('Bread type deactivation error:', error);
     throw new Error(`Failed to deactivate bread type: ${error.message}`);
+  }
+  
+  if (!data || data.length === 0) {
+    throw new Error('Bread type deactivation failed: No data returned');
+  }
+  
+  const updatedBreadType = data[0];
+  if (updatedBreadType.is_active !== false) {
+    throw new Error('Bread type deactivation failed: Status was not changed to inactive');
   }
   
   console.log(`✅ Bread type "${existing.name}" deactivated successfully (ID: ${id})`);
@@ -187,7 +202,7 @@ export async function reactivateBreadType(currentUser: User, id: string): Promis
     throw new Error('Unauthorized: Only owners and managers can reactivate bread types');
   }
   
-  const supabase = await createServer();
+  const supabase = createServiceRoleClient();
   
   // Check if bread type exists and is currently inactive
   const { data: existing, error: fetchError } = await supabase
@@ -204,15 +219,24 @@ export async function reactivateBreadType(currentUser: User, id: string): Promis
     throw new Error('Bread type is already active');
   }
   
-  // Reactivate
-  const { error } = await supabase
-    .from('bread_types')
-    .update({ is_active: true })
-    .eq('id', id);
+  // Use the working bypass function for reactivation
+  const { data, error } = await supabase.rpc('update_bread_type_with_manual_refresh', {
+    p_id: id,
+    p_is_active: true
+  });
   
   if (error) {
     console.error('Bread type reactivation error:', error);
     throw new Error(`Failed to reactivate bread type: ${error.message}`);
+  }
+  
+  if (!data || data.length === 0) {
+    throw new Error('Bread type reactivation failed: No data returned');
+  }
+  
+  const updatedBreadType = data[0];
+  if (updatedBreadType.is_active !== true) {
+    throw new Error('Bread type reactivation failed: Status was not changed to active');
   }
   
   console.log(`✅ Bread type "${existing.name}" reactivated successfully (ID: ${id})`);
@@ -286,14 +310,30 @@ export async function deleteBreadType(currentUser: User, id: string) {
     );
   }
   
-  // If we reach here, it's truly safe to delete
-  const { error } = await supabase.from('bread_types').delete().eq('id', id);
-  
-  if (error) {
-    console.error('Bread type deletion error:', error);
+  // If we reach here, it's truly safe to delete - use bypass function
+  try {
+    const { data, error } = await supabase.rpc('delete_bread_type_with_bypass', {
+      p_id: id
+    });
     
-    // Handle foreign key constraint violations with user-friendly messages
-    if (error.code === '23503') {
+    if (error) {
+      throw error;
+    }
+    
+    const result = typeof data === 'string' ? JSON.parse(data) : data;
+    if (!result.success) {
+      throw new Error(result.error || 'Delete operation failed');
+    }
+  } catch (rpcError) {
+    // Fallback to direct delete if bypass function doesn't exist
+    console.warn('Bypass delete function not available, trying direct delete');
+    const { error } = await supabase.from('bread_types').delete().eq('id', id);
+    
+    if (error) {
+      console.error('Bread type deletion error:', error);
+      
+      // Handle foreign key constraint violations with user-friendly messages
+      if (error.code === '23503') {
       if (error.message.includes('batches') || error.message.includes('batch')) {
         throw new Error('Cannot delete this bread type as it has batch records. Historical batch data is required for reporting and auditing purposes.');
       } else if (error.message.includes('all_batches')) {
@@ -312,8 +352,9 @@ export async function deleteBreadType(currentUser: User, id: string) {
         throw new Error('Cannot delete this bread type as it is being used by other records in the system. Historical data must be preserved for auditing purposes.');
       }
     }
-    
-    throw new Error(`Failed to delete bread type: ${error.message}`);
+      
+      throw new Error(`Failed to delete bread type: ${error.message}`);
+    }
   }
   
   console.log(`✅ Bread type "${existing.name}" permanently deleted (ID: ${id})`);

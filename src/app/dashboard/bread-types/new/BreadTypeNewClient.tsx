@@ -8,6 +8,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createUserMessages, withRetry } from '@/lib/utils/error-handling';
+import { useQueryClient } from '@tanstack/react-query';
+import { QUERY_KEYS } from '@/lib/react-query/config';
 
 interface BreadType {
   id: string;
@@ -28,6 +30,7 @@ export default function BreadTypeNewClient({ initialValues, user }: { initialVal
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
+  const queryClient = useQueryClient();
 
 
   const handleSubmit = async (data: { name: string; size?: string; unit_price: number }) => {
@@ -44,11 +47,15 @@ export default function BreadTypeNewClient({ initialValues, user }: { initialVal
         
         if (result?.success) {
           const message = createUserMessages.breadTypes.updateSuccess(breadTypeName);
-          toast.success(message.message, message.title, message.duration);
+          toast.success(message.message);
+          
+          // Invalidate React Query cache to ensure fresh data on bread types page
+          await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.breadTypes.all() });
+          
           router.push('/dashboard/bread-types');
         } else {
           const message = createUserMessages.breadTypes.updateError(breadTypeName, result?.error);
-          toast.error(message.message, message.title, message.duration);
+          toast.error(message.message);
         }
       } else {
         // Create new bread type
@@ -58,21 +65,25 @@ export default function BreadTypeNewClient({ initialValues, user }: { initialVal
         
         if (result?.success) {
           const message = createUserMessages.breadTypes.createSuccess(breadTypeName);
-          toast.success(message.message, message.title, message.duration);
+          toast.success(message.message);
+          
+          // Invalidate React Query cache to ensure fresh data on bread types page
+          await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.breadTypes.all() });
+          
           router.push('/dashboard/bread-types');
         } else {
           const message = createUserMessages.breadTypes.createError(breadTypeName, result?.error);
-          toast.error(message.message, message.title, message.duration);
+          toast.error(message.message);
         }
       }
     } catch (error) {
       const breadTypeName = data.name;
       if (id) {
         const message = createUserMessages.breadTypes.updateError(breadTypeName, error);
-        toast.error(message.message, message.title, message.duration);
+        toast.error(message.message);
       } else {
         const message = createUserMessages.breadTypes.createError(breadTypeName, error);
-        toast.error(message.message, message.title, message.duration);
+        toast.error(message.message);
       }
     } finally {
       setFormLoading(false);

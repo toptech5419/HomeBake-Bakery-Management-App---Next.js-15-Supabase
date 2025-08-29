@@ -52,6 +52,7 @@ export interface BreadType {
   unit_price: number;
   created_by?: string | null; // FK to users.id (owner) - optional to match database
   created_at: string;
+  is_active: boolean; // Soft delete support
 }
 
 // Production Management
