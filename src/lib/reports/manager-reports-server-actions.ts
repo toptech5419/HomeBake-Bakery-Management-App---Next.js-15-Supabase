@@ -86,12 +86,12 @@ export async function getManagerReports(): Promise<GroupedReport[]> {
       return []
     }
 
-    // Group by date+shift
+    // Group by date+shift+manager to isolate reports per manager
     const groups: Record<string, any> = {}
     for (const batch of batches || []) {
       const date = batch.start_time ? batch.start_time.split('T')[0] : 'unknown'
       const shift = batch.shift
-      const key = `${date}-${shift}`
+      const key = `${date}-${shift}-${batch.created_by}`
       
       if (!groups[key]) {
         groups[key] = {

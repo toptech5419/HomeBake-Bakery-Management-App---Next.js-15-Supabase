@@ -174,14 +174,15 @@ export default function OwnerManagerReportsClient({ user, displayName }: OwnerMa
       ...report.breadTypes.map(type => [type]),
       [''],
       ['Batch Details'],
-      ['Batch Number', 'Bread Type', 'Quantity', 'Status', 'Start Time', 'End Time'],
+      ['Batch Number', 'Bread Type', 'Quantity', 'Status', 'Start Time', 'End Time', 'Notes'],
       ...report.batches.map(batch => [
         batch.batch_number,
         getName(batch.bread_types),
         batch.actual_quantity,
         batch.status,
         formatDate(batch.start_time),
-        batch.end_time ? formatTime(batch.end_time) : 'N/A'
+        batch.end_time ? formatTime(batch.end_time) : 'N/A',
+        batch.notes && batch.notes.trim() ? batch.notes.trim() : 'N/A'
       ])
     ];
 
@@ -583,6 +584,17 @@ export default function OwnerManagerReportsClient({ user, displayName }: OwnerMa
                   {batch.end_time && (
                     <div className="text-xs text-gray-500 mt-1">
                       End: {formatTime(batch.end_time)}
+                    </div>
+                  )}
+                  {batch.notes && batch.notes.trim() && (
+                    <div className="mt-2 pt-2 border-t border-gray-200">
+                      <div className="flex items-start gap-2">
+                        <MessageCircle className="inline w-3 h-3 mt-0.5 text-blue-500 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-medium text-blue-600">Notes:</span>
+                          <p className="text-xs text-gray-700 mt-0.5 break-words">{batch.notes.trim()}</p>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </Card>
