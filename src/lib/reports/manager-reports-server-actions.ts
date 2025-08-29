@@ -43,13 +43,27 @@ const getName = (val: unknown): string => {
 }
 
 /**
- * Fetch manager reports (from all_batches table) - Server Action
+ * Fetch manager reports with role-based isolation (from all_batches table) - Server Action
  */
 export async function getManagerReports(): Promise<GroupedReport[]> {
   const supabase = await createServer()
   
   try {
-    const { data: batches, error } = await supabase
+    // Get current user and role for filtering
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      return []
+    }
+
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const userRole = userProfile?.role || 'sales_rep'
+    
+    let query = supabase
       .from('all_batches')
       .select(`
         id, bread_type_id, batch_number, start_time, end_time, actual_quantity, 
@@ -57,7 +71,14 @@ export async function getManagerReports(): Promise<GroupedReport[]> {
         bread_types (name), 
         users:created_by (name)
       `)
-      .order('start_time', { ascending: false })
+
+    // Role-based filtering: Manager isolation, Owner/Sales Rep see all
+    if (userRole === 'manager') {
+      query = query.eq('created_by', user.id)
+    }
+    // Owner and sales_rep see all reports (no filter)
+
+    const { data: batches, error } = await query.order('start_time', { ascending: false })
 
     if (error) {
       console.error('Error fetching manager reports:', error)
