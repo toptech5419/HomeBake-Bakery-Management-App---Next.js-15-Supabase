@@ -12,6 +12,7 @@ export interface BatchData {
   status: string
   shift: string
   created_by: string
+  notes?: string | null
   bread_types: { name: string } | { name: string }[] | null
   users: { name: string } | { name: string }[] | null
 }
@@ -67,7 +68,7 @@ export async function getManagerReports(): Promise<GroupedReport[]> {
       .from('all_batches')
       .select(`
         id, bread_type_id, batch_number, start_time, end_time, actual_quantity, 
-        status, shift, created_by, 
+        status, shift, created_by, notes,
         bread_types (name), 
         users:created_by (name)
       `)

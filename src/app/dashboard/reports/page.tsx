@@ -27,7 +27,7 @@ interface BatchData {
   status: string;
   shift: string;
   created_by: string;
-  notes?: string;
+  notes?: string | null;
   bread_types: { name: string } | { name: string }[] | null;
   users: { name: string } | { name: string }[] | null;
 }
@@ -488,7 +488,26 @@ function ReportsPageInner() {
                       <Package className="w-3 h-3" />
                       <span>Quantity: {batch.actual_quantity}</span>
                     </div>
-                    {batch.notes && <div className="mt-2 text-xs text-gray-600">📝 {batch.notes}</div>}
+                    {/* Production-Grade Notes Display */}
+                    {batch.notes && (
+                      <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="text-white text-xs font-bold">!</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-amber-800 mb-1">Batch Notes:</p>
+                            <div className="text-xs text-amber-700 leading-relaxed break-words max-h-20 overflow-y-auto">
+                              {batch.notes.split('\n').map((line, index) => (
+                                <div key={index} className={index > 0 ? 'mt-1' : ''}>
+                                  {line || <br />}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </Card>
               ))}
