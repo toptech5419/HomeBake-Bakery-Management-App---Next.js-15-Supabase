@@ -31,6 +31,11 @@ export interface SalesReport {
   remaining_breads: RemainingBreadItem[]
   created_at: string
   updated_at: string
+  // User information from JOIN
+  users?: {
+    name: string
+    role: string
+  }
 }
 
 /**
@@ -42,7 +47,13 @@ export async function getSalesReports(): Promise<SalesReport[]> {
   try {
     const { data: reportsData, error } = await supabase
       .from('shift_reports')
-      .select('*')
+      .select(`
+        *,
+        users!shift_reports_user_id_fkey (
+          name,
+          role
+        )
+      `)
       .order('created_at', { ascending: false })
 
     if (error) {

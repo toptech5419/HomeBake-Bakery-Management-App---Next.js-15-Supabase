@@ -17,7 +17,8 @@ import {
   Mail,
   MessageCircle,
   Copy,
-  RefreshCw
+  RefreshCw,
+  User
 } from 'lucide-react';
 import { getSalesReports, type SalesReport, type SalesDataItem, type RemainingBreadItem } from '@/lib/reports/sales-reports-server-actions';
 import { cn } from '@/lib/utils';
@@ -492,8 +493,8 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
                   {/* Action Buttons - Compact */}
                   <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                     <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Calendar size={12} />
-                      <span>{formatDate(report.report_date)}</span>
+                      <User size={12} />
+                      <span>By: {report.users?.name || 'Unknown'}</span>
                     </div>
                     <div className="flex gap-1">
                       <button 
