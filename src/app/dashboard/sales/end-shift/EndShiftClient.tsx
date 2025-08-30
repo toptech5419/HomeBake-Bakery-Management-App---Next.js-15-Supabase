@@ -402,9 +402,17 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
     setSubmitting(true);
     setIsProcessingSales(true); // 🔧 Prevent data fetching during sales processing
 
+    // Production-grade error collection instead of throwing errors that exit early
+    const errors: string[] = [];
+    let salesProcessed = false;
+    let remainingProcessed = false;
+    
+    // Define processing scope variables
+    const additionalSales = quickRecordItems.filter(item => item.quantity > 0);
+    const remainingToSave = quickRemainingItems.filter(item => item.quantity > 0);
+
     try {
       // Step 1: Process Sales Data (if any)
-      const additionalSales = quickRecordItems.filter(item => item.quantity > 0);
       
       if (additionalSales.length > 0) {
         toast.loading('Checking and saving sales data...', { id: 'save-sales' });
@@ -417,64 +425,73 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
           recorded_by: userId
         }));
 
-        const salesResult = await upsertSalesLogs(salesData);
-        toast.dismiss('save-sales');
-        
-        if (!salesResult.success) {
-          setIsProcessingSales(false); // Reset flag on error
-          throw new Error('Failed to save sales data: ' + salesResult.error);
-        }
-        
-        // Show appropriate message based on what happened
-        const insertedCount = salesResult.results?.filter(r => r.action === 'inserted').length || 0;
-        const updatedCount = salesResult.results?.filter(r => r.action === 'updated').length || 0;
-        
-        if (insertedCount > 0 && updatedCount > 0) {
-          toast.success(`Added ${insertedCount} new sales, updated ${updatedCount} existing records`);
-        } else if (insertedCount > 0) {
-          toast.success(`Added ${insertedCount} sales records`);
-        } else if (updatedCount > 0) {
-          toast.success(`Updated ${updatedCount} existing sales records`);
-        }
-
-        // Manually refresh the sales data without triggering infinite loop
         try {
-          const updatedSalesData = await getSalesDataForShift(userId, currentShift!);
-          if (updatedSalesData) {
-            setSalesLogs(updatedSalesData);
+          const salesResult = await upsertSalesLogs(salesData);
+          toast.dismiss('save-sales');
+          
+          if (!salesResult.success) {
+            errors.push(`Sales data: ${salesResult.error}`);
+            toast.error('Failed to save some sales data');
+          } else {
+            salesProcessed = true;
             
-            // Update quickRecordItems with LATEST refreshed quantities from sales_logs
-            const salesQuantities = new Map<string, SalesLog>();
+            // Show appropriate message based on what happened
+            const insertedCount = salesResult.results?.filter(r => r.action === 'inserted').length || 0;
+            const updatedCount = salesResult.results?.filter(r => r.action === 'updated').length || 0;
             
-            // Keep only the latest record for each bread type
-            updatedSalesData.forEach((sale: SalesLog) => {
-              const breadTypeId = sale.bread_type_id;
-              const existingRecord = salesQuantities.get(breadTypeId);
-              
-              // If no existing record OR this record is newer, use it
-              if (!existingRecord || new Date(sale.created_at) > new Date(existingRecord.created_at)) {
-                salesQuantities.set(breadTypeId, sale);
-              }
-            });
+            if (insertedCount > 0 && updatedCount > 0) {
+              toast.success(`Added ${insertedCount} new sales, updated ${updatedCount} existing records`);
+            } else if (insertedCount > 0) {
+              toast.success(`Added ${insertedCount} sales records`);
+            } else if (updatedCount > 0) {
+              toast.success(`Updated ${updatedCount} existing sales records`);
+            }
 
-            // Update quickRecordItems with LATEST quantities (not summed)
-            setQuickRecordItems(prevItems => 
-              prevItems.map(item => {
-                const latestSale = salesQuantities.get(item.breadType.id);
-                return {
-                  ...item,
-                  quantity: latestSale ? latestSale.quantity : 0
-                };
-              })
-            );
+            // Manually refresh the sales data without triggering infinite loop
+            try {
+              const updatedSalesData = await getSalesDataForShift(userId, currentShift!);
+              if (updatedSalesData) {
+                setSalesLogs(updatedSalesData);
+                
+                // Update quickRecordItems with LATEST refreshed quantities from sales_logs
+                const salesQuantities = new Map<string, SalesLog>();
+                
+                // Keep only the latest record for each bread type
+                updatedSalesData.forEach((sale: SalesLog) => {
+                  const breadTypeId = sale.bread_type_id;
+                  const existingRecord = salesQuantities.get(breadTypeId);
+                  
+                  // If no existing record OR this record is newer, use it
+                  if (!existingRecord || new Date(sale.created_at) > new Date(existingRecord.created_at)) {
+                    salesQuantities.set(breadTypeId, sale);
+                  }
+                });
+
+                // Update quickRecordItems with LATEST quantities (not summed)
+                setQuickRecordItems(prevItems => 
+                  prevItems.map(item => {
+                    const latestSale = salesQuantities.get(item.breadType.id);
+                    return {
+                      ...item,
+                      quantity: latestSale ? latestSale.quantity : 0
+                    };
+                  })
+                );
+              }
+            } catch (refreshError) {
+              console.error('Error refreshing sales data after upsert:', refreshError);
+              // Don't add to errors - this is non-critical
+            }
           }
-        } catch (error) {
-          console.error('Error refreshing sales data after upsert:', error);
+        } catch (salesError) {
+          toast.dismiss('save-sales');
+          console.error('Sales processing error:', salesError);
+          errors.push(`Sales processing: ${salesError instanceof Error ? salesError.message : 'Unknown error'}`);
+          toast.error('Failed to process sales data');
         }
       }
 
-      // Step 2: Process Remaining Bread Data (if any)
-      const remainingToSave = quickRemainingItems.filter(item => item.quantity > 0);
+      // Step 2: Process Remaining Bread Data (if any) - Continue regardless of sales errors
       
       if (remainingToSave.length > 0) {
         toast.loading('Saving remaining bread data...', { id: 'save-remaining' });
@@ -488,50 +505,64 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
           recorded_by: userId
         }));
 
-        const remainingResult = await upsertRemainingBread(remainingBreadData);
-        toast.dismiss('save-remaining');
-        
-        if (!remainingResult.success) {
-          setIsProcessingSales(false); // Reset flag on error
-          throw new Error('Failed to save remaining bread: ' + remainingResult.error);
-        }
-        
-        // Show appropriate message based on what happened
-        const remainingInserted = remainingResult.results?.filter(r => r.action === 'inserted').length || 0;
-        const remainingUpdated = remainingResult.results?.filter(r => r.action === 'updated').length || 0;
-        
-        if (remainingInserted > 0 && remainingUpdated > 0) {
-          toast.success(`Added ${remainingInserted} new remaining bread records, updated ${remainingUpdated} existing records`);
-        } else if (remainingInserted > 0) {
-          toast.success(`Added ${remainingInserted} remaining bread records`);
-        } else if (remainingUpdated > 0) {
-          toast.success(`Updated ${remainingUpdated} existing remaining bread records`);
+        try {
+          const remainingResult = await upsertRemainingBread(remainingBreadData);
+          toast.dismiss('save-remaining');
+          
+          if (!remainingResult.success) {
+            errors.push(`Remaining bread: ${remainingResult.error}`);
+            toast.error('Failed to save some remaining bread data');
+          } else {
+            remainingProcessed = true;
+            
+            // Show appropriate message based on what happened
+            const remainingInserted = remainingResult.results?.filter(r => r.action === 'inserted').length || 0;
+            const remainingUpdated = remainingResult.results?.filter(r => r.action === 'updated').length || 0;
+            
+            if (remainingInserted > 0 && remainingUpdated > 0) {
+              toast.success(`Added ${remainingInserted} new remaining bread records, updated ${remainingUpdated} existing records`);
+            } else if (remainingInserted > 0) {
+              toast.success(`Added ${remainingInserted} remaining bread records`);
+            } else if (remainingUpdated > 0) {
+              toast.success(`Updated ${remainingUpdated} existing remaining bread records`);
+            }
+          }
+        } catch (remainingError) {
+          toast.dismiss('save-remaining');
+          console.error('Remaining bread processing error:', remainingError);
+          errors.push(`Remaining bread processing: ${remainingError instanceof Error ? remainingError.message : 'Unknown error'}`);
+          toast.error('Failed to process remaining bread data');
         }
       }
-      
-      setIsProcessingSales(false); // 🔧 Reset flag after all processing
 
-      // Step 3: Determine Modal Route
-      const totalRemainingQuantity = remainingToSave.length;
+    } finally {
+      // GUARANTEED EXECUTION: Always reset flags and show modal regardless of errors
+      setIsProcessingSales(false);
+      setSubmitting(false);
+
+      // Step 3: Always show appropriate modal with partial success handling
       const hasSalesData = additionalSales.length > 0;
       const hasRemainingData = remainingToSave.length > 0;
+      const hasAnyProcessingAttempt = hasSalesData || hasRemainingData;
 
-      setSubmitting(false);
-
-      // Show feedback modal if any data was processed, otherwise show confirmation
-      if (hasSalesData || hasRemainingData) {
-        setShowFeedbackModal(true);
-      } else {
-        setShowConfirmationModal(true);
+      // If there were errors but some processing succeeded, show modal with warning
+      if (errors.length > 0 && (salesProcessed || remainingProcessed)) {
+        toast.warning(`Some data processed successfully, but ${errors.length} error(s) occurred`);
+        console.warn('Partial success errors:', errors);
+      } else if (errors.length > 0 && !salesProcessed && !remainingProcessed) {
+        // All operations failed, but still show modal so user can provide feedback
+        toast.error('Data processing failed, but you can still continue with feedback');
+        console.error('All operations failed:', errors);
       }
 
-    } catch (error) {
-      console.error('Error processing data:', error);
-      toast.dismiss('save-sales');
-      toast.dismiss('save-remaining');
-      toast.error('Failed to process data. Please try again.');
-      setIsProcessingSales(false); // Reset flag on error
-      setSubmitting(false);
+      // PRODUCTION-GRADE MODAL FLOW: Always show appropriate modal
+      if (hasAnyProcessingAttempt) {
+        // Show feedback modal if any processing was attempted (success or failure)
+        setShowFeedbackModal(true);
+      } else {
+        // Show confirmation modal if no data to process
+        setShowConfirmationModal(true);
+      }
     }
   };
 
@@ -789,22 +820,22 @@ export function EndShiftClient({ userId, userName }: EndShiftClientProps) {
                   <FileText className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-white" />
                 </div>
               </div>
-              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-center">Generating Report</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-center">Processing Data</h1>
             </div>
 
             {/* Content */}
             <div className="flex-1 flex flex-col justify-center items-center px-3 sm:px-6 py-4">
               <div className="relative mb-4 sm:mb-6 md:mb-8">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                <div className="absolute inset-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-4 border-green-200 rounded-full opacity-25"></div>
+                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="absolute inset-0 w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 border-4 border-blue-200 rounded-full opacity-25"></div>
               </div>
               <div className="text-center space-y-2 sm:space-y-3 md:space-y-4 max-w-lg px-4">
                 <p className="text-gray-700 text-base sm:text-lg md:text-xl font-medium">
-                  Creating comprehensive shift report...
+                  Processing your sales and remaining bread data...
                 </p>
-                <div className="bg-green-50 border border-green-200 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6">
-                  <p className="text-green-800 text-xs sm:text-sm md:text-base">
-                    This may take a few moments while we process your sales data and remaining inventory.
+                <div className="bg-blue-50 border border-blue-200 rounded-lg sm:rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6">
+                  <p className="text-blue-800 text-xs sm:text-sm md:text-base">
+                    Saving your data to the database. This may take a few moments.
                   </p>
                 </div>
               </div>

@@ -104,7 +104,8 @@
       "Bash(start http://localhost:3001)",
       "Read(c:\\Users\\TOPTECH\\Pictures\\iTop Screenshot/**)",
       "Read(c:\\Users\\TOPTECH\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\\TempState\\409B474080E928BBB5664659407B5947/**)",
-      "Bash(start http://localhost:3003/dashboard/sales/end-shift)"
+      "Bash(start http://localhost:3003/dashboard/sales/end-shift)",
+      "Bash(start http://localhost:3000/dashboard/sales)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

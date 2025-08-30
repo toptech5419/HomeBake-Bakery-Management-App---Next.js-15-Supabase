@@ -66,18 +66,14 @@ export function useSmartNavigation() {
         }, 100);
       }
       
-      // Reset navigation state after route change
+      // Reset navigation state immediately for seamless transitions
       const resetNavigationState = () => {
         setIsNavigating(false);
         options?.onNavigationEnd?.();
       };
       
-      if (options?.immediate) {
-        resetNavigationState();
-      } else {
-        // Allow time for route change to complete
-        setTimeout(resetNavigationState, 150);
-      }
+      // Immediate state reset for seamless UX - no delays
+      resetNavigationState();
       
       return Promise.resolve();
     } catch (error) {
@@ -114,7 +110,7 @@ export function useSmartNavigation() {
         }, 100);
       }
       
-      setTimeout(() => setIsNavigating(false), 150);
+      setIsNavigating(false);
       
       return Promise.resolve();
     } catch (error) {
@@ -133,7 +129,7 @@ export function useSmartNavigation() {
     try {
       router.back();
       // Navigation state will be reset by the route change
-      setTimeout(() => setIsNavigating(false), 300);
+      setIsNavigating(false);
     } catch (error) {
       console.error('Navigation error:', error);
       setIsNavigating(false);

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSmartNavigation } from '@/hooks/use-smart-navigation';
+import { useSeamlessNavigation } from '@/hooks/use-seamless-navigation';
 import {
   DollarSign,
   ShoppingCart,
@@ -25,9 +25,9 @@ import { formatCurrencyNGN } from '@/lib/utils/currency';
 import { getSalesRepDashboardMetrics } from '@/lib/dashboard/server-actions';
 import { clearSalesLogsAction } from '@/lib/sales/clear-sales-logs';
 import { cn } from '@/lib/utils';
-// Removed modal imports - now using page routes
 import { toast } from 'sonner';
 import ShiftToggle from '@/components/shift/shift-toggle';
+import { NavigationTransitionOverlay } from '@/components/navigation/NavigationTransition';
 
 interface SalesRepDashboardProps {
   userId: string;
@@ -79,7 +79,7 @@ interface SalesLog {
 export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) {
   const { currentShift, setCurrentShift } = useShift();
   const { setEndShiftHandler } = useEndShiftContext();
-  const { smartPush, isNavigating } = useSmartNavigation();
+  const { navigateWithTransition, transition, isTransitionActive } = useSeamlessNavigation();
   const [metrics, setMetrics] = useState<DashboardMetrics>({
     todaySales: 0,
     transactions: 0,
@@ -93,7 +93,6 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
   const [loading, setLoading] = useState(true);
   const [isEndingShift, setIsEndingShift] = useState(false);
   const [hasSalesLogs, setHasSalesLogs] = useState(false);
-  const [activeNavigation, setActiveNavigation] = useState<string | null>(null);
 
   // Removed unused checkSalesLogsExist function
 
@@ -375,17 +374,8 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
     setEndShiftHandler(handleEndShift);
   }, [setEndShiftHandler, handleEndShift]);
 
-  const handleNavigation = (path: string, buttonId: string) => {
-    setActiveNavigation(buttonId);
-    smartPush(path, {
-      onNavigationStart: () => {
-        // Immediate visual feedback - no delay
-      },
-      onNavigationEnd: () => {
-        setActiveNavigation(null);
-      },
-      immediate: false // Allow proper loading state management
-    });
+  const handleNavigation = (path: string, transitionType: 'shift-reports' | 'record-sale' | 'all-sales' | 'reports-history') => {
+    navigateWithTransition(path, transitionType);
   };
 
 
@@ -447,6 +437,9 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
 
   return (
     <div className="space-y-8">
+      {/* Seamless Navigation Transition Overlay */}
+      <NavigationTransitionOverlay transition={transition} />
+      
       {/* Shift Control Card */}
       <ShiftToggle showLabel={true} compact={false} hasDataToClear={hasSalesLogs} />
       {/* END SHIFT FULL-SCREEN LOADING OVERLAY */}
@@ -698,15 +691,12 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
             <ModernButton
               variant="secondary"
               size="md"
-              leftIcon={activeNavigation === 'all-sales' ? 
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-600 border-t-transparent" /> : 
-                <History className="h-4 w-4" />
-              }
+              leftIcon={<History className="h-4 w-4" />}
               onClick={() => handleNavigation('/dashboard/sales/all-sales', 'all-sales')}
               className="hover-lift transition-all duration-200"
-              disabled={activeNavigation === 'all-sales' || isNavigating}
+              disabled={isTransitionActive()}
             >
-              {activeNavigation === 'all-sales' ? 'Loading...' : 'View All Sales'}
+              View All Sales
             </ModernButton>
           </div>
         )}
@@ -724,46 +714,37 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
             <ModernButton
               variant="success"
               size="lg"
-              leftIcon={activeNavigation === 'shift-reports' ? 
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" /> : 
-                <RotateCcw className="h-5 w-5" />
-              }
+              leftIcon={<RotateCcw className="h-5 w-5" />}
               onClick={() => handleNavigation('/dashboard/sales/end-shift', 'shift-reports')}
               className="hover-lift transition-all duration-200"
-              disabled={activeNavigation === 'shift-reports' || isNavigating}
+              disabled={isTransitionActive()}
               fullWidth
             >
-              {activeNavigation === 'shift-reports' ? 'Loading...' : 'Generate Shift Reports'}
+              Generate Shift Reports
             </ModernButton>
             
             <ModernButton
               variant="primary"
               size="lg"
-              leftIcon={activeNavigation === 'record-sale' ? 
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" /> : 
-                <Plus className="h-5 w-5" />
-              }
+              leftIcon={<Plus className="h-5 w-5" />}
               onClick={() => handleNavigation('/dashboard/sales/record', 'record-sale')}
               className="hover-lift transition-all duration-200"
-              disabled={activeNavigation === 'record-sale' || isNavigating}
+              disabled={isTransitionActive()}
               fullWidth
             >
-              {activeNavigation === 'record-sale' ? 'Loading...' : 'Record Sale'}
+              Record Sale
             </ModernButton>
             
             <ModernButton
               variant="secondary"
               size="lg"
-              leftIcon={activeNavigation === 'reports-history' ? 
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-600 border-t-transparent" /> : 
-                <History className="h-4 w-5" />
-              }
+              leftIcon={<History className="h-4 w-5" />}
               onClick={() => handleNavigation('/dashboard/sales-reports-history', 'reports-history')}
               className="hover-lift transition-all duration-200"
-              disabled={activeNavigation === 'reports-history' || isNavigating}
+              disabled={isTransitionActive()}
               fullWidth
             >
-              {activeNavigation === 'reports-history' ? 'Loading...' : 'View Reports History'}
+              View Reports History
             </ModernButton>
           </div>
         </ModernCardContent>
@@ -774,13 +755,10 @@ export function SalesRepDashboard({ userId, userName }: SalesRepDashboardProps) 
         variant="primary"
         size="xl"
         className="fixed bottom-8 right-8 rounded-full shadow-xl z-50 h-16 w-16 hover-lift transition-all duration-200"
-        onClick={() => handleNavigation('/dashboard/sales/record', 'fab-record-sale')}
-        disabled={activeNavigation === 'fab-record-sale' || isNavigating}
+        onClick={() => handleNavigation('/dashboard/sales/record', 'record-sale')}
+        disabled={isTransitionActive()}
       >
-        {activeNavigation === 'fab-record-sale' ? 
-          <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent" /> : 
-          <Plus className="h-6 w-6" />
-        }
+        <Plus className="h-6 w-6" />
       </ModernButton>
     </div>
   );
