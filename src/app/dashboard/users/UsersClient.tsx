@@ -1,11 +1,18 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useToast } from '@/components/ui/ToastProvider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, Users, MoreVertical, Edit, CheckCircle, XCircle, Trash2, Loader2, UserCheck, UserX, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { updateUserRoleAction, deactivateUserAction, reactivateUserAction, deleteUserAction, refetchUsersAction } from './actions';
+import { 
+  useUsers, 
+  useUpdateUserRole, 
+  useDeactivateUser, 
+  useReactivateUser, 
+  useDeleteUser, 
+  useRefreshUsers 
+} from '@/hooks/use-users';
 
 interface User {
   id: string;
@@ -16,190 +23,80 @@ interface User {
 }
 
 interface Props {
-  users: User[];
   user: User;
-  refreshTrigger?: number;
 }
 
-export default function UsersClient({ users: initialUsers, user, refreshTrigger }: Props) {
-  const [users, setUsers] = useState(initialUsers);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [loadingAction, setLoadingAction] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+export default function UsersClient({ user }: Props) {
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
-  const [lastRefreshTrigger, setLastRefreshTrigger] = useState(refreshTrigger);
   const toast = useToast();
 
-  // 🚀 AUTO-SYNC: Update users when server data changes
-  useEffect(() => {
-    if (refreshTrigger && refreshTrigger !== lastRefreshTrigger) {
-      setUsers(initialUsers);
-      setLastRefreshTrigger(refreshTrigger);
+  // 🚀 REACT QUERY HOOKS - Single Source of Truth
+  const { data: users = [], isLoading, error, refetch } = useUsers(user);
+  const updateUserRole = useUpdateUserRole(user);
+  const deactivateUser = useDeactivateUser(user);
+  const reactivateUser = useReactivateUser(user);
+  const deleteUser = useDeleteUser(user);
+  const { refreshUsers } = useRefreshUsers(user);
+
+  // Handle query errors
+  React.useEffect(() => {
+    if (error) {
+      console.error('Users query error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to load users');
     }
-  }, [initialUsers, refreshTrigger, lastRefreshTrigger]);
-
-  // 🚀 AUTO-REFRESH: Refresh when page becomes visible (user returns)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && !document.hidden) {
-        refetchUsers();
-      }
-    };
-
-    const handleFocus = () => {
-      refetchUsers();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []);
-
-  // 🚀 ENHANCED REFETCH with proper error handling
-  const refetchUsers = async () => {
-    try {
-      setIsRefreshing(true);
-      setLoadingId('refetch');
-      
-      const result = await refetchUsersAction(user);
-      
-      if (result.success && Array.isArray(result.users)) {
-        setUsers(result.users);
-        console.log(`✅ Users refreshed successfully: ${result.users.length} users loaded`);
-      } else if (result.success && result.users) {
-        setUsers(Array.isArray(result.users) ? result.users : []);
-      } else {
-        setUsers([]);
-        toast.error(result.error || 'Failed to fetch users. Please refresh the page.');
-      }
-    } catch (error) {
-      console.error('Error refetching users:', error);
-      toast.error('Failed to refresh users');
-    } finally {
-      setIsRefreshing(false);
-      setLoadingId(null);
-    }
-  };
+  }, [error, toast]);
 
   const handleEdit = async (target: User) => {
-    setLoadingId(target.id);
-    setLoadingAction('edit');
     const newRole = prompt('Enter new role (owner, manager, sales_rep):', target.role);
-    if (!newRole) {
-      setLoadingId(null);
-      setLoadingAction(null);
-      return;
-    }
+    if (!newRole || newRole === target.role) return;
     
-    // Optimistic update
-    const originalUsers = users;
-    setUsers(users.map(u => u.id === target.id ? { ...u, role: newRole } : u));
-    
-    try {
-      const result = await updateUserRoleAction(user, target.id, newRole);
-      
-      if (result.success) {
+    updateUserRole.mutate({ userId: target.id, newRole }, {
+      onSuccess: () => {
         toast.success('Role updated successfully!');
-        // Force fresh data from server
-        await refetchUsers();
-      } else {
-        // Rollback optimistic update
-        setUsers(originalUsers);
-        toast.error(result.error || 'Failed to update user role.');
+      },
+      onError: (error: any) => {
+        toast.error(error?.message || 'Failed to update user role.');
       }
-    } catch (error) {
-      // Rollback optimistic update
-      setUsers(originalUsers);
-      toast.error('An unexpected error occurred while updating the role.');
-    } finally {
-      setLoadingId(null);
-      setLoadingAction(null);
-    }
+    });
   };
 
-  // 🚀 ENHANCED USER ACTIONS with immediate UI feedback + server sync
+  // 🚀 REACT QUERY USER ACTIONS with optimistic updates
   const handleDeactivate = async (target: User) => {
-    setLoadingId(target.id);
-    setLoadingAction('deactivate');
-    
-    // Optimistic update
-    const originalUsers = users;
-    setUsers(users.map(u => u.id === target.id ? { ...u, is_active: false } : u));
-    
-    try {
-      const result = await deactivateUserAction(user, target.id);
-      
-      if (result.success) {
+    deactivateUser.mutate(target.id, {
+      onSuccess: () => {
         toast.success('User deactivated successfully!');
-        // Force fresh data from server
-        await refetchUsers();
-      } else {
-        // Rollback optimistic update
-        setUsers(originalUsers);
-        toast.error(result.error || 'Failed to deactivate user.');
+      },
+      onError: (error: any) => {
+        toast.error(error?.message || 'Failed to deactivate user.');
       }
-    } catch (error) {
-      // Rollback optimistic update
-      setUsers(originalUsers);
-      toast.error('An unexpected error occurred while deactivating the user.');
-    } finally {
-      setLoadingId(null);
-      setLoadingAction(null);
-    }
+    });
   };
 
   const handleReactivate = async (target: User) => {
-    setLoadingId(target.id);
-    setLoadingAction('reactivate');
-    
-    // Optimistic update
-    const originalUsers = users;
-    setUsers(users.map(u => u.id === target.id ? { ...u, is_active: true } : u));
-    
-    try {
-      const result = await reactivateUserAction(user, target.id);
-      
-      if (result.success) {
+    reactivateUser.mutate(target.id, {
+      onSuccess: () => {
         toast.success('User reactivated successfully!');
-        // Force fresh data from server
-        await refetchUsers();
-      } else {
-        // Rollback optimistic update
-        setUsers(originalUsers);
-        toast.error(result.error || 'Failed to reactivate user.');
+      },
+      onError: (error: any) => {
+        toast.error(error?.message || 'Failed to reactivate user.');
       }
-    } catch (error) {
-      // Rollback optimistic update
-      setUsers(originalUsers);
-      toast.error('An unexpected error occurred while reactivating the user.');
-    } finally {
-      setLoadingId(null);
-      setLoadingAction(null);
-    }
+    });
   };
 
   const handleDelete = async (target: User) => {
     if (!window.confirm('Delete this user? This will permanently remove their access.')) return;
-    setLoadingId(target.id);
-    setLoadingAction('delete');
-    try {
-      const result = await deleteUserAction(user, target.id);
-      if (result.success) {
-        toast.success('User deleted and access removed successfully!');
-        await refetchUsers();
-      } else {
-        toast.error(result.error || 'Failed to delete user.');
+    
+    deleteUser.mutate(target.id, {
+      onSuccess: (result) => {
+        const message = result.deletionType === 'hard_delete' 
+          ? 'User completely deleted and access removed!'
+          : 'User deactivated due to data dependencies!';
+        toast.success(message);
+      },
+      onError: (error: any) => {
+        toast.error(error?.message || 'Failed to delete user.');
       }
-    } catch {
-      toast.error('An unexpected error occurred while deleting the user.');
-    } finally {
-      setLoadingId(null);
-      setLoadingAction(null);
-    }
+    });
   };
 
   const activeUsers = users.filter(u => u.is_active !== false).length;
@@ -224,8 +121,20 @@ export default function UsersClient({ users: initialUsers, user, refreshTrigger 
       : 'bg-gradient-to-r from-red-500 to-red-600 text-white border-red-200';
   };
 
+  // Get loading state from React Query mutations
   const isLoading = (userId: string, action: string) => {
-    return loadingId === userId && loadingAction === action;
+    switch (action) {
+      case 'edit':
+        return updateUserRole.isPending;
+      case 'deactivate':
+        return deactivateUser.isPending;
+      case 'reactivate':
+        return reactivateUser.isPending;
+      case 'delete':
+        return deleteUser.isPending;
+      default:
+        return false;
+    }
   };
 
   const getDropdownItems = (user: User) => {
@@ -314,10 +223,10 @@ export default function UsersClient({ users: initialUsers, user, refreshTrigger 
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleToggle}
-          disabled={!!loadingId}
+          disabled={updateUserRole.isPending || deactivateUser.isPending || reactivateUser.isPending || deleteUser.isPending}
           className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
         >
-          {loadingId === user.id ? (
+          {(updateUserRole.isPending || deactivateUser.isPending || reactivateUser.isPending || deleteUser.isPending) ? (
             <Loader2 className="w-5 h-5 sm:w-5 sm:h-5 animate-spin text-gray-500" />
           ) : (
             <MoreVertical className="w-5 h-5 sm:w-5 sm:h-5 text-gray-600 hover:text-gray-900" />
@@ -433,12 +342,12 @@ export default function UsersClient({ users: initialUsers, user, refreshTrigger 
             >
               <Button
                 variant="outline"
-                onClick={refetchUsers}
-                disabled={isRefreshing}
+                onClick={() => refreshUsers()}
+                disabled={isLoading}
                 className="w-full sm:w-auto bg-white/50 backdrop-blur border-white/30 hover:bg-white/70 transition-all duration-300 shadow-lg min-h-[44px] px-4 py-2 text-sm font-medium"
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                <span className="truncate">{isRefreshing ? 'Refreshing...' : 'Refresh Users'}</span>
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                <span className="truncate">{isLoading ? 'Refreshing...' : 'Refresh Users'}</span>
               </Button>
             </motion.div>
           </div>

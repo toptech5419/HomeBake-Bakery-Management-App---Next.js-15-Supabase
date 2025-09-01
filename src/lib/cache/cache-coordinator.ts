@@ -41,6 +41,39 @@ class CacheCoordinator {
   }
 
   /**
+   * Invalidate user management cache - CRITICAL for fixing fluctuation
+   */
+  invalidateUserManagement() {
+    if (!this.queryClient) return;
+    
+    console.log('🔄 Invalidating user management cache...');
+    
+    // Invalidate all user-related queries
+    this.queryClient.invalidateQueries({
+      predicate: (query) => {
+        return query.queryKey.some(key => 
+          typeof key === 'string' && (
+            key.includes('user') || 
+            key.includes('auth') ||
+            key.includes('profile') ||
+            key.includes('role')
+          )
+        );
+      }
+    });
+    
+    // Clear any stale user data
+    this.queryClient.removeQueries({
+      predicate: (query) => {
+        const hasUserKey = query.queryKey.some(key => 
+          typeof key === 'string' && key.includes('user')
+        );
+        return hasUserKey && query.isStale();
+      }
+    });
+  }
+
+  /**
    * Clear all cache
    */
   clearAll() {

@@ -105,7 +105,9 @@
       "Read(c:\\Users\\TOPTECH\\Pictures\\iTop Screenshot/**)",
       "Read(c:\\Users\\TOPTECH\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\\TempState\\409B474080E928BBB5664659407B5947/**)",
       "Bash(start http://localhost:3003/dashboard/sales/end-shift)",
-      "Bash(start http://localhost:3000/dashboard/sales)"
+      "Bash(start http://localhost:3000/dashboard/sales)",
+      "Read(c:\\Users\\TOPTECH\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\\TempState\\2DFDFDA0D15A5769103CC17178348175/**)",
+      "Bash(start http://localhost:3005/owner-dashboard/reports/sales)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

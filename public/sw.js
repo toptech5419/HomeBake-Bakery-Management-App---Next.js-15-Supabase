@@ -157,6 +157,21 @@ async function handleRequest(request) {
 // API request handler - network first with short cache
 async function handleApiRequest(request) {
   const cache = await caches.open(CACHE_NAMES.API);
+  const { url } = request;
+  
+  // 🚀 CRITICAL FIX: Exclude user management APIs from caching
+  const isUserManagementAPI = url.includes('users') || 
+                              url.includes('user') || 
+                              url.includes('refetch') ||
+                              url.includes('delete') ||
+                              url.includes('deactivate') ||
+                              url.includes('role');
+  
+  if (isUserManagementAPI) {
+    console.log('🔄 User management API - bypassing cache:', url);
+    // Direct network fetch for user management - no caching
+    return fetch(request);
+  }
   
   try {
     // Try network first
