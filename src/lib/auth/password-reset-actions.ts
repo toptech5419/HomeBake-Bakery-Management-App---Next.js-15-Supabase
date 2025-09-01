@@ -25,7 +25,7 @@ const resetPasswordSchema = z.object({
 
 /**
  * Production-grade forgot password implementation
- * Sends secure password reset email via Supabase Auth
+ * Sends secure password reset email via Supabase Auth with Gmail SMTP
  */
 export async function forgotPassword(
   prevState: { error?: { email?: string[]; _form?: string } }, 
@@ -36,7 +36,7 @@ export async function forgotPassword(
     const result = forgotPasswordSchema.safeParse(Object.fromEntries(formData.entries()));
 
     if (!result.success) {
-      console.warn('Forgot password validation failed:', result.error.flatten().fieldErrors);
+      console.warn('🔍 Forgot password validation failed:', result.error.flatten().fieldErrors);
       return {
         error: result.error.flatten().fieldErrors,
       };
@@ -49,32 +49,79 @@ export async function forgotPassword(
     const supabase = await createServer();
     
     // Check if user exists in our system (security: don't reveal if email exists)
-    const { data: userExists } = await supabase
+    const { data: userExists, error: userQueryError } = await supabase
       .from('users')
       .select('id, email, is_active')
       .eq('email', email)
       .eq('is_active', true)
       .single();
 
+    if (userQueryError && userQueryError.code !== 'PGRST116') {
+      console.error('❌ Database query error:', userQueryError);
+      return { 
+        error: { _form: 'Database connection issue. Please try again.' }
+      };
+    }
+
+    // Determine the correct redirect URL based on environment
+    const getRedirectUrl = () => {
+      // For development, always use localhost
+      if (process.env.NODE_ENV === 'development') {
+        return 'http://localhost:3000/auth/reset-password';
+      }
+      
+      // For production, use the configured URL
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+      if (!baseUrl) {
+        console.error('❌ NEXT_PUBLIC_APP_URL not configured for production');
+        return 'http://localhost:3000/auth/reset-password'; // fallback
+      }
+      
+      return `${baseUrl}/auth/reset-password`;
+    };
+
+    const redirectUrl = getRedirectUrl();
+    console.log(`🔗 Using redirect URL: ${redirectUrl}`);
+
     // Always show success message (security: don't reveal if email exists)
     // But only send email if user actually exists and is active
     if (userExists) {
       console.log(`✅ User found, sending reset email to: ${email}`);
       
-      // Send password reset email
+      // Send password reset email with enhanced error handling
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/reset-password`,
+        redirectTo: redirectUrl,
+        captchaToken: undefined, // Not using captcha for now
       });
 
       if (resetError) {
-        console.error('❌ Password reset email failed:', resetError);
-        // Don't reveal the specific error to user for security
+        console.error('❌ Password reset email failed:', {
+          error: resetError,
+          email: email,
+          redirectUrl: redirectUrl,
+          code: resetError.status,
+          message: resetError.message
+        });
+        
+        // Provide more specific error messages for debugging
+        if (resetError.message?.includes('SMTP') || resetError.message?.includes('email')) {
+          return { 
+            error: { _form: 'Email service configuration issue. Please contact support.' }
+          };
+        }
+        
+        if (resetError.message?.includes('rate limit')) {
+          return { 
+            error: { _form: 'Too many requests. Please wait a few minutes and try again.' }
+          };
+        }
+        
         return { 
           error: { _form: 'Unable to send reset email. Please try again later.' }
         };
       }
       
-      console.log(`✅ Password reset email sent successfully to: ${email}`);
+      console.log(`✅ Password reset email sent successfully to: ${email} with redirect: ${redirectUrl}`);
     } else {
       console.log(`⚠️ Password reset requested for non-existent/inactive user: ${email}`);
       // Still show success for security (don't reveal if email exists)
@@ -82,12 +129,19 @@ export async function forgotPassword(
     
     return { 
       success: true,
-      message: 'If an account with that email exists, we\'ve sent you a password reset link.',
+      message: 'If an account with that email exists, we\'ve sent you a password reset link. Please check your email and spam folder.',
       email
     };
     
   } catch (error) {
-    console.error('❌ Unexpected forgot password error:', error);
+    console.error('❌ Unexpected forgot password error:', {
+      error: error instanceof Error ? {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      } : error,
+      timestamp: new Date().toISOString()
+    });
     
     return { 
       error: { _form: 'An unexpected error occurred. Please try again.' }
