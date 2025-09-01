@@ -51,8 +51,17 @@ export function useUsers(currentUser: AuthUser) {
         throw new Error(result.error || 'Failed to fetch users');
       }
       
-      console.log(`✅ Users loaded: ${result.users.length} users`);
-      return result.users as User[];
+      // 🚀 PRODUCTION-GRADE: Filter out deleted users from main view
+      const activeUsers = (result.users as User[]).filter(user => {
+        // Hide users that were soft-deleted (marked with [DELETED] prefix)
+        const isDeleted = user.name?.startsWith('[DELETED]');
+        const isDeletedByEmail = user.email?.includes('deleted_') && user.email?.includes('@deleted.local');
+        
+        return !isDeleted && !isDeletedByEmail;
+      });
+      
+      console.log(`✅ Users loaded: ${result.users.length} total, ${activeUsers.length} active (filtered)`);
+      return activeUsers;
     },
     staleTime: 0, // Always consider stale - user management needs fresh data
     gcTime: 0, // Don't cache user data - sensitive information
@@ -217,21 +226,10 @@ export function useDeleteUser(currentUser: AuthUser) {
         return { previousUsers };
       }
       
-      // Optimistically update based on expected deletion behavior
-      // Assume it will be soft deleted (most common case)
+      // 🚀 PRODUCTION-GRADE: Immediately remove user from view (better UX)
+      // User disappears instantly, providing immediate feedback
       queryClient.setQueryData<User[]>(USER_QUERY_KEYS.users.all(), (old = []) => 
-        old.map(user => {
-          if (user.id === userId) {
-            return {
-              ...user,
-              is_active: false,
-              name: user.name?.startsWith('[DELETED]') ? user.name : `[DELETED] ${user.name}`,
-              email: `deleted_${Date.now()}@deleted.local`,
-              _isOptimistic: true, // Flag for tracking
-            } as User & { _isOptimistic: boolean };
-          }
-          return user;
-        })
+        old.filter(user => user.id !== userId)
       );
       
       console.log('✅ Optimistic deletion applied');
@@ -240,25 +238,8 @@ export function useDeleteUser(currentUser: AuthUser) {
     
     onSuccess: (result, userId, context) => {
       console.log('✅ User deletion successful:', result);
-      
-      // Handle different deletion types
-      if (result.deletionType === 'hard_delete') {
-        // Remove user completely from cache
-        queryClient.setQueryData<User[]>(USER_QUERY_KEYS.users.all(), (old = []) => 
-          old.filter(user => user.id !== userId)
-        );
-      } else if (result.deletionType === 'soft_delete') {
-        // Update with actual server data (remove optimistic flag)
-        queryClient.setQueryData<User[]>(USER_QUERY_KEYS.users.all(), (old = []) => 
-          old.map(user => {
-            if (user.id === userId) {
-              const { _isOptimistic, ...cleanUser } = user as any;
-              return cleanUser;
-            }
-            return user;
-          })
-        );
-      }
+      // User already removed from view optimistically - no further action needed
+      // Audit trail maintained in backend regardless of deletion type
     },
     
     onError: (error, userId, context) => {

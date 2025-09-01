@@ -107,7 +107,15 @@
       "Bash(start http://localhost:3003/dashboard/sales/end-shift)",
       "Bash(start http://localhost:3000/dashboard/sales)",
       "Read(c:\\Users\\TOPTECH\\AppData\\Local\\Packages\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm\\TempState\\2DFDFDA0D15A5769103CC17178348175/**)",
-      "Bash(start http://localhost:3005/owner-dashboard/reports/sales)"
+      "Bash(start http://localhost:3005/owner-dashboard/reports/sales)",
+      "Bash(echo $SHELL)",
+      "Bash(echo $PATH)",
+      "Read(C:\\Users\\TOPTECH\\Documents\\WindowsPowerShell/**)",
+      "Bash(start https://home-bake-bakery-management-app-next-js-15-supabase-9p4jjmi08.vercel.app)",
+      "Read(c:\\Users\\TOPTECH\\Pictures\\iTop Screenshot/**)",
+      "Bash(start https://home-bake-bakery-management-app-next-js-15-supabase-4n0cmw0zh.vercel.app)",
+      "Bash(start http://localhost:3001/dashboard/users)",
+      "Bash(start https://home-bake-bakery-management-app-next-js-15-supabase-nc51rdn14.vercel.app)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
