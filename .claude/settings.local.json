@@ -115,7 +115,10 @@
       "Read(c:\\Users\\TOPTECH\\Pictures\\iTop Screenshot/**)",
       "Bash(start https://home-bake-bakery-management-app-next-js-15-supabase-4n0cmw0zh.vercel.app)",
       "Bash(start http://localhost:3001/dashboard/users)",
-      "Bash(start https://home-bake-bakery-management-app-next-js-15-supabase-nc51rdn14.vercel.app)"
+      "Bash(start https://home-bake-bakery-management-app-next-js-15-supabase-nc51rdn14.vercel.app)",
+      "Read(c:\\Users\\TOPTECH\\Pictures\\iTop Screenshot/**)",
+      "Read(c:\\Users\\TOPTECH\\Pictures\\iTop Screenshot/**)",
+      "Read(c:\\Users\\TOPTECH\\Pictures\\iTop Screenshot/**)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
