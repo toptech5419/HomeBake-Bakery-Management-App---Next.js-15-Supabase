@@ -31,7 +31,7 @@ export default function UsersClient({ user }: Props) {
   const toast = useToast();
 
   // 🚀 REACT QUERY HOOKS - Single Source of Truth
-  const { data: users = [], isLoading, error, refetch } = useUsers(user);
+  const { data: users = [], isLoading: isUsersLoading, error, refetch } = useUsers(user);
   const updateUserRole = useUpdateUserRole(user);
   const deactivateUser = useDeactivateUser(user);
   const reactivateUser = useReactivateUser(user);
@@ -343,11 +343,11 @@ export default function UsersClient({ user }: Props) {
               <Button
                 variant="outline"
                 onClick={() => refreshUsers()}
-                disabled={isLoading}
+                disabled={isUsersLoading}
                 className="w-full sm:w-auto bg-white/50 backdrop-blur border-white/30 hover:bg-white/70 transition-all duration-300 shadow-lg min-h-[44px] px-4 py-2 text-sm font-medium"
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                <span className="truncate">{isLoading ? 'Refreshing...' : 'Refresh Users'}</span>
+                <RefreshCw className={`w-4 h-4 mr-2 ${isUsersLoading ? 'animate-spin' : ''}`} />
+                <span className="truncate">{isUsersLoading ? 'Refreshing...' : 'Refresh Users'}</span>
               </Button>
             </motion.div>
           </div>
