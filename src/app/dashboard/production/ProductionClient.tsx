@@ -237,7 +237,7 @@ function ProductionClientInner({ }: ProductionClientProps) {
   };
 
   const handleReports = () => {
-    router.push('/dashboard/manager/all-production-batches');
+    router.push('/dashboard/reports');
   };
 
   const handleViewAllBatches = () => {
