@@ -113,6 +113,11 @@ export default function OwnerDashboardClient({ displayName, user }: OwnerDashboa
                     {formatCurrencyNGN(stats.todayRevenue)}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">Today&apos;s Revenue</div>
+                  {(stats.todayRevenueMorning > 0 || stats.todayRevenueNight > 0) && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      M: {formatCurrencyNGN(stats.todayRevenueMorning)} | N: {formatCurrencyNGN(stats.todayRevenueNight)}
+                    </div>
+                  )}
                 </div>
                 <div className="bg-white rounded-xl p-4 text-center border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                   <div className="text-lg font-bold text-blue-600">{stats.todayBatches}</div>

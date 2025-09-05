@@ -2,12 +2,14 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase/client';
-import { getTodayRevenue, getTodayBatchCount } from '@/lib/dashboard/server-actions';
+import { getTodayRevenue, getTodayBatchCount, getTodayRevenueByShift } from '@/lib/dashboard/server-actions';
 import { useLowStockTracker } from './use-low-stock-tracker';
 import { useTodayBatchesTracker } from './use-today-batches-tracker';
 
 interface OwnerDashboardStats {
   todayRevenue: number;
+  todayRevenueMorning: number;
+  todayRevenueNight: number;
   todayBatches: number;
   todayBatchesMorning: number;
   todayBatchesNight: number;
@@ -89,10 +91,10 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
-  // React Query for revenue with 30-second polling (less critical)
+  // React Query for revenue with shift breakdown - 30-second polling (less critical)
   const { data: revenueData, error: revenueError, refetch: refetchRevenue } = useQuery({
-    queryKey: [...ownerDashboardKeys.all(), 'revenue'],
-    queryFn: getTodayRevenue,
+    queryKey: [...ownerDashboardKeys.all(), 'revenueByShift'],
+    queryFn: getTodayRevenueByShift,
     refetchInterval: 30000, // 30 seconds for revenue
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
@@ -104,7 +106,9 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
 
   // Combine all data into stats format
   const stats: OwnerDashboardStats = {
-    todayRevenue: typeof revenueData === 'number' ? revenueData : 0,
+    todayRevenue: revenueData?.total || 0,
+    todayRevenueMorning: revenueData?.morning || 0,
+    todayRevenueNight: revenueData?.night || 0,
     todayBatches: todayBatchesData?.total || 0,
     todayBatchesMorning: todayBatchesData?.morningCount || 0,
     todayBatchesNight: todayBatchesData?.nightCount || 0,
@@ -129,7 +133,7 @@ export function useOwnerDashboard(): UseOwnerDashboardReturn {
 
   console.log('📊 Owner Dashboard Stats:', {
     staffOnline: `${stats.staffOnline}/${stats.staffTotal}`,
-    revenue: stats.todayRevenue,
+    revenue: `${stats.todayRevenue} (M:${stats.todayRevenueMorning}, N:${stats.todayRevenueNight})`,
     batches: `${stats.todayBatches} (M:${stats.todayBatchesMorning}, N:${stats.todayBatchesNight})`,
     lowStock: `${stats.lowStockCount} (M:${stats.lowStockMorning}, N:${stats.lowStockNight})`
   });

@@ -55,6 +55,84 @@ export async function getTodayRevenue(): Promise<number> {
 }
 
 /**
+ * Get today's revenue by shift using Lagos timezone (Server Action)
+ * Uses sales_logs as primary source, shift_reports as backup
+ * PRODUCTION-GRADE: Mirrors getTodayRevenue but with shift breakdown
+ */
+export async function getTodayRevenueByShift(): Promise<{
+  total: number;
+  morning: number;
+  night: number;
+}> {
+  const supabase = await createServer();
+  const lagosDate = getLagosDateString();
+  
+  try {
+    // First try sales_logs for today (Lagos time) with shift data
+    const { data: salesData, error: salesError } = await supabase
+      .from('sales_logs')
+      .select('quantity, unit_price, discount, shift')
+      .gte('created_at', `${lagosDate}T00:00:00`)
+      .lte('created_at', `${lagosDate}T23:59:59.999`);
+
+    if (salesError) throw salesError;
+
+    if (salesData && salesData.length > 0) {
+      const morningRevenue = salesData
+        .filter(sale => sale.shift === 'morning')
+        .reduce((sum, sale) => {
+          const saleAmount = (sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0);
+          return sum + saleAmount;
+        }, 0);
+      
+      const nightRevenue = salesData
+        .filter(sale => sale.shift === 'night')
+        .reduce((sum, sale) => {
+          const saleAmount = (sale.quantity * (sale.unit_price || 0)) - (sale.discount || 0);
+          return sum + saleAmount;
+        }, 0);
+
+      return {
+        total: morningRevenue + nightRevenue,
+        morning: morningRevenue,
+        night: nightRevenue
+      };
+    }
+
+    // Fallback to shift_reports for today with shift breakdown
+    const { data: reportsData, error: reportsError } = await supabase
+      .from('shift_reports')
+      .select('total_revenue, shift')
+      .eq('report_date', lagosDate);
+
+    if (reportsError) throw reportsError;
+
+    if (reportsData && reportsData.length > 0) {
+      const morningRevenue = reportsData
+        .filter(report => report.shift === 'morning')
+        .reduce((sum, report) => sum + (report.total_revenue || 0), 0);
+      
+      const nightRevenue = reportsData
+        .filter(report => report.shift === 'night')
+        .reduce((sum, report) => sum + (report.total_revenue || 0), 0);
+
+      return {
+        total: morningRevenue + nightRevenue,
+        morning: morningRevenue,
+        night: nightRevenue
+      };
+    }
+
+    // No data found - return zeros
+    return { total: 0, morning: 0, night: 0 };
+  } catch (error) {
+    console.error('Error fetching today revenue by shift:', error);
+    // PRODUCTION-GRADE: Always return valid structure, never throw
+    return { total: 0, morning: 0, night: 0 };
+  }
+}
+
+/**
  * Get today's batch count using Lagos timezone (Server Action)
  * Uses batches as primary source, all_batches as backup
  */
