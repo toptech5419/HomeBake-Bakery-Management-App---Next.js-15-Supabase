@@ -7,7 +7,7 @@
  * 
  * DATA FETCHING WINDOWS:
  * - Morning Shift (10:00 AM): Fetch current date 00:00 AM - 23:59 PM (24 hours)
- * - Night Shift (10:00 PM): Fetch previous date 15:00 PM - current date 15:00 PM (24 hours)
+ * - Night Shift (10:00 PM): Fetch current date 15:00 PM - next date 15:00 PM (24 hours)
  */
 
 export type InventoryShiftType = 'morning' | 'night';
@@ -131,16 +131,16 @@ export function getInventoryShiftInfo(): InventoryShiftInfo {
       shiftEndDateTime.setHours(INVENTORY_SHIFT_CONSTANTS.MORNING_SWITCH_HOUR, 0, 0, 0);
     }
     
-    // Data Range: Previous date 15:00 PM - Current date 15:00 PM (24 hours)
-    const previousDate = addDays(nigeriaTime, -1);
+    // Data Range: Current date 15:00 PM - Next date 15:00 PM (24 hours)
     const currentDate = nigeriaTime;
+    const nextDate = addDays(nigeriaTime, 1);
     
     dataFetchRange = {
-      startDate: formatDate(previousDate),
-      endDate: formatDate(currentDate),
-      startTime: createDateTime(previousDate, INVENTORY_SHIFT_CONSTANTS.NIGHT_DATA_START_HOUR),
-      endTime: createDateTime(currentDate, INVENTORY_SHIFT_CONSTANTS.NIGHT_DATA_END_HOUR),
-      description: `Night shift data: ${formatDate(previousDate)} 15:00 - ${formatDate(currentDate)} 15:00 (24 hours)`
+      startDate: formatDate(currentDate),
+      endDate: formatDate(nextDate),
+      startTime: createDateTime(currentDate, INVENTORY_SHIFT_CONSTANTS.NIGHT_DATA_START_HOUR),
+      endTime: createDateTime(nextDate, INVENTORY_SHIFT_CONSTANTS.NIGHT_DATA_END_HOUR),
+      description: `Night shift data: ${formatDate(currentDate)} 15:00 - ${formatDate(nextDate)} 15:00 (24 hours)`
     };
   }
   
