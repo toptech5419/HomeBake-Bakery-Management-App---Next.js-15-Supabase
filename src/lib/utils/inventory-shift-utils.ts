@@ -131,16 +131,41 @@ export function getInventoryShiftInfo(): InventoryShiftInfo {
       shiftEndDateTime.setHours(INVENTORY_SHIFT_CONSTANTS.MORNING_SWITCH_HOUR, 0, 0, 0);
     }
     
-    // Data Range: Current date 15:00 PM - Next date 15:00 PM (24 hours)
-    const currentDate = nigeriaTime;
-    const nextDate = addDays(nigeriaTime, 1);
+    // 🔧 PRODUCTION FIX: Correct 3PM-3PM window calculation for night shift
+    // Night shift data window must span from 3PM-3PM based on current time:
+    // - If before 3PM today: Use yesterday 3PM → today 3PM  
+    // - If after 3PM today: Use today 3PM → tomorrow 3PM
+    
+    // Reuse currentHour from line 82 and add minute precision
+    const currentMinute = nigeriaTime.getMinutes();
+    const currentTimeIn24H = currentHour + (currentMinute / 60);
+    
+    // Check if current time is before or after 3PM (15:00)
+    const isBefore3PM = currentTimeIn24H < INVENTORY_SHIFT_CONSTANTS.NIGHT_DATA_START_HOUR;
+    
+    let dataStartDate: Date;
+    let dataEndDate: Date;
+    
+    if (isBefore3PM) {
+      // Before 3PM: Use yesterday 3PM → today 3PM
+      dataStartDate = addDays(nigeriaTime, -1); // Yesterday
+      dataEndDate = new Date(nigeriaTime);      // Today
+      
+      console.log(`📅 Night shift (before 3PM): Using yesterday→today window`);
+    } else {
+      // After 3PM: Use today 3PM → tomorrow 3PM  
+      dataStartDate = new Date(nigeriaTime);    // Today
+      dataEndDate = addDays(nigeriaTime, 1);    // Tomorrow
+      
+      console.log(`📅 Night shift (after 3PM): Using today→tomorrow window`);
+    }
     
     dataFetchRange = {
-      startDate: formatDate(currentDate),
-      endDate: formatDate(nextDate),
-      startTime: createDateTime(currentDate, INVENTORY_SHIFT_CONSTANTS.NIGHT_DATA_START_HOUR),
-      endTime: createDateTime(nextDate, INVENTORY_SHIFT_CONSTANTS.NIGHT_DATA_END_HOUR),
-      description: `Night shift data: ${formatDate(currentDate)} 15:00 - ${formatDate(nextDate)} 15:00 (24 hours)`
+      startDate: formatDate(dataStartDate),
+      endDate: formatDate(dataEndDate),
+      startTime: createDateTime(dataStartDate, INVENTORY_SHIFT_CONSTANTS.NIGHT_DATA_START_HOUR),
+      endTime: createDateTime(dataEndDate, INVENTORY_SHIFT_CONSTANTS.NIGHT_DATA_END_HOUR),
+      description: `Night shift data: ${formatDate(dataStartDate)} 15:00 - ${formatDate(dataEndDate)} 15:00 (24 hours)`
     };
   }
   
