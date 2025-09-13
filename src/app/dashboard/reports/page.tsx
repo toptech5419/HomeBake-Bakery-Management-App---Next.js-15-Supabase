@@ -418,7 +418,22 @@ function ReportsPageInner() {
         ) : (
           <div className="space-y-4">
             {filtered.map((report) => (
-              <Card key={report.id} variant="elevated" hover="lift" className={cn("flex flex-col gap-2 p-4 animate-fade-in")}> 
+              <Card
+                key={report.id}
+                variant="elevated"
+                hover="lift"
+                className={cn("flex flex-col gap-2 p-4 animate-fade-in cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 hover:shadow-lg hover:border-blue-300")}
+                onClick={() => handleOpenModal(report)}
+                role="button"
+                tabIndex={0}
+                aria-label={`View ${report.shift} shift batch details for ${formatDate(report.date)} by ${report.manager}`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleOpenModal(report);
+                  }
+                }}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">{report.id}</span>
                   {report.status === 'Completed' && (
@@ -454,9 +469,32 @@ function ReportsPageInner() {
                     </div>
                   </div>
                   <div className="flex gap-2 mt-2 sm:mt-0">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenModal(report)} leftIcon={<Eye className="w-4 h-4" />} />
-                    <Button variant="ghost" size="icon" leftIcon={<Download className="w-4 h-4" />} onClick={() => handleExportReportCSV(report)} />
-                    <Button variant="ghost" size="icon" leftIcon={<Share2 className="w-4 h-4" />} onClick={() => handleShare(report)} />
+                    {/* Visual indicator for clickable card */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium pointer-events-none">
+                      <Eye className="w-4 h-4" />
+                      <span className="hidden sm:inline text-xs">Click card to view</span>
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      leftIcon={<Download className="w-4 h-4" />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleExportReportCSV(report);
+                      }}
+                      className="hover:scale-110 active:scale-90 transition-all duration-200"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      leftIcon={<Share2 className="w-4 h-4" />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShare(report);
+                      }}
+                      className="hover:scale-110 active:scale-90 transition-all duration-200"
+                    />
                   </div>
                 </div>
               </Card>

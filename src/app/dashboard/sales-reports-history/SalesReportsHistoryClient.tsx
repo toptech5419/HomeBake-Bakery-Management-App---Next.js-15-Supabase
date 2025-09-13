@@ -550,7 +550,21 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
         {/* Reports List */}
         <div className="space-y-3">
           {filteredReports.map((report, index) => (
-            <div key={report.id} className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-orange-100 overflow-hidden hover:shadow-md hover:border-orange-200 transition-all duration-200 group report-card hover-lift animate-fade-in-up" data-animation-delay={index}>
+            <div
+              key={report.id}
+              onClick={() => handleViewReport(report)}
+              className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-orange-100 overflow-hidden hover:shadow-lg hover:border-orange-200 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 group report-card cursor-pointer animate-fade-in-up"
+              data-animation-delay={index}
+              role="button"
+              tabIndex={0}
+              aria-label={`View ${report.shift} shift report for ${formatDate(report.report_date)}`}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleViewReport(report);
+                }
+              }}
+            >
               <div className="p-3 sm:p-4">
                 <div className="flex flex-col gap-3">
                   {/* Report Header */}
@@ -608,26 +622,29 @@ export default function SalesReportsHistoryClient({ userId, userRole }: SalesRep
                   
                   {/* Actions - Compact Buttons */}
                   <div className="flex gap-2 pt-2 border-t border-orange-100">
-                    <button
-                      onClick={() => handleViewReport(report)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 text-xs font-medium shadow-sm hover:shadow-md"
-                    >
+                    <div className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-xs font-medium pointer-events-none">
                       <Eye size={14} />
-                      View
-                    </button>
-                    
+                      Click card to view
+                    </div>
+
                     <button
-                      onClick={() => handleDownloadReport(report)}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 border border-orange-200 text-gray-700 rounded-lg hover:bg-orange-50 hover:border-orange-300 transition-all duration-200 text-xs font-medium"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadReport(report);
+                      }}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 border border-orange-200 text-gray-700 rounded-lg hover:bg-orange-50 hover:border-orange-300 transition-all duration-200 text-xs font-medium hover:scale-105 active:scale-95"
                       title="Download Report"
                       aria-label="Download Report"
                     >
                       <Download size={14} />
                     </button>
-                    
+
                     <button
-                      onClick={() => handleShareReport(report.id)}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 border border-orange-200 text-gray-700 rounded-lg hover:bg-orange-50 hover:border-orange-300 transition-all duration-200 text-xs font-medium"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShareReport(report.id);
+                      }}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 border border-orange-200 text-gray-700 rounded-lg hover:bg-orange-50 hover:border-orange-300 transition-all duration-200 text-xs font-medium hover:scale-105 active:scale-95"
                       title="Share Report"
                       aria-label="Share Report"
                     >

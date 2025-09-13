@@ -62,7 +62,7 @@ const getName = (val: unknown): string => {
     if (val.length && typeof val[0]?.name === 'string') return val[0].name;
     return 'Unknown';
   }
-  if (typeof val === 'object' && typeof val.name === 'string') return val.name;
+  if (typeof val === 'object' && val && 'name' in val && typeof (val as any).name === 'string') return (val as any).name;
   return 'Unknown';
 };
 
@@ -372,7 +372,9 @@ export default function OwnerManagerReportsClient({ user, displayName }: OwnerMa
                 {/* Export All Button */}
                 <div className="relative dropdown-container">
                   <button
-                    ref={(el) => (exportButtonRefs.current['export-all'] = el)}
+                    ref={(el) => {
+                      exportButtonRefs.current['export-all'] = el;
+                    }}
                     onClick={(e) => handleExportDropdownToggle('export-all', e.currentTarget)}
                     className="flex items-center gap-2 px-3 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium"
                   >
@@ -435,7 +437,17 @@ export default function OwnerManagerReportsClient({ user, displayName }: OwnerMa
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="bg-white/80 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-blue-200/50 shadow-sm hover:shadow-md transition-shadow"
+                  className="bg-white/80 backdrop-blur-sm rounded-lg p-3 sm:p-4 border border-blue-200/50 shadow-sm hover:shadow-lg hover:border-blue-300 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
+                  onClick={() => handleViewReport(report)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View ${report.shift} shift manager report for ${formatDate(report.date)} by ${report.manager}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleViewReport(report);
+                    }
+                  }}
                 >
                   {/* Report Header - Compact */}
                   <div className="flex items-center justify-between mb-2">
@@ -494,26 +506,29 @@ export default function OwnerManagerReportsClient({ user, displayName }: OwnerMa
                       <span>{formatTime(report.latestEndTime)}</span>
                     </div>
                     <div className="flex gap-1">
-                      <button 
-                        onClick={() => handleViewReport(report)}
-                        className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors touch-manipulation"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      
+                      <div className="p-2 text-blue-500 bg-blue-50 rounded-lg text-xs font-medium pointer-events-none flex items-center gap-1">
+                        <Eye size={12} />
+                        <span className="hidden sm:inline">Click card to view</span>
+                      </div>
+
                       {/* Export Dropdown */}
                       <div className="relative dropdown-container">
                         <button
-                          ref={(el) => (exportButtonRefs.current[`export-${report.id}`] = el)}
-                          onClick={(e) => handleExportDropdownToggle(`export-${report.id}`, e.currentTarget)}
-                          className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-lg transition-colors touch-manipulation"
+                          ref={(el) => {
+                            exportButtonRefs.current[`export-${report.id}`] = el;
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleExportDropdownToggle(`export-${report.id}`, e.currentTarget);
+                          }}
+                          className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-lg transition-all duration-200 touch-manipulation hover:scale-110 active:scale-90"
                         >
                           <Download size={14} />
                         </button>
-                        
+
                         {/* Portal dropdown - always appears above everything */}
                         {mounted && showDropdown === `export-${report.id}` && createPortal(
-                          <div 
+                          <div
                             className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px] export-dropdown-portal"
                             style={{
                               top: exportDropdownPosition.top,
@@ -535,11 +550,14 @@ export default function OwnerManagerReportsClient({ user, displayName }: OwnerMa
                           document.body
                         )}
                       </div>
-                      
+
                       {/* Share Button - Opens Modal */}
                       <button
-                        onClick={() => handleShareClick(report)}
-                        className="p-2 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-colors touch-manipulation"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShareClick(report);
+                        }}
+                        className="p-2 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-all duration-200 touch-manipulation hover:scale-110 active:scale-90"
                         title="Share Report"
                       >
                         <Share2 size={14} />
