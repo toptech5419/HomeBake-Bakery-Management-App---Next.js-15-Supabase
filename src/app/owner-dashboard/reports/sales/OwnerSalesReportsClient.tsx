@@ -1,22 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { 
-  ArrowLeft, 
-  DollarSign, 
+import React, { useState, useEffect } from 'react';
+import {
+  ArrowLeft,
+  DollarSign,
   FileText,
-  Package, 
-  Search, 
-  Download, 
-  Clock, 
+  Package,
+  Search,
+  Download,
+  Clock,
   Calendar,
-  Eye, 
-  Share2, 
-  ChevronDown,
-  Mail,
-  MessageCircle,
-  Copy,
+  Eye,
+  Share2,
   RefreshCw,
   User
 } from 'lucide-react';
@@ -82,53 +77,15 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
   const [reports, setReports] = useState<SalesReport[]>([]);
   const [search, setSearch] = useState('');
   const [filterShift, setFilterShift] = useState('All');
-  const [showDropdown, setShowDropdown] = useState<string | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewModalData, setViewModalData] = useState<SalesReport | null>(null);
   const [viewModalTitle, setViewModalTitle] = useState('');
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareModalData, setShareModalData] = useState<SalesReport | null>(null);
-  const [exportDropdownPosition, setExportDropdownPosition] = useState({ top: 0, left: 0 });
-  const [mounted, setMounted] = useState(false);
-  const exportButtonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
 
   useEffect(() => {
     fetchReports();
   }, []);
-
-  // Set mounted state for portal
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-
-
-  // Close dropdown when clicking outside - for export dropdowns with portal support
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (showDropdown && 
-          !target.closest('.dropdown-container') && 
-          !target.closest('.export-dropdown-portal')) {
-        setShowDropdown(null);
-      }
-    };
-
-    const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && showDropdown) {
-        setShowDropdown(null);
-      }
-    };
-
-    if (showDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEscapeKey);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        document.removeEventListener('keydown', handleEscapeKey);
-      };
-    }
-  }, [showDropdown]);
 
   const fetchReports = async () => {
     setLoading(true);
@@ -162,8 +119,8 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
   const totalItemsSold = filtered.reduce((sum, r) => sum + r.total_items_sold, 0);
   const totalRemaining = filtered.reduce((sum, r) => sum + r.total_remaining, 0);
 
-  // Export functionality
-  const handleExportReport = (report: SalesReport) => {
+  // Export functionality - Proven implementation from /dashboard/reports
+  const handleExportReportCSV = (report: SalesReport) => {
     const csvRows = [
       ['Sales Report', report.shift, report.report_date],
       [''],
@@ -191,21 +148,22 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
       ])
     ];
 
-    const csvContent = csvRows.map(row => row.map(String).map(v => `"${v.replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csvContent = csvRows.map(row => row.map(String).map(v => '"' + v.replace(/"/g, '""') + '"').join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `sales-report-${report.report_date}-${report.shift}.csv`;
+    a.download = `sales_report_${report.report_date}_${report.shift}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+    alert('CSV exported!');
   };
 
-  const handleExportAll = () => {
+  const handleExportAllCSV = () => {
     if (filtered.length === 0) return;
-    
+
     const csvRows = [
       ['Sales Reports Export'],
       ['Date', 'Shift', 'Total Revenue', 'Items Sold', 'Remaining', 'Top Items'],
@@ -219,12 +177,12 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
       ])
     ];
 
-    const csvContent = csvRows.map(row => row.map(String).map(v => `"${v.replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csvContent = csvRows.map(row => row.map(String).map(v => '"' + v.replace(/"/g, '""') + '"').join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `all-sales-reports-${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `sales_reports_export_${new Date().toISOString().slice(0,10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -237,7 +195,7 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
 
   const handleShare = (platform: string, report: SalesReport) => {
     const text = getShareText(report);
-    
+
     switch (platform) {
       case 'whatsapp':
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
@@ -251,36 +209,13 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
         });
         break;
     }
-    
-    setShowDropdown(null);
   };
 
   // Handle view report - show sales details
   const handleViewReport = (report: SalesReport) => {
-    setShowDropdown(null);
     setViewModalData(report);
     setViewModalTitle(`${formatDate(report.report_date)} - ${report.shift.charAt(0).toUpperCase() + report.shift.slice(1)} Shift Sales`);
     setViewModalOpen(true);
-  };
-
-
-  // Handle export dropdown toggle with portal positioning
-  const handleExportDropdownToggle = (dropdownId: string, buttonElement: HTMLButtonElement) => {
-    if (showDropdown === dropdownId) {
-      setShowDropdown(null);
-    } else {
-      // Calculate position for portal
-      const rect = buttonElement.getBoundingClientRect();
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-      
-      setExportDropdownPosition({
-        top: rect.bottom + scrollTop + 4,
-        left: rect.right + scrollLeft - 140 // Align to right edge of button
-      });
-      setShowDropdown(dropdownId);
-      exportButtonRefs.current[dropdownId] = buttonElement;
-    }
   };
 
   // Open share modal instead of dropdown - 100% reliable
@@ -373,44 +308,16 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
                   </SelectContent>
                 </Select>
                 
-                {/* Export All Button */}
-                <div className="relative dropdown-container">
-                  <button
-                    ref={(el) => {
-                      exportButtonRefs.current['export-all'] = el;
-                    }}
-                    onClick={(e) => handleExportDropdownToggle('export-all', e.currentTarget)}
-                    className="flex items-center gap-2 px-3 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium"
-                  >
-                    <Download size={14} />
-                    Export
-                    <ChevronDown size={14} className={cn("transition-transform", showDropdown === 'export-all' && "rotate-180")} />
-                  </button>
-                  
-                  {/* Portal dropdown - always appears above everything */}
-                  {mounted && showDropdown === 'export-all' && createPortal(
-                    <div 
-                      className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[140px] export-dropdown-portal"
-                      style={{
-                        top: exportDropdownPosition.top,
-                        left: exportDropdownPosition.left,
-                        zIndex: 99999
-                      }}
-                    >
-                      <button
-                        onClick={() => {
-                          handleExportAll();
-                          setShowDropdown(null);
-                        }}
-                        className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
-                      >
-                        <FileText size={14} />
-                        Export CSV
-                      </button>
-                    </div>,
-                    document.body
-                  )}
-                </div>
+                {/* Export All Button - Proven Implementation */}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<Download className="w-4 h-4" />}
+                  onClick={handleExportAllCSV}
+                  className="text-xs sm:text-sm"
+                >
+                  Export All
+                </Button>
 
                 {/* Refresh Button */}
                 <button
@@ -514,45 +421,17 @@ export default function OwnerSalesReportsClient({ user, displayName }: OwnerSale
                         <span className="hidden sm:inline">Click card to view</span>
                       </div>
 
-                      {/* Export Dropdown */}
-                      <div className="relative dropdown-container">
-                        <button
-                          ref={(el) => {
-                            exportButtonRefs.current[`export-${report.id}`] = el;
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleExportDropdownToggle(`export-${report.id}`, e.currentTarget);
-                          }}
-                          className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-lg transition-all duration-200 touch-manipulation hover:scale-110 active:scale-90"
-                        >
-                          <Download size={14} />
-                        </button>
-
-                        {/* Portal dropdown - always appears above everything */}
-                        {mounted && showDropdown === `export-${report.id}` && createPortal(
-                          <div
-                            className="fixed bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px] export-dropdown-portal"
-                            style={{
-                              top: exportDropdownPosition.top,
-                              left: exportDropdownPosition.left,
-                              zIndex: 99999
-                            }}
-                          >
-                            <button
-                              onClick={() => {
-                                handleExportReport(report);
-                                setShowDropdown(null);
-                              }}
-                              className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2 text-sm"
-                            >
-                              <FileText size={12} />
-                              CSV
-                            </button>
-                          </div>,
-                          document.body
-                        )}
-                      </div>
+                      {/* Export Button - Proven Implementation */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        leftIcon={<Download className="w-4 h-4" />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleExportReportCSV(report);
+                        }}
+                        className="hover:scale-110 active:scale-90 transition-all duration-200"
+                      />
 
                       {/* Share Button - Opens Modal */}
                       <button
