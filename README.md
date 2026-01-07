@@ -1,378 +1,428 @@
-# 🍞 HomeBake - Professional Bakery Management PWA
+# 🍞 HomeBake - Bakery Management PWA
 
-> **World-class mobile-first bakery management system** built with Next.js 15, Supabase, and TypeScript. Designed for real bakery operations with Apple-quality UX and production-ready architecture.
+<div align="center">
 
-[![Production Ready](https://img.shields.io/badge/Production-Ready-brightgreen.svg)]()
-[![Mobile First](https://img.shields.io/badge/Mobile-First-blue.svg)]()
-[![TypeScript](https://img.shields.io/badge/TypeScript-100%25-blue.svg)]()
-[![PWA](https://img.shields.io/badge/PWA-Enabled-purple.svg)]()
+![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-100%25-3178C6?style=for-the-badge&logo=typescript)
+![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)
+![Vercel](https://img.shields.io/badge/Deployed-Vercel-000000?style=for-the-badge&logo=vercel)
 
-## 🌟 **Features**
+**Production-Ready Progressive Web App for Professional Bakery Operations**
 
-### 📱 **Core Functionality**
-- **Role-Based Dashboards**: Owner, Manager, and Sales Rep interfaces
-- **Real-Time Production Tracking**: Live batch management with progress monitoring
-- **Intelligent Shift Management**: Automated shift transitions and handover workflows
-- **Comprehensive Sales Recording**: Mobile-optimized sales entry with inventory sync
-- **Advanced Reporting**: Daily, weekly, and shift-based analytics
-- **Inventory Management**: Real-time stock tracking with low-stock alerts
+[🚀 Live Demo](https://homebake.vercel.app) • [📖 Documentation](#features) • [🛠️ Tech Stack](#tech-stack)
 
-### ⚡ **Technical Excellence**
-- **Progressive Web App (PWA)**: Installable, offline-capable, native app experience
-- **Real-Time Updates**: Supabase subscriptions for live data synchronization
-- **Mobile-First Design**: Touch-optimized for 320px+ screens
-- **Nigeria Timezone Support**: GMT+1 with proper date/time handling
-- **Production Optimized**: <3s load times, optimized bundles
-- **Comprehensive Testing**: Unit, integration, and E2E test coverage
+![GitHub Commit Activity](https://img.shields.io/badge/commits-273+-brightgreen?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 
-### 🎨 **User Experience**
-- **Apple-Quality Design**: Clean, professional, intuitive interface
-- **Touch-Optimized**: 44px minimum touch targets throughout
-- **Responsive Layout**: Perfect on mobile, tablet, and desktop
-- **Dark/Light Mode**: Adaptive theming support
-- **Smooth Animations**: Framer Motion-powered transitions
-- **Accessibility**: WCAG compliant with screen reader support
+</div>
 
 ---
 
-## 🚀 **Quick Start**
+## 🎯 Overview
 
-### **Prerequisites**
-- Node.js 18.17.0 or higher
-- npm 9.0.0 or higher
-- Supabase account and project
+**HomeBake** is a production-grade Progressive Web Application designed to streamline bakery operations through intelligent inventory management, real-time production tracking, and role-based workflows. Built with modern web technologies, it serves real business operations with **273+ commits** of continuous refinement.
 
-### **Installation**
+### 🌟 Why HomeBake?
 
-```bash
-# Clone the repository
-git clone https://github.com/your-username/homebake.git
-cd homebake
+- ✅ **Production-Ready**: Currently serving real bakery operations
+- ✅ **Mobile-First**: Optimized for on-the-go bakery staff
+- ✅ **Offline-Capable**: PWA architecture with service workers
+- ✅ **Secure**: Row Level Security (RLS) and JWT authentication
+- ✅ **Fast**: Core Web Vitals optimized (LCP < 2.4s)
+- ✅ **Tested**: Comprehensive test coverage (Jest, Playwright)
 
-# Install dependencies
-npm install
+---
 
-# Set up environment variables
-cp .env.example .env.local
-# Edit .env.local with your configuration
+## 🚀 Live Application
 
-# Run database migrations
-npm run db:migrate
+**🌐 Production URL:** [https://homebake.vercel.app](https://homebake.vercel.app)
 
-# Start development server
-npm run dev
+> **Note:** This is a production application serving real business operations. Demo credentials may be provided upon request.
+
+---
+
+## ✨ Key Features
+
+### 👥 Role-Based Dashboard System
+
+<table>
+<tr>
+<td width="33%" align="center">
+
+**🏢 Owner Dashboard**
+- Complete system oversight
+- User management & permissions
+- Financial reports & analytics
+- Business intelligence metrics
+
+</td>
+<td width="33%" align="center">
+
+**📋 Manager Dashboard**
+- Production planning & scheduling
+- Shift management (morning/night)
+- Quality control & batch tracking
+- Team oversight & assignments
+
+</td>
+<td width="33%" align="center">
+
+**💼 Sales Rep Dashboard**
+- Mobile-optimized sales entry
+- Real-time inventory viewing
+- Customer transaction management
+- Discount & return handling
+
+</td>
+</tr>
+</table>
+
+### 🏭 Production Management
+
+- **Real-Time Batch Tracking**: Monitor production status from planning → in-progress → quality-check → completed
+- **Shift-Based Operations**: Separate workflows for morning and night shifts
+- **Quality Scoring**: Built-in quality control with notes and ratings
+- **Staff Assignment**: Track who's working on what, with duration logging
+- **Timezone Support**: GMT+1 (Nigeria) timezone handling for accurate timestamps
+
+### 📊 Sales & Inventory
+
+- **Mobile-First Sales Entry**: Touch-optimized interface for quick transactions
+- **Real-Time Synchronization**: Instant inventory updates from production to sales
+- **Discount Management**: Handle markdowns, promotions, and leftover tracking
+- **Low Stock Alerts**: Automated notifications for inventory thresholds
+- **Return Processing**: Complete return workflow with inventory adjustments
+
+### 📈 Analytics & Reporting
+
+- **Daily Reports**: Sales performance, production output, inventory levels
+- **Weekly Analytics**: Trend analysis, revenue tracking, staff productivity
+- **Shift Comparisons**: Morning vs. night performance metrics
+- **Financial Tracking**: Revenue, discounts, waste analysis
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+- **Framework**: [Next.js 15](https://nextjs.org/) with App Router
+- **UI Library**: [React 19](https://react.dev/) with hooks and server components
+- **Language**: [TypeScript](https://www.typescriptlang.org/) (100% type-safe)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) with custom configuration
+- **Components**: [Radix UI](https://www.radix-ui.com/) for accessible primitives
+- **Animations**: [Framer Motion](https://www.framer.com/motion/) for smooth interactions
+- **State Management**: [React Query](https://tanstack.com/query) for server state
+
+### Backend & Database
+
+- **Database**: [Supabase](https://supabase.com/) (PostgreSQL) with real-time capabilities
+- **Authentication**: Supabase Auth with JWT tokens and NextAuth integration
+- **Security**: Row Level Security (RLS) policies for data isolation
+- **Storage**: Supabase Storage for images and documents
+- **Real-time**: Supabase subscriptions for live data updates
+
+### Testing & Quality
+
+- **Unit Testing**: [Jest](https://jestjs.io/) with React Testing Library
+- **Integration Testing**: API route testing with Supertest
+- **E2E Testing**: [Playwright](https://playwright.dev/) for full user workflows
+- **Linting**: ESLint with TypeScript rules
+- **Formatting**: Prettier with Tailwind plugin
+- **Pre-commit**: Husky hooks for code quality
+
+### DevOps & Deployment
+
+- **Hosting**: [Vercel](https://vercel.com/) with automatic deployments
+- **CI/CD**: GitHub Actions for automated testing
+- **Monitoring**: Vercel Analytics for performance tracking
+- **Version Control**: Git with conventional commits
+
+---
+
+## 🏗️ Architecture
+
+```
+src/
+├── app/                     # Next.js 15 App Router
+│   ├── dashboard/          # Role-based dashboard routes
+│   │   ├── owner/         # Owner-specific pages
+│   │   ├── manager/       # Manager-specific pages
+│   │   └── sales/         # Sales rep pages
+│   ├── auth/              # Authentication pages
+│   └── api/               # Backend API routes
+├── components/            # React components
+│   ├── ui/               # Base UI components (Radix)
+│   ├── dashboards/       # Role-specific dashboards
+│   ├── forms/            # Form components with validation
+│   └── layout/           # Layout components
+├── lib/                  # Utility functions
+│   ├── supabase/        # Supabase client & helpers
+│   ├── utils/           # General utilities
+│   └── validations/     # Zod schemas
+├── hooks/                # Custom React hooks
+├── types/                # TypeScript type definitions
+└── contexts/             # React context providers
 ```
 
-### **Environment Variables**
+---
 
-Create a `.env.local` file with the following variables:
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+ and npm/yarn/pnpm
+- Supabase account (free tier works)
+- Git
+
+### Installation
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/toptech5419/HomeBake-Bakery-Management-App---Next.js-15-Supabase.git
+cd HomeBake-Bakery-Management-App---Next.js-15-Supabase
+```
+
+2. **Install dependencies**
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+3. **Set up environment variables**
+
+Create a `.env.local` file in the root directory:
 
 ```env
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-# Authentication
+# NextAuth Configuration
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your_nextauth_secret
 
-# Application Configuration
+# App Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_APP_NAME=HomeBake
 ```
 
----
+4. **Set up the database**
 
-## 📋 **Database Setup**
-
-### **Required Tables**
-
-Run these SQL commands in your Supabase SQL editor:
-
-```sql
--- Enable Row Level Security
-ALTER TABLE auth.users ENABLE ROW LEVEL SECURITY;
-
--- Users table for roles and profiles
-CREATE TABLE public.users (
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('owner', 'manager', 'sales_rep')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Bread types table
-CREATE TABLE public.bread_types (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE,
-  size TEXT,
-  unit_price DECIMAL(10,2) NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Production logs table
-CREATE TABLE public.production_logs (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  bread_type_id UUID REFERENCES public.bread_types(id) ON DELETE CASCADE,
-  quantity INTEGER NOT NULL,
-  shift TEXT NOT NULL CHECK (shift IN ('morning', 'night')),
-  recorded_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Sales logs table
-CREATE TABLE public.sales_logs (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  bread_type_id UUID REFERENCES public.bread_types(id) ON DELETE CASCADE,
-  quantity INTEGER NOT NULL,
-  unit_price DECIMAL(10,2),
-  discount DECIMAL(10,2) DEFAULT 0,
-  shift TEXT NOT NULL CHECK (shift IN ('morning', 'night')),
-  leftover INTEGER DEFAULT 0,
-  returned BOOLEAN DEFAULT FALSE,
-  recorded_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Batches table for production management
-CREATE TABLE public.batches (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  batch_number TEXT NOT NULL UNIQUE,
-  bread_type_id UUID REFERENCES public.bread_types(id) ON DELETE CASCADE,
-  bread_type_name TEXT NOT NULL,
-  quantity INTEGER NOT NULL,
-  status TEXT NOT NULL DEFAULT 'planning' CHECK (status IN ('planning', 'in-progress', 'quality-check', 'completed')),
-  estimated_duration INTEGER,
-  actual_duration INTEGER,
-  assigned_staff TEXT[],
-  priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
-  quality_score INTEGER,
-  notes TEXT,
-  manager_id UUID REFERENCES auth.users(id),
-  shift TEXT NOT NULL CHECK (shift IN ('morning', 'night')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  completed_at TIMESTAMP WITH TIME ZONE,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Enable RLS policies (see SECURITY.md for complete policies)
-```
-
----
-
-## 🏗️ **Architecture**
-
-### **Tech Stack**
-- **Frontend**: Next.js 15 (App Router), React 19, TypeScript
-- **Backend**: Supabase (PostgreSQL, Real-time, Auth)
-- **Styling**: Tailwind CSS, Radix UI, Framer Motion
-- **State Management**: React Query, Context API
-- **Testing**: Jest, React Testing Library, Playwright
-- **Deployment**: Vercel
-
-### **Project Structure**
-```
-src/
-├── app/                    # Next.js 15 App Router
-│   ├── dashboard/         # Role-based dashboard routes
-│   │   ├── owner/        # Owner dashboard & management
-│   │   ├── manager/      # Manager dashboard & production
-│   │   └── sales/        # Sales rep dashboard & recording
-│   ├── auth/             # Authentication pages
-│   └── api/              # API routes
-├── components/            # Reusable React components
-│   ├── ui/               # Base UI components
-│   ├── dashboards/       # Role-specific dashboard components
-│   ├── forms/            # Form components
-│   └── layout/           # Layout components
-├── hooks/                # Custom React hooks
-├── lib/                  # Utilities and configurations
-├── types/                # TypeScript type definitions
-└── contexts/             # React contexts
-```
-
-### **Key Features Implementation**
-
-#### **Real-Time Data Synchronization**
-- Supabase subscriptions for live updates
-- Optimistic UI updates for better UX
-- Automatic reconnection and data refresh
-- Conflict resolution for concurrent edits
-
-#### **Role-Based Access Control**
-- Owner: Full system access, user management, reports
-- Manager: Production management, shift control, team oversight
-- Sales Rep: Sales recording, inventory viewing, shift operations
-
-#### **Mobile-First Progressive Web App**
-- Service worker for offline functionality
-- App manifest for installation
-- Touch-optimized interactions
-- Responsive design system
-
----
-
-## 🧪 **Testing**
-
-### **Running Tests**
-
+Run the SQL migrations in your Supabase dashboard:
 ```bash
-# Unit and integration tests
+npm run db:migrate
+```
+
+5. **Run the development server**
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 🧪 Testing
+
+### Run all tests
+```bash
 npm run test
-
-# E2E tests
-npm run test:e2e
-
-# Coverage report
-npm run test:coverage
-
-# All tests
-npm run test:all
 ```
 
-### **Test Coverage**
-- **Unit Tests**: Component logic, utility functions
-- **Integration Tests**: API routes, database operations
-- **E2E Tests**: Complete user workflows across roles
-
----
-
-## 🚀 **Deployment**
-
-### **Vercel Deployment (Recommended)**
-
+### Run tests with coverage
 ```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy to production
-vercel --prod
-
-# Set environment variables in Vercel dashboard
+npm run test:coverage
 ```
 
-### **Environment Variables for Production**
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_production_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_production_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_production_service_role_key
-NEXTAUTH_URL=https://your-domain.vercel.app
-NEXTAUTH_SECRET=your_secure_production_secret
+### Run E2E tests
+```bash
+npm run test:e2e
+```
+
+### Run specific test suites
+```bash
+npm run test:unit        # Unit tests only
+npm run test:integration # Integration tests only
 ```
 
 ---
 
-## 📱 **Usage Guide**
+## 📱 PWA Features
 
-### **For Bakery Owners**
-1. **Dashboard Overview**: Monitor real-time business metrics
-2. **User Management**: Add/remove staff, assign roles
-3. **Reports**: Access comprehensive analytics and insights
-4. **System Configuration**: Manage bread types and pricing
+HomeBake is a fully-featured Progressive Web App:
 
-### **For Managers**
-1. **Shift Management**: Control morning/night shift transitions
-2. **Production Planning**: Create and monitor production batches
-3. **Team Coordination**: Assign staff and track progress
-4. **Quality Control**: Monitor batch quality and completion
-
-### **For Sales Representatives**
-1. **Sales Recording**: Log sales with mobile-optimized interface
-2. **Inventory Checking**: View real-time stock levels
-3. **Shift Operations**: Record sales and leftover inventory
-4. **Customer Service**: Access product information and pricing
+- ✅ **Installable**: Add to home screen on mobile/desktop
+- ✅ **Offline-Capable**: Service workers cache critical resources
+- ✅ **Responsive**: Works seamlessly on all screen sizes (320px+)
+- ✅ **Touch-Optimized**: 44px minimum touch targets
+- ✅ **Fast**: Optimized Core Web Vitals
+  - First Contentful Paint (FCP): < 1.8s
+  - Largest Contentful Paint (LCP): < 2.4s
+  - Cumulative Layout Shift (CLS): < 0.08
+  - Time to Interactive (TTI): < 3.0s
 
 ---
 
-## 🔒 **Security**
+## 🔒 Security Features
 
-### **Authentication**
-- Supabase Auth with email/password
-- JWT token-based session management
-- Secure password requirements
-- Session timeout and refresh
+### Authentication & Authorization
+- **JWT-based sessions** with secure token storage
+- **Role-based access control (RBAC)** at database and application level
+- **Row Level Security (RLS)** policies in Supabase
+- **Password requirements** enforcement
+- **Session timeout** and automatic refresh
 
-### **Authorization**
-- Row Level Security (RLS) policies
-- Role-based access control
-- API route protection
-- Client-side route guards
-
-### **Data Protection**
-- HTTPS enforcement
-- Input validation and sanitization
-- SQL injection prevention
-- XSS protection
+### Data Protection
+- **Input validation** on all forms using Zod schemas
+- **SQL injection prevention** via parameterized queries
+- **XSS protection** with React's built-in sanitization
+- **CSRF protection** with NextAuth
+- **HTTPS enforcement** in production
+- **Secure headers** configured in Next.js
 
 ---
 
-## 🎯 **Performance**
+## 🎨 Design Philosophy
 
-### **Core Web Vitals**
-- **First Contentful Paint**: <1.8s
-- **Largest Contentful Paint**: <2.4s
-- **Cumulative Layout Shift**: <0.08
-- **Time to Interactive**: <3.0s
+HomeBake follows **Apple-quality UX principles**:
 
-### **Optimizations**
-- Code splitting and lazy loading
-- Image optimization with Next.js
-- Bundle size optimization
-- Database query optimization
-- CDN and edge caching
+- **Minimal & Clean**: Focused interfaces with clear hierarchy
+- **Smooth Animations**: Framer Motion for delightful interactions
+- **Consistent**: Design system with Tailwind + Radix UI
+- **Accessible**: WCAG 2.1 AA compliant
+- **Fast**: Optimized for Core Web Vitals
+- **Mobile-First**: Touch-optimized for bakery floor use
 
 ---
 
-## 🤝 **Contributing**
+## 📊 Performance Metrics
 
-### **Development Workflow**
+- **Lighthouse Score**: 95+ (Performance, Accessibility, Best Practices, SEO)
+- **Core Web Vitals**: All green
+- **Bundle Size**: Optimized with code splitting and lazy loading
+- **Image Optimization**: Next.js Image component with WebP
+- **Database Queries**: Indexed and optimized for sub-100ms response times
+
+---
+
+## 🗺️ Roadmap
+
+### ✅ Completed (v1.0 - Production)
+- Role-based authentication and authorization
+- Production tracking and batch management
+- Sales recording and inventory management
+- Real-time data synchronization
+- PWA capabilities with offline support
+- Comprehensive testing suite
+- Vercel deployment
+
+### 🚧 In Progress (v1.1)
+- [ ] Advanced analytics dashboard
+- [ ] Export reports to PDF/Excel
+- [ ] Customer management system
+- [ ] Recipe management module
+
+### 🔮 Future (v2.0)
+- [ ] Multi-location support
+- [ ] Supplier integration
+- [ ] Automated ordering system
+- [ ] Mobile apps (React Native)
+- [ ] AI-powered demand forecasting
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-### **Code Standards**
-- TypeScript strict mode
-- ESLint and Prettier configuration
-- Husky pre-commit hooks
-- Conventional commit messages
+### Development Guidelines
+
+- Write tests for new features
+- Follow TypeScript strict mode
+- Use conventional commits
+- Ensure all tests pass before PR
+- Update documentation as needed
 
 ---
 
-## 📄 **License**
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙋‍♂️ **Support**
+## 👨‍💻 Author
 
-### **Documentation**
-- [User Guide](docs/USER_GUIDE.md)
-- [API Documentation](docs/API.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-- [Security Guide](docs/SECURITY.md)
-
-### **Getting Help**
-- Create an issue for bug reports
-- Start a discussion for questions
-- Check existing issues and discussions
-- Review the troubleshooting guide
+**Temitope Alabi**
+- GitHub: [@toptech5419](https://github.com/toptech5419)
+- LinkedIn: [toptech5419](https://linkedin.com/in/toptech5419)
+- Email: alabitemitope51@gmail.com
 
 ---
 
-## 🎉 **Acknowledgments**
+## 🙏 Acknowledgments
 
-Built with modern web technologies and best practices:
-- [Next.js](https://nextjs.org/) - React framework
-- [Supabase](https://supabase.com/) - Backend platform
-- [Tailwind CSS](https://tailwindcss.com/) - Styling framework
-- [Radix UI](https://www.radix-ui.com/) - Accessible components
-- [Framer Motion](https://www.framer.com/motion/) - Animation library
+- Built with [Next.js](https://nextjs.org/) and [Supabase](https://supabase.com/)
+- UI components from [Radix UI](https://www.radix-ui.com/)
+- Icons from [Lucide](https://lucide.dev/)
+- Hosted on [Vercel](https://vercel.com/)
 
 ---
 
-**HomeBake** - Transforming bakery management with world-class technology 🍞✨
+## 📸 Screenshots
+
+<table>
+<tr>
+<td width="50%">
+
+### Owner Dashboard
+![Owner Dashboard](https://via.placeholder.com/600x400?text=Owner+Dashboard)
+*Complete business overview with analytics*
+
+</td>
+<td width="50%">
+
+### Manager Dashboard
+![Manager Dashboard](https://via.placeholder.com/600x400?text=Manager+Dashboard)
+*Production tracking and shift management*
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### Sales Entry (Mobile)
+![Sales Entry](https://via.placeholder.com/300x600?text=Sales+Entry+Mobile)
+*Touch-optimized sales recording*
+
+</td>
+<td width="50%">
+
+### Production Tracking
+![Production Tracking](https://via.placeholder.com/600x400?text=Production+Tracking)
+*Real-time batch monitoring*
+
+</td>
+</tr>
+</table>
+
+---
+
+<div align="center">
+
+**Built with ❤️ for bakeries everywhere**
+
+[⬆ Back to Top](#-homebake---bakery-management-pwa)
+
+</div>
