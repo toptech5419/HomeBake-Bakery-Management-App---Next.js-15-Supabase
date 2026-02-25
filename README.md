@@ -16,6 +16,22 @@
 
 ---
 
+## 📸 Screenshots
+
+<div align="center">
+
+| Owner Dashboard | Manager Dashboard |
+|---|---|
+| ![Owner Dashboard](docs/screenshots/owner-dashboard.png) | ![Manager Dashboard](docs/screenshots/manager-dashboard.png) |
+
+| Navigation | Push Notifications (PWA) |
+|---|---|
+| ![Navigation](docs/screenshots/navigation.jpg) | ![Push Notification](docs/screenshots/push-notification.jpg) |
+
+</div>
+
+---
+
 ## 🎯 Overview
 
 **HomeBake** is a production-grade Progressive Web Application that streamlines bakery operations through role-based dashboards, real-time production tracking, inventory management, and sales recording. Built with a mobile-first approach for staff who work on the go.
