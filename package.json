@@ -16,7 +16,7 @@
     "clean": "rm -rf .next node_modules/.cache",
     "reset": "npm run clean && npm install",
     "dev:port": "next dev -p 3001",
-    "generate-types": "npx supabase gen types typescript --project-id mmazcugeljrlprurfiwk --schema public > src/types/supabase.ts && echo '✅ Database types updated successfully!'",
+    "generate-types": "npx supabase gen types typescript --project-id fciokvdmrwdjxshjapdu --schema public > src/types/supabase.ts && echo '✅ Database types updated successfully!'",
     "update-db-types": "npm run generate-types"
   },
   "dependencies": {
