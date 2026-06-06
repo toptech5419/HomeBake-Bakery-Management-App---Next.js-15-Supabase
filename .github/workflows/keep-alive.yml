@@ -1,9 +1,17 @@
 name: Keep Supabase Active
 
+# Pings the Supabase REST API on a schedule so the free-tier project is not
+# auto-paused after 7 days of inactivity. Runs every 3 days to leave a safe
+# margin (a single skipped/failed run still stays under the 7-day limit).
+#
+# NOTE: GitHub disables scheduled workflows after 60 days of repository
+# inactivity. This workflow is a free *backup*; the primary keep-alive should
+# be an external pinger (e.g. cron-job.org) that is not subject to that rule.
+
 on:
   schedule:
-    - cron: '0 9 */5 * *'  # Runs every 5 days at 9am UTC
-  workflow_dispatch:        # Allows manual trigger from GitHub UI
+    - cron: '0 9 */3 * *'  # Every 3 days at 09:00 UTC
+  workflow_dispatch:        # Allows manual trigger from the GitHub UI
 
 jobs:
   ping:
@@ -11,8 +19,15 @@ jobs:
     steps:
       - name: Ping Supabase database
         run: |
-          curl -s \
+          status=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/bread_types?select=id&limit=1" \
-            -o /dev/null -w "Status: %{http_code}\n"
+            "${{ secrets.SUPABASE_URL }}/rest/v1/bread_types?select=id&limit=1")
+          echo "HTTP status: $status"
+          # Fail the job on any non-2xx response so the failure surfaces via
+          # GitHub's notification email instead of silently doing nothing.
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "::error::Keep-alive ping failed with status $status"
+            exit 1
+          fi
+          echo "Keep-alive ping succeeded."
