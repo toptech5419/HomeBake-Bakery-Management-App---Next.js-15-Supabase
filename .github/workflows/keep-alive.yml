@@ -25,7 +25,9 @@ name: Supabase Keep-Alive & Auto-Restore
 
 on:
   schedule:
-    - cron: '0 */6 * * *'   # every 6 hours
+    - cron: '0 */6 * * *'   # every 6 hours (disabled by GitHub after 60 days w/o commits)
+  repository_dispatch:       # external trigger (e.g. cron-job.org) — NOT subject to
+    types: [keep-alive]      # the 60-day rule, so it keeps running even if the repo is idle
   workflow_dispatch:         # manual trigger from the GitHub UI
 
 permissions:
