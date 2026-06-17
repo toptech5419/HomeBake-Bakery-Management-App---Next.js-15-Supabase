@@ -1,33 +1,89 @@
-name: Keep Supabase Active
+name: Supabase Keep-Alive & Auto-Restore
 
-# Pings the Supabase REST API on a schedule so the free-tier project is not
-# auto-paused after 7 days of inactivity. Runs every 3 days to leave a safe
-# margin (a single skipped/failed run still stays under the 7-day limit).
+# Free, two-layer defense against Supabase Free-Plan auto-pausing of homebake-app.
 #
-# NOTE: GitHub disables scheduled workflows after 60 days of repository
-# inactivity. This workflow is a free *backup*; the primary keep-alive should
-# be an external pinger (e.g. cron-job.org) that is not subject to that rule.
+#   1. AUTO-RESTORE (the guarantee): if the project is paused, immediately call
+#      the Management API restore endpoint. Recovery is automatic and downtime
+#      is capped at the schedule interval (~6h) instead of days. This is what
+#      actually keeps the app coming back, regardless of why it paused.
+#
+#   2. WRITE KEEP-ALIVE (reduces frequency): when the project is active, run a
+#      real DB write (updates public.keep_alive) via the Management API query
+#      endpoint. A write registers as genuine database activity — the thing the
+#      Free-Plan inactivity check tracks — so pauses happen less often. (Note:
+#      Supabase reserves the right to pause Free projects regardless, which is
+#      why layer 1 exists.)
+#
+# REQUIRED REPO SECRET:
+#   SUPABASE_ACCESS_TOKEN  — a Supabase Personal Access Token with access to this
+#     project. Create one at https://supabase.com/dashboard/account/tokens and add
+#     it under Repo Settings → Secrets and variables → Actions → New repository secret.
+#
+# NOTE: GitHub disables scheduled workflows after 60 days with no commits to the
+# repository. While you push to this repo periodically it stays active. If it ever
+# gets disabled, re-enable it from the Actions tab (or hit "Run workflow" once).
 
 on:
   schedule:
-    - cron: '0 9 */3 * *'  # Every 3 days at 09:00 UTC
-  workflow_dispatch:        # Allows manual trigger from the GitHub UI
+    - cron: '0 */6 * * *'   # every 6 hours
+  workflow_dispatch:         # manual trigger from the GitHub UI
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-keep-alive
+  cancel-in-progress: false
 
 jobs:
-  ping:
+  keep-alive:
     runs-on: ubuntu-latest
+    env:
+      PROJECT_REF: fciokvdmrwdjxshjapdu
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
     steps:
-      - name: Ping Supabase database
+      - name: Check status, restore if paused, else write keep-alive ping
         run: |
-          status=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/bread_types?select=id&limit=1")
-          echo "HTTP status: $status"
-          # Fail the job on any non-2xx response so the failure surfaces via
-          # GitHub's notification email instead of silently doing nothing.
-          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
-            echo "::error::Keep-alive ping failed with status $status"
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN secret is not set. See workflow header."
             exit 1
           fi
-          echo "Keep-alive ping succeeded."
+
+          API="https://api.supabase.com/v1/projects/${PROJECT_REF}"
+          AUTH="Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}"
+
+          status=$(curl -fsS -H "${AUTH}" "${API}" | jq -r '.status')
+          echo "Current project status: ${status}"
+
+          case "${status}" in
+            ACTIVE_HEALTHY)
+              echo "Active — sending write keep-alive ping."
+              code=$(curl -s -o /tmp/q.out -w "%{http_code}" -X POST \
+                -H "${AUTH}" -H "Content-Type: application/json" \
+                "${API}/database/query" \
+                -d '{"query":"update public.keep_alive set last_ping = now() where id = 1;"}')
+              echo "Query HTTP ${code}"; cat /tmp/q.out || true
+              if [ "${code}" -lt 200 ] || [ "${code}" -ge 300 ]; then
+                echo "::error::Keep-alive write failed (HTTP ${code})"
+                exit 1
+              fi
+              echo "Keep-alive write succeeded."
+              ;;
+            INACTIVE|PAUSED|PAUSE_FAILED)
+              echo "::warning::Project is ${status} — triggering auto-restore."
+              code=$(curl -s -o /tmp/r.out -w "%{http_code}" -X POST \
+                -H "${AUTH}" -H "Content-Type: application/json" \
+                "${API}/restore" -d '{}')
+              echo "Restore HTTP ${code}"; cat /tmp/r.out || true
+              if [ "${code}" -lt 200 ] || [ "${code}" -ge 300 ]; then
+                echo "::error::Restore request failed (HTTP ${code})"
+                exit 1
+              fi
+              echo "Restore requested — project will come up shortly; next run will ping."
+              ;;
+            *)
+              echo "Transitional status (${status}) — no action this run."
+              ;;
+          esac
