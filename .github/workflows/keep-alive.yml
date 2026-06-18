@@ -4,7 +4,7 @@ name: Supabase Keep-Alive & Auto-Restore
 #
 #   1. AUTO-RESTORE (the guarantee): if the project is paused, immediately call
 #      the Management API restore endpoint. Recovery is automatic and downtime
-#      is capped at the schedule interval (~6h) instead of days. This is what
+#      is capped at the trigger interval (~6h) instead of days. This is what
 #      actually keeps the app coming back, regardless of why it paused.
 #
 #   2. WRITE KEEP-ALIVE (reduces frequency): when the project is active, run a
@@ -19,15 +19,15 @@ name: Supabase Keep-Alive & Auto-Restore
 #     project. Create one at https://supabase.com/dashboard/account/tokens and add
 #     it under Repo Settings → Secrets and variables → Actions → New repository secret.
 #
-# NOTE: GitHub disables scheduled workflows after 60 days with no commits to the
-# repository. While you push to this repo periodically it stays active. If it ever
-# gets disabled, re-enable it from the Actions tab (or hit "Run workflow" once).
+# SCHEDULING: this workflow is driven entirely by an external cron-job.org job that
+# POSTs a `keep-alive` repository_dispatch event every 6 hours. repository_dispatch
+# is an event trigger (not a `schedule:` cron), so GitHub's 60-day idle-disable of
+# scheduled workflows does NOT apply — it keeps running even if the repo sits idle.
+# To trigger manually, use the Actions tab "Run workflow" button (workflow_dispatch).
 
 on:
-  schedule:
-    - cron: '0 */6 * * *'   # every 6 hours (disabled by GitHub after 60 days w/o commits)
-  repository_dispatch:       # external trigger (e.g. cron-job.org) — NOT subject to
-    types: [keep-alive]      # the 60-day rule, so it keeps running even if the repo is idle
+  repository_dispatch:       # external trigger (cron-job.org) on a 6-hour schedule —
+    types: [keep-alive]      # NOT subject to GitHub's 60-day idle-disable rule
   workflow_dispatch:         # manual trigger from the GitHub UI
 
 permissions:
