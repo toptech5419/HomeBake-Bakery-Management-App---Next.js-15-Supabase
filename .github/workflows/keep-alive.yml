@@ -56,13 +56,18 @@ jobs:
           API="https://api.supabase.com/v1/projects/${PROJECT_REF}"
           AUTH="Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}"
 
-          status=$(curl -fsS -H "${AUTH}" "${API}" | jq -r '.status')
+          # Common curl retry policy: retry on connection errors AND transient
+          # HTTP errors (5xx like the 504 Gateway Timeouts the Management API
+          # occasionally returns), so a momentary hiccup doesn't fail the run.
+          RETRY="--retry 5 --retry-all-errors --retry-delay 10 --max-time 30"
+
+          status=$(curl -fsS ${RETRY} -H "${AUTH}" "${API}" | jq -r '.status')
           echo "Current project status: ${status}"
 
           case "${status}" in
             ACTIVE_HEALTHY)
               echo "Active — sending write keep-alive ping."
-              code=$(curl -s -o /tmp/q.out -w "%{http_code}" -X POST \
+              code=$(curl -s ${RETRY} -o /tmp/q.out -w "%{http_code}" -X POST \
                 -H "${AUTH}" -H "Content-Type: application/json" \
                 "${API}/database/query" \
                 -d '{"query":"update public.keep_alive set last_ping = now() where id = 1;"}')
@@ -75,7 +80,7 @@ jobs:
               ;;
             INACTIVE|PAUSED|PAUSE_FAILED)
               echo "::warning::Project is ${status} — triggering auto-restore."
-              code=$(curl -s -o /tmp/r.out -w "%{http_code}" -X POST \
+              code=$(curl -s ${RETRY} -o /tmp/r.out -w "%{http_code}" -X POST \
                 -H "${AUTH}" -H "Content-Type: application/json" \
                 "${API}/restore" -d '{}')
               echo "Restore HTTP ${code}"; cat /tmp/r.out || true
